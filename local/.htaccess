@@ -1,0 +1,10 @@
+<Files ~ "^.*\.([Hh][Tt][Aa])">
+ order allow,deny
+ deny from all
+ satisfy all
+</Files>
+
+Options +Indexes 
+DirectoryIndex null
+AddType text/plain .php
+IndexOptions FancyIndexing FoldersFirst

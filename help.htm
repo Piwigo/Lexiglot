@@ -1,0 +1,178 @@
+<h1>Lexiglot</h1>
+This tool is designed for the translation of PHP applications, which store language rows in an array.<br>
+<br>
+The aim is to compare languages files to a source (generally English !) and ask translators to complete missing rows.
+
+<h2>Tree structure</h2>
+Your application must contains a language folders, with one subfolder for each languages. On these subfolders you can have one or more PHP files that contain the language array.
+Exemple of tree structure :
+<ul>
+  <li>root/languages/
+    <ul>
+      <li>en_UK
+        <ul>
+          <li>admin.lang.php</li>
+          <li>common.lang.php</li>
+          <li>install.lang.php</li>
+        </ul>
+      </li>
+      <li>fr_FR
+        <ul>
+          <li>admin.lang.php</li>
+          <li>common.lang.php</li>
+          <li>install.lang.php</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+and a <i>*.lang.php</i> file contains for exemple :
+<pre>
+&lt;?php
+$lang['Installation'] = "Installation";
+$lang['Basic configuration'] = "Basic configuration";
+$lang['Default gallery language'] = "Default gallery language";
+$lang['Database configuration'] = "Database configuration";
+$lang['Admin configuration'] = "Admin configuration";
+$lang['Start Install'] = "Start installation";
+?&gt;
+</pre>
+
+<h2>What you need ?</h2>
+The tool can work independently or with a Subversion server (for commit changes automatically).<br>
+
+In autonomous mode you need at least :
+<ul>
+  <li>A mutualized host or dedicated server</li>
+  <li>PHP5</li>
+  <li>A MySQL database</li>
+</ul>
+
+In Subversion mode you need :
+<ul>
+  <li>A dedicated server with a SVN client</li>
+  <li>PHP5</li>
+  <li>A MySQL database</li>
+  <li>A SVN server (obviously)</li>
+</ul>
+
+<h2>Installation</h2>
+For the first time open up the file <i>install.php</i> in your browser. It will ask you some basics informations : database connection and admin account configuration.<br>
+After installing you are automatically logued and you can go to the configuration page.
+
+<h2>Configuration</h2>
+Configuration is saparated in two main part : common parameters are available at <i>admin.php?page=config</i> page, advanced parameters are into the file <i>config/config_local.inc.php</i> which you need to modify manually.
+
+<h3>Common parameters</h3>
+<ul>
+  <li><b>Installation name : </b>Name displayed on the header and window title, you can use HTML.</li>
+  <li><b>Homepage message : </b>A Message displayed on the main page, you can use HTML.</li>
+  <li><b>Default language : </b>Id. of the language used as source.</li>
+  <li><b>Var name : </b>Name of the PHP array which store language rows.</li>
+  <li><b>Delete rows after commit : </b>If not checked, commited rows will be marked as "Done" but kept in the database.</li>
+  <li><b>Compute and display statistics : </b>Generate translation statistics for each languages and projects and display them.</li>
+  <li><b>Activate Subversion client : </b>Activate the connection with your SVN server, the tool works as a client.</li>
+  <li><b>Subversion server : </b>URL of your SVN server, all Subversion actions are done relatively to this URL.</li>
+  <li><b>Subversion path : </b>Path to <i>svn.exe</i> (on Windows server) or <i>svn</i> command (on Unix server).</li>
+  <li><b>Subversion user : </b>Username used by the tool to commit files on the SVN server.</li>
+  <li><b>Subversion password : </b>Password for this user.</li>
+  <li><b>Read access for guests : </b>Allow unregistered users to access the tool in read-only mode.</li>
+  <li><b>Allow new users : </b>Allow visitors to register on the tool.</li>
+  <li><b>Allow users to change their password and mail : </b>On their profile page</li>
+  <li><b>Translators can add languages and projects (according to their rights) : </b>If a project has FR&IT and the user has access to IT&ES, he can add ES to this project ; same thing for projects</li>
+  <li><b>A new translator has access to : </b><i>All languages</i> or <i>His languages </i> or <i>No language</i>.</li>
+  <li><b>A new translator has access to : </b><i>All projects</i> or <i>No project</i>.</li>
+  <li><b>A new language is accessible to : </b><i>All translators</i> or <i>No translator</i>.</li>
+  <li><b>A new project is accessible to : </b><i>All translators</i> or <i>No translator</i>.</li>
+  <li><b>Add this text at the begin of new PHP files : </b>When the tool create a new PHP language file you can ask him to add this text at its begining.</li>
+</ul>
+
+<h3>Advanced parameters</h3>
+<u>Warning</u> : never edit the file <i>config_default.inc.php</i>, use <i>config_local.inc.php</i> instead !
+<ul>
+  <li><b>quote : </b>Which kind of quotes (double <i>"</i> or simple <i>'</i>) is used to delimit strings.</li>
+  <li><b>eol : </b>Which kind of end-of-lines (<i>\r</i>, <i>\n</i>, <i>\r\n</i>, ...) is used on your files.</li>
+  <li><b>plain_types : </b>Array of extensions that must be treated as plain files instead of PHP arrays.</li>
+  <li><b>flags_dir : </b>Directory used to store languages flags.</li>
+  <li><b>local_dir : </b>Directory used to store languages files (working copy if you use Subversion).</li>
+  <li><b>guest_id : </b>Id. of the guest account on your users table.</li>
+  <li><b>user_fields : </b>Name of fields on your users table (see <u>Advanced usage</u>).</li>
+  <li><b>additional_user_infos : </b>Default infos used when a new user register on an external table (see <u>Advanced usage</u>).</li>
+  <li><b>session_prefix : </b>Prefix used for session on cookies names.</li>
+  <li><b>remember_me_name : </b>Name of the cookie used for remember user session.</li>
+  <li><b>remember_me_length : </b>Lenght in seconds of the user session.</li>
+  <li><b>pass_convert : </b>Function used to hash passwords.</li>
+  <li><b>exec_before_file : </b>A little PHP code executed before each language files (see <u>Advanced usage</u>).</li>
+  <li><b>navigation_type : </b>How to navigate through projects and languages.</li>
+</ul>
+
+
+<h2>Usage</h2>
+For make the tool working you have to register available languages and projects. Projects are usefull if your application store translations in differents folders (one for the core and one for each plugins for example).<br>
+Let's configure this !
+
+<h3>Add a language</h3>
+You need at least two languages : the source (for which you enter the Id in the configuration page) and a language to translate.<br>
+Go to <i>admin.php?page=languages</i> and fill the first form for each language you want to register, note the the Id MUST be the foldername of the language.<br>
+The source is not editable.
+
+<h3>Add a project</h3>
+Now you must register at least a project. A project is basically a folder in which you have sub-folders for each language.<br>
+Go to <i>admin.php?page=projects</i> and fill the first form for each project you want to register.<br>
+The <b>Name</b> is just for internal management, not related to your application but must be unique for each project.<br>
+The <b>Directory</b> must be filled only if you are connected to a Subversion server, it's relative to <i>Subversion server</i> parameter in the configuration page.<br>
+Each <b>Files</b> must be separated by a comma (,).<br>
+Finnally projects with a higher <b>Rank</b> will be displayed before other.<br>
+<br>
+Now registered translators can edit and add languages, according to their rights and the configuration.
+
+<h2>Users management</h2>
+Their is four status available for a registered user :<br>
+A <b>Visitor</b> has no much rights that a guest (not registered user).<br>
+A <b>Translator</b> can edit translations.</br>
+A <b>Manager</b> (formerly <b>Project Manager</b>) can manage users assigned to a project.</br>
+An <b>Admin</b> has access to the whole configuration and all administration functions.<br>
+<br>
+On the page <i>admin.php?page=users</i> you can manage your users. For translators there is a link on the right collumn to manage their permissions, on this page you can chose to what languages and projects the translator has access, just drag-and-drop each label to <b>Authorized</b> and <b>Forbidden</b> blocks.
+
+<h2>Advanced usage</h2>
+There are some pretty cool functions that need a little more configuration.
+
+<h3>Shared users database (advanced)</h3>
+If you have already a forum with all your translators registered you can use it's users table for the translations tool, here is how to proceed :
+<ol>
+  <li>Go to the configuration page and uncheck <b>Allow new users</b>, and I recommend you to uncheck <b>Allow users to change their profile</b> too.</li>
+  <li>Open the file <i>config/database.inc.php</i> and modify the value of <b>USERS_TABLE</b> with the name of your users table. Obviously your SQL user must have rights to access the table.</li>
+  <li>Open the file <i>config/config_local.inc.php</i> and modify the values of the <b>$conf['user_fields']</b> array according to collumns names on your users table.</li>
+  <li>On the same file edit the value of <b>$conf['guest_id']</b>.</li>
+  <li>Now we will need to "recreate" the admin account. :
+    <ul>
+      <li>First you must know your user id on the new users table.</li>
+      <li>Open the table <b>*_user_infos</b> with your favorite MySQL browser (PHPMyAdmin for example) and TRUNCATE it.</li>
+      <li>Add two rows with theses values (leave all other fields empty) :<br>
+        <b>user_id</b> : [your id] and <b>status</b> : <i>admin</i><br>
+        <b>user_id</b> : [the guest id] and <b>status</b> : <i>guest</i>
+      </li>
+    </ul>
+  </li>
+  <li>One very advanced paremeter is <i>additional_user_infos</i>, let's try to explain : if your new users table has several field not used by Lexiglot (for example <i>group_id</i>) but which must be initialized for a good working, specify this parameter like that : <b>$conf['additional_user_infos'] = array('group_id' => '4');</b><br>
+  Please not that you have to specify this parameter only if users can register throught Lexiglot, so if <i>Allow new users</i> is checked.</li>
+  <li>One last thing to do is configure the password hash function. By default the md5 hash is used but you can change this with the inline function <b>$conf['pass_convert']</b> into <i>config/config_local.inc.php</i>.
+  <li>Now it's done, each user that want to become a translator has to login a first time with it's forum (or other) login and password. Then it appears on the users list and you can change his status.</li>
+</ol>
+
+<h3>Manage secure files (easy)</h3>
+If for any reason your language files are protected, there is many chances that the tool crash when trying to load files. To solve this there is a special parameter into <i>config/config_local.inc.php</i> : <b>$conf['exec_before_file']</b>.<br>
+Write here a PHP code that will be executed before each inclusion, in order to pass your security system.<br>
+<br>
+For example if at the begin of each language files you have :
+<pre>defined('PATH') or die('Hacking attempt!');</pre>
+just write :
+<pre>if(!defined('PATH')) define('PATH', './');</pre>
+
+<h3>Change navigation mode (easy)</h3>
+By default, you can see on the main page the list of languages and the list of projects. You can change this with the parameter <b>$conf['navigation_type']</b> into <i>config/config_local.inc.php</i>, availables values are : <b>projects</b>, <b>languages</b>, <b>both</b>.
+
+<h3>Languages files delimiters (easy)</h3>
+In the file <i>config/config_local.inc.php</i> you can specify what kind of end-of-line is used with <b>$conf['eol']</b> (\n, \r, \r\n, etc.) and what kind of quotes is used with <b>$conf['quote']</b> (simple or double).

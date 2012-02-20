@@ -1,0 +1,317 @@
+/* HISTORY PAGE */
+#last_modifs {}
+  #last_modifs pre {
+    white-space: pre-wrap;
+  }
+  #last_modifs .chkb {
+    width: 20px;
+  }
+  #last_modifs .lang {
+    width: 80px;
+  }
+  #last_modifs .section {
+    width: 80px;
+  }
+  #last_modifs .file {
+    width: 100px;
+  }
+  #last_modifs .user {
+    width: 70px;
+  }
+  #last_modifs .date {
+    width: 100px;
+    font-size: 0.9em;
+  }
+  #last_modifs .value {
+    text-align: left;
+    padding-left: 5px;
+  }
+  #last_modifs .actions {
+    width: 20px;
+  }
+  #last_modifs table tr.new td {
+    background: #cfc;
+    border-color: #b9e9b9;
+  }
+  #last_modifs table tr.new.even td {
+    background: #bfb;
+  }
+  #last_modifs table tr.edit td {
+    background: #dadaff;
+    border-color: #b9b9e9;
+  }
+  #last_modifs table tr.edit.even td {
+    background: #cacaff;
+  }
+  
+/* USERS PAGE */
+#users {}
+  #users .chkb {
+    width: 20px;
+  }
+  #users .user {
+    width: 130px;
+  }
+  #users .date {
+    width: 130px;
+  }
+  #users .section, #users .lang {
+    width: 70px;
+  }
+  #users .status {
+    width: 110px;
+  }
+  #users .actions {
+    width: 40px;
+    text-align: right;
+    padding-right: 10px;
+  }
+  
+/* PROJECTS PAGE */
+#sections {}
+  #sections .id {
+    width: 100px;
+  }
+  #sections .name {
+    width: 160px;
+  }
+  #sections .dir {
+    width: 250px;
+  }
+  #sections .rank {
+    width: 60px;
+  }
+  #sections .category {
+    width: 150px;
+  }
+  #sections .users {
+    width: 70px;
+  }
+  #sections .actions {
+    width: 40px;
+    text-align: right;
+    padding-right: 10px;
+  }
+  ul.token-input-list, div.token-input-dropdown {
+    width: 140px !important;
+  }
+  
+/* LANGUAGES PAGE */
+#langs {}
+  #langs .id {
+    width: 100px;
+  }
+  #langs .name {
+    width: 160px;
+  }
+  #langs .rank {
+    width: 60px;
+  }
+  #langs .category {
+    width: 150px;
+  }
+  #langs .users {
+    width: 70px;
+  }
+  #langs .actions {
+    width: 40px;
+    text-align: right;
+    padding-right: 10px;
+  }
+
+/* PERMISSIONS PAGE */
+#permissions {}
+  #permissions ul {
+    width: 480px;
+    float: left;
+    height: auto;
+    min-height: 51px;
+    margin: 5px;
+    padding: 0 5px 5px 5px;
+    background-color: #e5e5e5;
+    border-radius: 5px;
+  }
+  #permissions ul.active {
+    background-color: #7cba0f;
+  }
+    #permissions li {
+      display: inline-block;
+      padding: 2px 8px;
+      margin: 3px;
+      background-color: #fff;
+      box-shadow: 1px 1px 0px #888;
+      border-radius: 5px;
+      cursor: move;
+    }
+      #permissions li img {
+        vertical-align: middle;
+      }
+      #permissions li:hover {
+        background: #81CCE8;
+      }
+  #permissions h5 {
+    margin: 0 -5px 5px -5px;
+    border-radius: 5px 5px 0 0;
+    padding: 2px 0;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    background: #ccc;
+  }
+  #permissions .uniq-action {
+    cursor: pointer;
+    font-size: 0.8em;
+    color: #555;
+    float: right;
+  }
+  
+/* search form for above pages */
+table.search td {
+  padding: 0 5px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* CONFIG PAGE */
+#config {}
+  #config td {
+    width: 50%;
+  }
+  #config tr td:first-child {
+    text-align: right;
+    font-weight: bold;
+  }
+  #config tr td:last-child {
+    text-align: left;
+  }
+  
+/* MAINTENANCE PAGE */
+#maintenance {}
+  #maintenance ul {
+    width: 480px;
+    height: auto;
+    min-height: 51px;
+    margin: 5px;
+    padding: 0 5px 5px 5px;
+    background-color: #e5e5e5;
+    border-radius: 5px;
+  }
+    #maintenance li {
+      padding: 2px 8px;
+      margin: 3px;
+      background-color: #fff;
+      box-shadow: 1px 1px 0px #888;
+      border-radius: 5px;
+    }
+  #maintenance h5 {
+    margin: 0 -5px 5px -5px;
+    border-radius: 5px 5px 0 0;
+    padding: 2px 0;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    background: #ccc;
+  }
+  
+/* COMMIT CONF PAGE */
+#commit_conf {}
+  #commit_conf #mode {
+    text-align:center;
+  }
+  #commit_conf ul {
+    text-align:left;
+    margin:10px 0 10px 49%;
+  }
+/* COMMIT PREVIEW PAGE */
+#check_commit table {
+  width: 100%;
+  border: 1px solid #e9e9e9;
+}
+  #check_commit table td {
+    padding: 2px;
+    vertical-align: middle;
+    text-align: left;
+    border: none;
+  }
+  #check_commit td.marge {
+    width: 30px;
+  }
+  #check_commit td.message {
+    padding: 1em 0 1em 5px;
+  }
+  
+  #check_commit td.title {
+    padding: 3px 5px;
+    font-size: 1.1em;
+  }
+  #check_commit td.title.commit {
+    background: #d6eeff;
+  }
+  #check_commit td.title.file {
+    background: #e6eeee;
+  }
+  
+  #check_commit table.rows {
+    border-collapse: separate;
+    border-spacing: 2px 0;
+    border: none;
+    margin-bottom: 0;
+  }
+    #check_commit table.rows td {
+      width: 50%;
+      border-bottom: 1px solid #e9e9e9;
+    }
+    #check_commit table.rows tr.odd td {
+      background: #fdfdfd;
+    }
+    #check_commit table.rows tr.even td {
+      background: #f1f1f1;
+    }
+    #check_commit table.rows tr:hover td, 
+    #check_commit table.rows tr.odd:hover td, 
+    #check_commit table.rows tr.even:hover td {
+      background: #E0F6FF !important;
+    }
+    #check_commit table.rows tr.new td {
+      background: #cfc;
+      border-color: #b9e9b9;
+    }
+    #check_commit table.rows tr.new.even td {
+      background: #bfb;
+    }
+    #check_commit table.rows tr.edit td {
+      background: #dadaff;
+      border-color: #b9b9e9;
+    }
+    #check_commit table.rows tr.edit.even td {
+      background: #cacaff;
+    }
+    #check_commit table.rows tr.obsolete td {
+      background: #fdd;
+      border-color: #e9c1c1;
+    }
+    #check_commit table.rows tr.obsolete.even td {
+      background: #fcc;
+    }
+  #check_commit table pre {
+    white-space: pre-wrap;
+  }
+
+/* tooltips on users page */  
+table.tooltip td {
+  padding: 0 4px;
+}
+
+/* global action */
+.action-container {
+  margin: 0 5px;
+}
+
+span.unselectAll {
+  cursor: pointer;
+  font-size: 0.8em;
+  color: #555;
+  float: right;
+}

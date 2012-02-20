@@ -1,0 +1,558 @@
+<?php
+// +-----------------------------------------------------------------------+
+// | Lexiglot - A PHP based translation tool                               |
+// +-----------------------------------------------------------------------+
+// | Copyright(C) 2011-2012 Damien Sorel       http://www.strangeplanet.fr |
+// +-----------------------------------------------------------------------+
+// | This program is free software; you can redistribute it and/or modify  |
+// | it under the terms of the GNU General Public License as published by  |
+// | the Free Software Foundation                                          |
+// |                                                                       |
+// | This program is distributed in the hope that it will be useful, but   |
+// | WITHOUT ANY WARRANTY; without even the implied warranty of            |
+// | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU      |
+// | General Public License for more details.                              |
+// |                                                                       |
+// | You should have received a copy of the GNU General Public License     |
+// | along with this program; if not, write to the Free Software           |
+// | Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, |
+// | USA.                                                                  |
+// +-----------------------------------------------------------------------+
+
+defined('PATH') or die('Hacking attempt!'); 
+
+// +-----------------------------------------------------------------------+
+// |                         DELETE SECTION
+// +-----------------------------------------------------------------------+
+if ( isset($_GET['delete_section']) and is_admin() )
+{
+  // delete directory
+  $dir = $conf['local_dir'].$_GET['delete_section'];
+  @rrmdir($dir);  
+  
+  // delete section form user infos (such a wonderfull query !)
+  $i = $_GET['delete_section'];
+  $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET sections = 
+    IF(sections = "'.$i.'", 
+      "",
+      IF(sections LIKE "'.$i.',%",
+        REPLACE(sections, "'.$i.',", ""),
+        IF(sections LIKE "%,'.$i.'", 
+          REPLACE(sections, ",'.$i.'", ""),
+          IF(sections LIKE "%,'.$i.',%", 
+            REPLACE(sections, ",'.$i.',", ","),
+            sections
+      ) ) ) )
+;';
+  mysql_query($query);
+  
+  // delete from stats table
+  $query = '
+DELETE FROM '.STATS_TABLE.'
+  WHERE section = "'.$_GET['delete_section'].'"
+;';
+  mysql_query($query);
+  
+  // delete from sections table
+  $query = '
+DELETE FROM '.SECTIONS_TABLE.' 
+  WHERE id = "'.$_GET['delete_section'].'"
+;';
+  mysql_query($query);
+  
+  array_push($page['infos'], 'Project deleted.');
+}
+
+// +-----------------------------------------------------------------------+
+// |                         MAKE STATS
+// +-----------------------------------------------------------------------+
+if (isset($_GET['make_stats']))
+{
+  if (array_key_exists($_GET['make_stats'], $conf['all_sections']))
+  {
+    make_section_stats($_GET['make_stats']);
+    array_push($page['infos'], 'Stats refreshed for project &laquo; '.get_section_name($_GET['make_stats']).' &raquo;');
+  }
+}
+
+// +-----------------------------------------------------------------------+
+// |                         SAVE SECTIONS
+// +-----------------------------------------------------------------------+
+if (isset($_POST['save_section']))
+{
+  $query = '
+SELECT id, directory
+  FROM '.SECTIONS_TABLE.'
+  WHERE id IN("'.implode('","', array_keys($_POST['sections'])).'")
+;';
+  $old_dirs = hash_from_query($query, 'id');
+  
+  foreach ($_POST['sections'] as $section_id => $row)
+  {
+    $errors = array();
+    // check name
+    if (empty($row['name']))
+    {
+      array_push($errors, 'Name is empty for project &laquo;'.$section_id.'&raquo;.');
+    }
+    // check directory
+    if ($conf['svn_activated'] and empty($row['directory']))
+    {
+      array_push($errors, 'Directory is empty for project &laquo;'.$section_id.'&raquo;.');
+    }
+    else if (!empty($row['directory']))
+    {
+      $row['directory'] = rtrim($row['directory'], '/').'/';
+    }
+    // check files
+    $row['files'] = str_replace(' ', null, $row['files']);
+    if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $row['files'].','))
+    {
+      array_push($errors, 'Seperate each file with a comma for project &laquo;'.$section_id.'&raquo;.');
+    }
+    // check rank
+    if (!is_numeric($row['rank']))
+    {
+      array_push($errors, 'Rank must be an integer for project &laquo;'.$section_id.'&raquo;.');
+    }
+    // check category
+    if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
+    {
+      $row['category_id'] = add_category($row['category_id'], 'section');
+    }
+    if (empty($row['category_id']))
+    {
+      $row['category_id'] = 0;
+    }
+    
+    // save section
+    if (count($errors) == 0)
+    {
+      // switch directory
+      $svn_result = true;
+      if ($conf['svn_activated'] and $old_dirs[$section_id]['directory'] != $row['directory'])
+      {
+        $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$section_id);
+      }
+      
+      if ($svn_result != false)
+      {
+        $query = '
+UPDATE '.SECTIONS_TABLE.'
+  SET 
+    name = "'.$row['name'].'",
+    directory = "'.$row['directory'].'",
+    files = "'.$row['files'].'",
+    rank = '.$row['rank'].',
+    category_id = '.$row['category_id'].'
+  WHERE id = "'.$section_id.'"
+;';
+        mysql_query($query);
+      }
+    }
+    else
+    {
+      $page['errors'] = array_merge($page['errors'], $errors);
+    }
+  }
+  
+  if (count($page['errors']) == 0)
+  {
+    array_push($page['infos'], 'Modifications saved.');
+  }
+}
+
+// +-----------------------------------------------------------------------+
+// |                         ADD SECTION
+// +-----------------------------------------------------------------------+
+if ( isset($_POST['add_section']) and is_admin() )
+{
+  // check name and id
+  if (empty($_POST['name']))
+  {
+    array_push($page['errors'], 'Name is empty.');
+  }
+  else
+  {
+    $_POST['id'] = str2url($_POST['name']);
+    $query ='
+SELECT id
+  FROM '.SECTIONS_TABLE.'
+  WHERE id = "'.$_POST['id'].'"
+';
+    $result = mysql_query($query);
+    if (mysql_num_rows($result))
+    {
+      array_push($page['errors'], 'A project with this name already exists.');
+    }
+  }
+  // check directory
+  if ($conf['svn_activated'] and empty($_POST['directory']))
+  {
+    array_push($page['errors'], 'Directory is empty');
+  }
+  else if ($conf['svn_activated'] and count($page['errors']) == 0)
+  {
+    $_POST['directory'] = rtrim($_POST['directory'], '/').'/';
+    if (file_exists($conf['local_dir'].$_POST['id']))
+    {
+      array_push($page['errors'], 'A local directory with the name &laquo;'.$_POST['id'].'&raquo; already exists, I can\'t do a checkout to the SVN server.');
+    }
+    else
+    {
+      $svn_result = svn_checkout($conf['svn_server'].$_POST['directory'], $conf['local_dir'].$_POST['id']);
+    }
+  }
+  else if (count($page['errors']) == 0)
+  {
+    $svn_result = 'section created.';
+    if (!file_exists($conf['local_dir'].$_POST['id']))
+    {
+      mkdir($conf['local_dir'].$_POST['id'], 0777);
+    }
+  }
+  // check files
+  $_POST['files'] = str_replace(' ', null, $_POST['files']);
+  if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $_POST['files'].','))
+  {
+    array_push($page['errors'], 'Seperate each file with a comma.');
+  }
+  // check rank
+  if (!is_numeric($_POST['rank']))
+  {
+    array_push($page['errors'], 'Rank must be an integer.');
+  }
+  // check category
+  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
+  {
+    $row['category_id'] = add_category($_POST['category_id'], 'section');
+  }
+  if (empty($_POST['category_id']))
+  {
+    $_POST['category_id'] = 0;
+  }
+  
+  // save section
+  if (count($page['errors']) == 0)
+  {
+    $query = '
+INSERT INTO '.SECTIONS_TABLE.'(
+    id, 
+    name, 
+    directory, 
+    files,
+    rank,
+    category_id
+  )
+  VALUES(
+    "'.$_POST['id'].'",
+    "'.$_POST['name'].'",
+    "'.$_POST['directory'].'",
+    "'.$_POST['files'].'",
+    '.$_POST['rank'].',
+    '.$_POST['category_id'].'
+  )
+;';
+    mysql_query($query);
+    
+    // add section on user infos
+    $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET sections = IF( sections="", "'.$_POST['id'].'", CONCAT(sections, ",'.$_POST['id'].'") )
+  WHERE '.($conf['section_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR ' : null).'status = "admin"
+;';
+    mysql_query($query);
+    
+    array_push($page['infos'], '<b>'.$_POST['name'].'</b> : '.$svn_result);
+  }
+}
+
+// +-----------------------------------------------------------------------+
+// |                         SEARCH
+// +-----------------------------------------------------------------------+
+// default search
+$where_clauses = array('1=1');
+$search = array(
+  'id' => null,
+  'name' => null,
+  'rank' => null,
+  'category' => '-1',
+  );
+
+// url input
+if (isset($_GET['section_id']))
+{
+  $_POST['erase_search'] = true;
+  $search['id'] = $_GET['section_id'];
+}
+
+// erase search
+if (isset($_POST['erase_search']))
+{
+  unset_session_var('section_search');
+  unset($_POST);
+}
+// get saved search
+else if (get_session_var('section_search') != null)
+{
+  $search = unserialize(get_session_var('section_search'));
+}
+
+// get form search
+if (isset($_POST['search']))
+{
+  unset_session_var('section_search');
+  if (isset($_GET['section_id']))  unset($_GET['section_id']);
+  if (!empty($_POST['id']))        $search['id'] =        str_replace('*', '%', $_POST['id']);
+  if (!empty($_POST['name']))      $search['name'] =      str_replace('*', '%', $_POST['name']);
+  if (!empty($_POST['rank']))      $search['rank'] =      $_POST['rank'];
+  if (!empty($_POST['category']))  $search['category'] =  $_POST['category'];
+}
+
+// build query
+if (!empty($search['id']))
+{
+  array_push($where_clauses, 'LOWER(id) LIKE LOWER("%'.$search['id'].'%")');
+}
+if (!empty($search['name']))
+{
+  array_push($where_clauses, 'LOWER(name) LIKE LOWER("%'.$search['name'].'%")');
+}
+if (!empty($search['rank']))
+{
+  array_push($where_clauses, 'rank = '.$search['rank']);
+}
+if ($search['category'] != '-1')
+{
+  array_push($where_clauses, 'category_id = '.$search['category']);
+}
+
+// save search
+if (!isset($_GET['section_id']) and $where_clauses != array('1=1') )
+{
+  set_session_var('section_search', serialize($search));
+}
+
+// +-----------------------------------------------------------------------+
+// |                         GET INFOS
+// +-----------------------------------------------------------------------+
+$displayed_sections = array_keys($conf['all_sections']);
+if (is_manager())
+{
+  $displayed_sections = $user['sections'];
+  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
+}
+
+$query = '
+SELECT 
+    s.*,
+    COUNT(u.user_id) as total_users
+  FROM '.SECTIONS_TABLE.' as s
+    INNER JOIN '.USER_INFOS_TABLE.' as u
+    ON u.sections LIKE CONCAT("%",s.id,"%") OR u.status = "admin"
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+  GROUP BY s.id
+  ORDER BY s.id ASC
+;';
+$_DIRS = hash_from_query($query, 'id');
+
+$query = '
+SELECT id, name
+  FROM '.CATEGORIES_TABLE.'
+  WHERE type = "section"
+;';
+$categories = hash_from_query($query, 'id');
+
+
+// +-----------------------------------------------------------------------+
+// |                        TEMPLATE
+// +-----------------------------------------------------------------------+
+// add section
+if (is_admin())
+{
+echo '
+<form action="admin.php?page=projects" method="post">
+<fieldset class="common">
+  <legend>Add a project</legend>
+  
+  <table class="search">
+    <tr>
+      <th>Name <span class="red">*</span></th>
+      <th>Directory (on Subversion server) '.($conf['svn_activated'] ? '<span class="red">*</span>' : null).'</th>
+      <th>Files <span class="red">*</span></th>
+      <th>Priority</th>
+      <th>Category</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td><input type="text" name="name" size="20"></td>
+      <td><input type="text" name="directory" size="30"></td>
+      <td><input type="text" name="files" size="45"></td>
+      <td><input type="text" name="rank" size="2" value="1"></td>
+      <td><input type="text" name="category_id" class="category"></td>
+      <td><input type="submit" name="add_section" class="blue" value="Add"></td>
+    </tr>
+  </table>
+  
+</fieldset>
+</form>';
+}
+
+// search sections
+if (count($_DIRS) or count($where_clauses) > 1)
+{
+echo '
+<form action="admin.php?page=projects" method="post">
+<fieldset class="common">
+  <legend>Search</legend>
+  
+  <table class="search">
+    <tr>
+      <th>Id.</th>
+      <th>Name</th>
+      <th>Priority</th>
+      <th>Category</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td><input type="text" name="id" size="15" value="'.$search['id'].'"></td>
+      <td><input type="text" name="name" size="20" value="'.$search['name'].'"></td>
+      <td><input type="text" name="rank" size="2" value="'.$search['rank'].'"></td>
+      <td>
+        <select name="category">
+          <option value="-1" '.('-1'==$search['category']?'selected="selected"':'').'>-------</option>';
+          foreach ($categories as $row)
+          {
+            echo '
+          <option value="'.$row['id'].'" '.($row['id']==$search['category']?'selected="selected"':'').'>'.$row['name'].'</option>';
+          }
+        echo '
+        </select>
+      </td>
+      <td>
+        <input type="submit" name="search" class="blue" value="Search">
+        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+      </td>
+    </tr>
+  </table>
+</fieldset>
+</form>';
+
+// sections list
+echo '
+<form id="sections" action="admin.php?page=projects" method="post">
+<fieldset class="common">
+  <legend>Manage</legend>
+  <table class="common tablesorter">
+    <thead>
+      <tr>
+        <th class="id">Id.</th>
+        <th class="name">Name</th>
+        <th class="dir">Directory</th>
+        <th class="files">Files</th>
+        <th class="rank">Priority</th>
+        <th class="category">Category</th>
+        <th class="users">Translators</th>
+        <th class="actions"></th>
+      </tr>
+    </thead>
+    <tbody>';
+    foreach ($_DIRS as $row)
+    {
+      echo '
+      <tr>
+        <td class="id">
+          '.$row['id'].'
+        </td>
+        <td class="name">
+          <input type="text" name="sections['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
+          <span style="display:none;">'.$row['name'].'</span>
+        </td>
+        <td class="dir">
+          <input type="text" name="sections['.$row['id'].'][directory]" value="'.$row['directory'].'" size="35">
+          <span style="display:none;">'.$row['directory'].'</span>
+        </td>
+        <td class="files">
+          <a href="#" class="show-files" data="'.$row['id'].'">Edit</a>
+          <div id="textarea-'.$row['id'].'" title="'.$row['name'].' files">
+            <textarea name="sections['.$row['id'].'][files]" style="width:370px;height:145px;">'.$row['files'].'</textarea>
+          </div>    
+        </td>
+        <td class="rank">
+          <input type="text" name="sections['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
+          <span style="display:none;">'.$row['rank'].'</span>
+        </td>
+        <td class="category">
+          <input type="text" name="sections['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
+        </td>
+        <td class="users">
+          <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users')).'">'.$row['total_users'].'</a>
+        </td>
+        <td class="actions">
+          '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
+          <a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this section" onclick="return confirm(\'Are you sure?\');">
+            <img src="template/images/cross.png" alt="[x]"></a>
+        </td>
+      </tr>';
+    }
+    if (count($_DIRS) == 0)
+    {
+      echo '
+      <tr>
+        <td colspan="6"><i>No results</i></td>
+      </tr>';
+    }
+    echo '
+    </tbody>
+  </table>
+  
+  <input type="submit" name="save_section" class="blue big" value="Save">
+  
+</fieldset>
+</form>';
+}
+
+$page['header'].= '
+<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tokeninput.css">
+<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tablesorter.css">
+<script type="text/javascript" src="template/js/jquery.tokeninput.min.js"></script>
+<script type="text/javascript" src="template/js/jquery.tablesorter.min.js"></script>';
+
+$page['script'].= '  
+$("input.category").tokenInput([';
+  foreach ($categories as $row)
+    $page['script'].= '{id: "'.$row['id'].'", name: "'.$row['name'].'"},';
+$page['script'].= '], {
+  tokenLimit: 1,
+  allowCreation: true,
+  hintText: ""
+});
+
+$("#sections table").tablesorter({
+  sortList: [[4,1],[0,0]],
+  headers: { 3: {sorter: false}, 7: {sorter: false} },
+  widgets: ["zebra"]
+});
+
+$("div[id^=\'textarea\']").dialog({
+  autoOpen: false, resizable: false,
+  show: "clip", hide: "clip",
+  height: 250, width: 400,
+  buttons: {
+    "OK": function() { $(this).dialog("close"); }
+  },
+  create: function() { // jQuery.dialog moves the textarea away the form, me must set it back
+    $(this).parent().appendTo($("form#sections"));
+  }
+});
+
+$("a.show-files").click(function() {
+  $("div#textarea-"+ $(this).attr("data")).dialog("open");
+  return false;
+});
+';
+
+?>
