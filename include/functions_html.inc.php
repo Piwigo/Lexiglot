@@ -31,6 +31,18 @@ function js_popup($url, $title=null, $height=600, $width=480, $top=0, $left=0)
     onclick="window.open(this.href, \''.$title.'\', \'height='.$height.', width='.$width.', top='.$top.', left='.$left.', toolbar=yes, menubar=yes, location=no, resizable=yes, scrollbars=yes, status=no\');return false;"';
 }
 
+function load_jquery($name, $css=true)
+{
+  global $page;
+  if ($css) 
+  {
+    $page['header'].= '
+  <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.'.$name.'.css">';
+  }
+  $page['header'].= '
+  <script type="text/javascript" src="template/js/jquery.'.$name.'.min.js"></script>';
+}
+
 /**
  * cut a string and add an elipsis and a colorbox popup for full string
  * @param string
@@ -45,22 +57,22 @@ function cut_string($string, $limit)
     $md5 = md5($string);
     
     $page['script'].= '
-    $("#'.$md5.'-content").dialog({
+    $("#content-'.$md5.'").dialog({
       autoOpen: false, modal:true,
       width: 600, height: 600,
       hide:"clip", show:"clip",
       buttons: { "Close": function() { $( this ).dialog( "close" ); } }
     });
     
-    $("#'.$md5.'").click(function() {
-      $("#'.$md5.'-content").dialog( "open" );
+    $("#link-'.$md5.'").click(function() {
+      $("#content-'.$md5.'").dialog( "open" );
       return false;
     });';
 
-    $page['caption'].= '
-    <div id="'.$md5.'-content" style="white-space:pre-wrap;display:none;">'.$string.'</div>';
+    $page['begin'].= '
+    <div id="content-'.$md5.'" style="white-space:pre-wrap;display:none;">'.$string.'</div>';
 
-    return substr($string, 0, $limit).'...<br><a id="'.$md5.'" href="#">Show full text</a>';
+    return substr($string, 0, $limit).'...<br><a id="link-'.$md5.'" href="#">Show full text</a>';
   }
   else
   {
@@ -106,7 +118,7 @@ function pagination($paging)
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']-1)).'">&laquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']-1,'ks'=>null)).'">&laquo;</a>';
   }
   
   if ($paging['TotalPages'] <= 9) // less than 10 page
@@ -152,7 +164,7 @@ function pagination($paging)
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']+1)).'">&raquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']+1,'ks'=>null)).'">&raquo;</a>';
   }
   
   return $content;

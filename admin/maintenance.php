@@ -66,7 +66,7 @@ DELETE FROM '.CATEGORIES_TABLE.'
       )
 ;';
       mysql_query($query);
-      array_push($page['infos'], 'Unused categories deleted');
+      array_push($page['infos'], mysql_affected_rows().' unused categories deleted');
       break;
     }
     
@@ -77,13 +77,15 @@ DELETE FROM '.ROWS_TABLE.'
   WHERE status = "done"
 ;';
       mysql_query($query);
-      array_push($page['infos'], 'Commited strings deleted');
+      array_push($page['infos'], mysql_affected_rows().' commited strings deleted');
       break;
     }
   }
 }
+
+
 // +-----------------------------------------------------------------------+
-// |                         GENERAL INFOS
+// |                         GET INFOS
 // +-----------------------------------------------------------------------+
 // database time
 list($db_current_date) = mysql_fetch_row(mysql_query('SELECT NOW();'));
@@ -120,6 +122,10 @@ SELECT COUNT(*) as total
 ;';
 list($nb_unused_categories) = mysql_fetch_row(mysql_query($query));
 
+
+// +-----------------------------------------------------------------------+
+// |                         TEMPLATE
+// +-----------------------------------------------------------------------+
 echo '
 <div id="maintenance">
   <ul style="float:left;">
@@ -148,7 +154,5 @@ echo '
   
   <div style="clear:both;"></div>
 </div>';
-
-print_page();
 
 ?>

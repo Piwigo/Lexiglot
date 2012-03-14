@@ -97,14 +97,12 @@ function deep_file_put_contents($filename, $data, $flags=0)
   
   if ( !empty($path) and !file_exists($path) )
   {
-    mkdir($path, 0777, true);
-    if ($conf['svn_activated'])
-    {
-      svn_add($path);
-    }
+    if (!mkdir($path, 0777, true)) return false;
   }
   
-  return file_put_contents($filename, $data, $flags);
+  $out = file_put_contents($filename, $data, $flags);
+  chmod($filename, 0777);
+  return $out;
 }
 
 /**
@@ -138,4 +136,57 @@ INSERT INTO '.CATEGORIES_TABLE.'
     return mysql_insert_id();
   }
 }
+
+function print_user_languages_tooltip($languages, $max=3)
+{
+  $out = null;
+  if (count($languages) <= $max)
+  {
+    $out.= '<span style="display:none;">'.count($languages).'</span>';
+    foreach ($languages as $lang)
+    {
+      $out.= '<a title="'.get_language_name($lang).'" class="clean expand">'.get_language_flag($lang, 'default').'</a>';
+    }
+  }
+  else
+  {
+    $out.= '<a class="expand" title=\'<table class="tooltip"><tr>';
+    $i=1; $j=ceil(sqrt(count($languages)/2));
+    foreach ($languages as $lang)
+    {
+      $out.= '<td>'.get_language_flag($lang, 'default').' '.get_language_name($lang).'</td>';
+      if($i%$j==0) $out.= '</tr><tr>'; $i++;
+    }
+    $out.= '</tr></table>\'>
+      '.count($languages).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
+  }
+  return $out;
+}
+
+function print_user_sections_tooltip($sections, $max=1)
+{
+  $out = null;
+  if (count($sections) <= $max)
+  {
+    $out.= '<span style="display:none;">'.count($sections).'</span>';
+    foreach ($sections as $section)
+    {
+      $out.= get_section_name($section);
+    }
+  }
+  else
+  {
+    $out.= '<a class="expand" title=\'<table class="tooltip"><tr>';
+    $i=1; $j=ceil(sqrt(count($sections)/2));
+    foreach ($sections as $section)
+    {
+      $out.= '<td>'.get_section_name($section).'</td>';
+      if($i%$j==0)$out.= '</tr><tr>'; $i++;
+    }
+    $out.= '</tr></table>\'>
+      '.count($sections).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
+  }
+  return $out;
+}
+
 ?>

@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 if (!empty($conf['intro_message']))
 {
   echo '
@@ -99,7 +96,7 @@ SELECT
   
     echo '
     <li '.($use_stats && empty($stats[$lang]) ? 'class="new"' : null).'>
-      <a href="'.get_url_string(array('language'=>$row['id']), 'all', 'language').'">
+      <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">
         '.$row['name'].' '.get_language_flag($row['id']).'
         '.($row['id'] == $conf['default_language'] ? '<i>(source)</i>': null).'
         '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
@@ -110,7 +107,7 @@ SELECT
   {
     echo '
     <li class="add">
-      <a class="add_lang" href="'.get_url_string(array('request_language'=>null), 'all', 'misc').'"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
+      <a class="add_lang" href="'.get_url_string(array('request_language'=>null), true, 'misc').'"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
     </li>';
   }
   echo '
@@ -182,7 +179,7 @@ SELECT
     
     echo '
     <li>
-      <a href="'.get_url_string(array('section'=>$row['id']), 'all', 'section').'">
+      <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">
         '.$row['name'].'
         '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
       </a>

@@ -92,6 +92,11 @@ span.green {
   color: #0a0;
 }
 
+div.centered {
+  width:100%;
+  text-align:center;
+}
+
 img.flag {
   padding: 0 2px;
 }
@@ -107,6 +112,7 @@ table.common {
     vertical-align: middle;
     text-align: center;
     border-bottom: 1px solid #e9e9e9;
+    height:24px;
   }
   table.common tr.odd td {
     background: #fdfdfd;
@@ -137,7 +143,7 @@ fieldset.common {
     text-shadow:1px 1px 0 #eee;
   }
   
-input[type="submit"].blue {
+input.blue  {
   border: 1px solid #3399DD;
   border-color: #3399DD #3399DD #2288CC;
   border-radius: 5px;
@@ -152,7 +158,7 @@ input[type="submit"].blue {
   background: linear-gradient(top, #33BCEE 11%, #3399DD 56%);
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#33BCEE', endColorstr='#3399DD',GradientType=0 );
 }
-  input[type="submit"].blue:hover {
+  input.blue:hover {
     //box-shadow: 0 0 3px #2288CC;
     background: #3399DD;
     background: -webkit-linear-gradient(top, #3399DD 11%, #33BCEE 56%);
@@ -162,7 +168,7 @@ input[type="submit"].blue {
     background: linear-gradient(top, #3399DD 11%, #33BCEE 56%);
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3399DD', endColorstr='#33BCEE',GradientType=0 );
   }
-input[type="submit"].red {
+input.red {
   border: 1px solid #DB3434;
   border-color: #DB3434 #DB3434 #CC2222;
   border-radius: 5px;
@@ -177,7 +183,7 @@ input[type="submit"].red {
   background: linear-gradient(top, #DB3434 11%, #ED3434 56%);
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#DB3434', endColorstr='#ED3434',GradientType=0 );
 }
-  input[type="submit"].red:hover {
+  input.red:hover {
     //box-shadow: 0 0 3px #CC2222;
     background: #ED3434;
     background: -webkit-linear-gradient(top, #ED3434 11%, #DB3434 56%);
@@ -187,20 +193,18 @@ input[type="submit"].red {
     background: linear-gradient(top, #ED3434 11%, #DB3434 56%);
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ED3434', endColorstr='#DB3434',GradientType=0 );
   }
-input[type="submit"].big {
-  display: block;
+input.big {
   font-size: 1.2em;
   font-weight: bold;
   padding: 3px 7px;
-  margin: 0 auto;
 }
-  input[type="submit"].big.blue:hover {
+  input.big.blue:hover {
     box-shadow: 0 0 5px #2288CC;
   }
-  input[type="submit"].big.red:hover {
+  input.big.red:hover {
     box-shadow: 0 0 5px #CC2222;
   }
-input[type="submit"].tiny {
+input.tiny {
   font-size: 0.95em;
 }
 
@@ -220,6 +224,9 @@ input[type="submit"].tiny {
     #title  a {
       color: #111;
       border: none;
+    }
+    #title a:hover {
+      opacity:0.6;
     }
   #login {
     text-align: right;

@@ -22,22 +22,19 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS 1 (mandatory)
 // +-----------------------------------------------------------------------+
 // language
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
-  array_push($page['errors'], 'Undefined or unknown language. <a href="'.get_url_string(array('section'=>$_GET['section']), 'all', 'section').'">Go Back</a>');
+  array_push($page['errors'], 'Undefined or unknown language. <a href="'.get_url_string(array('section'=>$_GET['section']), true, 'section').'">Go Back</a>');
   print_page();
 }
 // section
 if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_sections']) )
 {
-  array_push($page['errors'], 'Undefined or unknown project. <a href="'.get_url_string(array('language'=>$_GET['language']), 'all', 'language').'">Go Back</a>');
+  array_push($page['errors'], 'Undefined or unknown project. <a href="'.get_url_string(array('language'=>$_GET['language']), true, 'language').'">Go Back</a>');
   print_page();
 }
 
@@ -88,7 +85,7 @@ $page['title'] = 'Edit';
 // +-----------------------------------------------------------------------+
 if (!file_exists($page['directory'].'/'.$page['language']))
 {
-  array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('section'=>$page['section']), 'all', 'section').'">project page</a>.');
+  array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('section'=>$page['section']), true, 'section').'">project page</a>.');
   print_page();
 }
 
@@ -239,10 +236,28 @@ foreach ($page['files'] as $file)
 }
 
 // path
-$page['caption'].= '
-<a href="'.get_url_string(array('section'=>$page['section']), 'all', 'section').'">'.get_section_name($page['section']).'</a> &raquo; 
-<a href="'.get_url_string(array('language'=>$page['language']), 'all', 'language').'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a>
-'.($is_translator ? '<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>' : null);
+$page['begin'].= '
+<p class="caption">
+  <a href="'.get_url_string(array('section'=>$page['section']), true, 'section').'">'.get_section_name($page['section']).'</a> &raquo; 
+  <a href="'.get_url_string(array('language'=>$page['language']), true, 'language').'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a>
+  
+  '.($is_translator ? '<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>' : null).'
+  '.(!is_source_language($page['language']) ? '<a class="floating_link" '.
+    js_popup(
+      get_url_string(
+        array(
+          'section'=>$page['section'],
+          'language'=>$conf['default_language'],
+          'file'=>$page['file'],
+          ),
+        true,
+        ($page['mode'] == 'array' ? 'simple_view' : 'simple_view_plain')
+        ),
+      'Reference page', 
+      800, 650
+    ).'>
+    View reference file</a>' : null).'
+</p>';
 
 // MAIN PROCESS
 include(PATH.'include/edit.'.$page['mode'].'.php');
@@ -270,7 +285,7 @@ SELECT
  ;';
   $users = hash_from_query($query);
 
-  $page['caption'].= '
+  $page['begin'].= '
 <div id="dialog-form" title="Send a notification by mail" style="display:none;">
 	<div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
     <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
@@ -281,27 +296,27 @@ SELECT
       <tr><td>
         Send to :
         <select name="user_id">
-          <option value="-1" alt="15">---------</option>';
+          <option value="-1" data="15">---------</option>';
         foreach ($users as $row)
         {
-          $page['caption'].= '
-          <option value="'.$row['user_id'].'" alt="'.$row['nb_rows'].'">'.$row['username'].($row['status']=='admin' ? ' (admin)' : null).'</option>';
+          $page['begin'].= '
+          <option value="'.$row['user_id'].'" data="'.$row['nb_rows'].'">'.$row['username'].($row['status']=='admin' ? ' (admin)' : null).'</option>';
         }
-        $page['caption'].= '
+        $page['begin'].= '
         </select>
       </td></tr>
       <tr><td>';
       if ($page['mode'] == 'array')
       {
-        $page['caption'].= '
-        <input type="checkbox" name="send_rows" value="1"> include <input type="text" name="nb_rows" size=2" maxlength="3" value="15"> first missing rows of current file in the mail';
+        $page['begin'].= '
+        <input type="checkbox" name="send_rows" value="1"> include <input type="text" name="nb_rows" size="2" maxlength="3" value="15"> first missing rows of current file in the mail';
       }
       else
       {
-        $page['caption'].= '
+        $page['begin'].= '
         <label><input type="checkbox" name="send_rows" value="1"> include the contents of current file in the mail</label>';
       }
-      $page['caption'].= '
+      $page['begin'].= '
       </td></tr>
       <tr><td>
         <textarea name="message" rows="6" cols="50"></textarea>
@@ -334,7 +349,7 @@ if ($is_translator)
     $("#dialog-form").dialog("open");
   });
   $("select[name=\'user_id\']").change(function() {
-    $("input[name=\'nb_rows\']").val($(this).children("option:selected").attr("alt"));
+    $("input[name=\'nb_rows\']").val($(this).children("option:selected").attr("data"));
   });';
 }
 else
@@ -346,8 +361,7 @@ else
 // Can't use autoResize plugin with too many textarea (browser crashes) and incompatible with highlightTextarea
 if ( count($_DIFFS) <= 30 and !isset($block_autoresize) )
 {
-  $page['header'].= '
-  <script type="text/javascript" src="template/js/jquery.autoresize.min.js"></script>';
+  load_jquery('autoresize', false);
   
   $page['script'].= '
   $("#diffs textarea").autoResize({

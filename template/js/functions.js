@@ -1,11 +1,11 @@
 function overlayMessage(msg, msg_class, $trigger) {
-    if (msg_class == "error") icon = "alert";
-    else                      icon = "info";
+    if (msg_class == "highlight") icon = "info";
+    else                          icon = "alert";
     offset = $trigger.offset();
     
     $("#overlay-message").remove();
     $("#the_page").prepend('<div id="overlay-message" class="ui-state-'+ msg_class +'" style="padding: 0.7em;"><span class="ui-icon ui-icon-'+ icon +'" style="float: left; margin-right: 0.7em;"></span>'+ msg +'</div>');
-    $("#overlay-message").css({"top":offset.top-24, "left":offset.left-130}).fadeIn("slow").delay(1000).fadeOut("slow", function(){ $(this).remove() });
+    $("#overlay-message").css({"top":offset.top-$(window).scrollTop()-24, "left":offset.left-$("#overlay-message").outerWidth()+45}).fadeIn("slow").delay(2000).fadeOut("slow", function(){ $(this).remove() });
 }
 
 

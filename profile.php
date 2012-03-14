@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 // +-----------------------------------------------------------------------+
 // |                         SEND MESSAGE
 // +-----------------------------------------------------------------------+
@@ -194,6 +191,22 @@ if ( isset($_GET['user_id']) )
   }
   else
   {
+    $query = '
+SELECT 
+    lang,
+    section, 
+    LEFT(last_edit, 10) as date,
+    COUNT(CONCAT(lang, section, LEFT(last_edit, 10))) as count
+  FROM '.ROWS_TABLE.'
+  WHERE 
+    user_id = '.$local_user['id'].'
+    AND status != "done"
+  GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
+  ORDER BY last_edit DESC
+  LIMIT 0,20
+;';
+    $recent = hash_from_query($query, null);
+    
     $page['window_title'] = $page['title'] = $local_user['username'];
     
     echo '
@@ -226,7 +239,7 @@ if ( isset($_GET['user_id']) )
             {
               if(!$f)echo ', ';$f=0;
               echo '
-              <a href="'.get_url_string(array('language'=>$lang), 'all', 'language').'" title="'.get_language_name($lang).'" class="clean flag">'.get_language_flag($lang, 'name').'</a>';
+              <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
             }
             echo '</td>
           </tr>
@@ -238,11 +251,45 @@ if ( isset($_GET['user_id']) )
             {
               if(!$f)echo ', ';$f=0;
               echo '
-              <a href="'.get_url_string(array('section'=>$section), 'all', 'section').'" class="clean">'.get_section_name($section).'</a>';
+              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
             }
             echo '</td>
-          </tr>
+          </tr>';
+        if ($local_user['status'] == 'manager')
+        {
+          echo '
+          <tr>
+            <td>Projects managed :</td>
+            <td>';
+            $f=1;
+            foreach ($local_user['manage_sections'] as $section)
+            {
+              if(!$f)echo ', ';$f=0;
+              echo '
+              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+            }
+            echo '</td>
+          </tr>';
+        }
+        echo '
         </table>
+      </fieldset>
+      
+      <fieldset class="common">
+        <legend>Activity</legend>
+        <ul>';
+          foreach ($recent as $row)
+          {
+            echo '
+            <li>'.format_date($row['date'],0,0).' : translate <b>'.$row['count'].'</b> string(s) of <i>'.get_section_name($row['section']).'</i> in <i>'.get_language_name($row['lang']).'</i></li>';
+          }
+          if (!count($recent))
+          {
+            echo '
+            <li>No recent activity</li>';
+          }
+        echo '
+        </ul>
       </fieldset>';
     
     if ( is_admin() or ( !is_guest() and $local_user['email_privacy'] != 'private' ) )
@@ -299,6 +346,22 @@ else if ( !is_guest() )
       ');
   }
   
+  $query = '
+SELECT 
+    lang,
+    section, 
+    LEFT(last_edit, 10) as date,
+    COUNT(CONCAT(lang, section, LEFT(last_edit, 10))) as count
+  FROM '.ROWS_TABLE.'
+  WHERE 
+    user_id = '.$user['id'].'
+    AND status != "done"
+  GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
+  ORDER BY last_edit DESC
+  LIMIT 0,20
+;';
+  $recent = hash_from_query($query, null);
+  
   echo '
   <form action="" method="post"> 
     <fieldset class="common">
@@ -320,7 +383,7 @@ else if ( !is_guest() )
           {
             if(!$f)echo ', ';$f=0;
             echo '
-            <a href="'.get_url_string(array('language'=>$lang), 'all', 'language').'" title="'.get_language_name($lang).'" class="clean flag">'.get_language_flag($lang, 'name').'</a>';
+            <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
           }
           echo '</td>
         </tr>
@@ -332,10 +395,27 @@ else if ( !is_guest() )
           {
             if(!$f)echo ', ';$f=0;
             echo '
-            <a href="'.get_url_string(array('section'=>$section), 'all', 'section').'" class="clean">'.get_section_name($section).'</a>';
+            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
           }
           echo '</td>
-        </tr>
+        </tr>';
+        if ($user['status'] == 'manager')
+        {
+          echo '
+          <tr>
+            <td>Projects managed :</td>
+            <td>';
+            $f=1;
+            foreach ($user['manage_sections'] as $section)
+            {
+              if(!$f)echo ', ';$f=0;
+              echo '
+              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+            }
+            echo '</td>
+          </tr>';
+        }
+        echo '
       </table>
     </fieldset>';
     
@@ -405,22 +485,36 @@ else if ( !is_guest() )
         </tr>
       </table>
     </fieldset>
+    
+    <fieldset class="common">
+      <legend>Activity</legend>
+      <ul>';
+        foreach ($recent as $row)
+        {
+          echo '
+          <li>'.format_date($row['date'],0,0).' : translate <b>'.$row['count'].'</b> string(s) of <i>'.get_section_name($row['section']).'</i> in <i>'.get_language_name($row['lang']).'</i></li>';
+        }
+        if (!count($recent))
+        {
+          echo '
+          <li>No recent activity</li>';
+        }
+      echo '
+      </ul>
+    </fieldset>
   </form>';
   
-  $page['header'].= '
-  <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.chosen.css">
-  <script type="text/javascript" src="template/js/jquery.chosen.min.js"></script>';
-  
+  load_jquery('chosen');  
   $page['script'].= '
   $("#my_languages").chosen();';
 }
 else
 {
-  array_push($page['errors'], 'Access denied.');
+  redirect('index.php');
 }
 
 $page['script'].= '
-  $(".flag").tipTip({ 
+  $(".flag").parent("a").css("cursor", "help").tipTip({ 
     maxWidth:"600px",
     delay:200,
     defaultPosition:"top"

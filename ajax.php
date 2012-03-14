@@ -28,16 +28,21 @@ define('PATH', './');
 define('IN_AJAX', 1);
 include(PATH.'include/common.inc.php');
 
+function close_ajax($errcode, $data=null)
+{
+  echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
+  close_page();
+}
+
+
 if (!isset($_POST['action']))
 {
-  echo 'Undefined action';
-  close_page();
+  close_ajax('error', 'Undefined action');
 }
 
 if (!verify_ephemeral_key(@$_POST['key']))
 {
-  echo 'Stop spam!';
-  close_page();
+  close_ajax('error', 'Invalid/expired form key');
 }
 
 switch ($_POST['action'])
@@ -47,14 +52,12 @@ switch ($_POST['action'])
   {    
     if (empty($_POST['row_value']))
     {
-      echo 'String is empty';
-      break;
+      close_ajax('error', 'String is empty');
     }
     
     if (empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']))
     {
-      echo 'Bad parameters';
-      break;
+      close_ajax('error', 'Bad parameters');
     }
     
     $key = utf8_decode($_POST['row_name']);
@@ -99,12 +102,10 @@ INSERT INTO `'.ROWS_TABLE.'`(
 ;';
       mysql_query($query);
       
-      echo 'Saved';
-      break;
+      close_ajax('success', 'Saved');
     }
     
-    echo 'Already up-to-date';
-    break;
+    close_ajax('warning', 'Already up-to-date');
   }
   
   
@@ -113,8 +114,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   {
     if (empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']))
     {
-      echo 'Bad parameters';
-      break;
+      close_ajax('error', 'Bad parameters');
     }
     
     $query = '
@@ -139,19 +139,17 @@ SELECT
     $out = array();
     while ($entry = mysql_fetch_assoc($result))
     {
-      array_push($out, '<li><pre>'.$entry['row_value'].'</pre> <span>by <a href="'.get_url_string(array('user_id'=>$entry['user_id']),'all','profile').'">'.$entry['username'].'</a> on '.format_date($entry['last_edit']).'</span></li>');
+      array_push($out, '<li><pre>'.htmlspecialchars($entry['row_value']).'</pre> <span>by <a href="'.get_url_string(array('user_id'=>$entry['user_id']), true, 'profile').'">'.$entry['username'].'</a> on '.format_date($entry['last_edit']).'</span></li>');
     }
     if (!count($out))
     {
       array_push($out, '<li><i>No data</i></li>');
     }
     
-    echo '<h5>Past translations :</h5>
+   close_ajax('success', '<h5>Past translations :</h5>
     <ul class="row_log">
       '.implode('', $out).'
-    </ul>';
-    break;
-    
+    </ul>');
   }
 }
 

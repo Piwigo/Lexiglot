@@ -1,3 +1,7 @@
+tr.highlight td {
+  background:#81CCE8 !important;
+}
+  
 /* HISTORY PAGE */
 #last_modifs {}
   #last_modifs pre {
@@ -138,16 +142,31 @@
       display: inline-block;
       padding: 2px 8px;
       margin: 3px;
+      height:15px;
+      min-width:136px;
       background-color: #fff;
       box-shadow: 1px 1px 0px #888;
       border-radius: 5px;
       cursor: move;
     }
+      #permissions li input {
+        vertical-align:middle;
+        margin:-2px 2px 0 -2px;
+      }
       #permissions li img {
         vertical-align: middle;
       }
       #permissions li:hover {
         background: #81CCE8;
+      }
+      #permissions li i {
+        display:block;
+        float:right;
+        margin:-2px -8px -2px 5px;
+        padding:0 3px;
+        height:19px;
+        background:#81CCE8;
+        border-radius: 0 4px 4px 0;
       }
   #permissions h5 {
     margin: 0 -5px 5px -5px;

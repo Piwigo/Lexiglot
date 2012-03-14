@@ -19,12 +19,14 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!'); 
+defined('PATH') or die('Hacking attempt!');
+
+$highlight_section = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 
 // +-----------------------------------------------------------------------+
 // |                         DELETE SECTION
 // +-----------------------------------------------------------------------+
-if ( isset($_GET['delete_section']) and is_admin() )
+if ( isset($_GET['delete_section']) and ( is_admin() or (is_manager($_GET['delete_section']) and $user['manage_perms']['can_delete_projects']) ) )
 {
   // delete directory
   $dir = $conf['local_dir'].$_GET['delete_section'];
@@ -44,6 +46,21 @@ UPDATE '.USER_INFOS_TABLE.'
           IF(sections LIKE "%,'.$i.',%", 
             REPLACE(sections, ",'.$i.',", ","),
             sections
+      ) ) ) )
+;';
+  mysql_query($query);  
+  $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET manage_sections = 
+    IF(manage_sections = "'.$i.'", 
+      "",
+      IF(manage_sections LIKE "'.$i.',%",
+        REPLACE(manage_sections, "'.$i.',", ""),
+        IF(manage_sections LIKE "%,'.$i.'", 
+          REPLACE(manage_sections, ",'.$i.'", ""),
+          IF(manage_sections LIKE "%,'.$i.',%", 
+            REPLACE(manage_sections, ",'.$i.',", ","),
+            manage_sections
       ) ) ) )
 ;';
   mysql_query($query);
@@ -74,6 +91,7 @@ if (isset($_GET['make_stats']))
   {
     make_section_stats($_GET['make_stats']);
     array_push($page['infos'], 'Stats refreshed for project &laquo; '.get_section_name($_GET['make_stats']).' &raquo;');
+    $highlight_section = $_GET['make_stats'];
   }
 }
 
@@ -83,14 +101,15 @@ if (isset($_GET['make_stats']))
 if (isset($_POST['save_section']))
 {
   $query = '
-SELECT id, directory
+SELECT id, directory, files
   FROM '.SECTIONS_TABLE.'
   WHERE id IN("'.implode('","', array_keys($_POST['sections'])).'")
 ;';
-  $old_dirs = hash_from_query($query, 'id');
+  $old_values = hash_from_query($query, 'id');
   
   foreach ($_POST['sections'] as $section_id => $row)
   {
+    $generate_stats = false;
     $errors = array();
     // check name
     if (empty($row['name']))
@@ -112,6 +131,10 @@ SELECT id, directory
     {
       array_push($errors, 'Seperate each file with a comma for project &laquo;'.$section_id.'&raquo;.');
     }
+    else if ($row['files'] != $old_values[$section_id]['files'])
+    {
+      $generate_stats = true;
+    }
     // check rank
     if (!is_numeric($row['rank']))
     {
@@ -127,19 +150,24 @@ SELECT id, directory
       $row['category_id'] = 0;
     }
     
+    // switch directory
+    if ( count($errors) == 0 and $conf['svn_activated'] and $old_values[$section_id]['directory'] != $row['directory'] )
+    {
+      $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$section_id);
+      if ($svn_result['level'] == 'error')
+      {
+        array_push($errors, $svn_result['msg']);
+      }
+      else
+      {
+        $generate_stats = true;
+      }
+    }
+    
     // save section
     if (count($errors) == 0)
     {
-      // switch directory
-      $svn_result = true;
-      if ($conf['svn_activated'] and $old_dirs[$section_id]['directory'] != $row['directory'])
-      {
-        $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$section_id);
-      }
-      
-      if ($svn_result != false)
-      {
-        $query = '
+      $query = '
 UPDATE '.SECTIONS_TABLE.'
   SET 
     name = "'.$row['name'].'",
@@ -149,7 +177,12 @@ UPDATE '.SECTIONS_TABLE.'
     category_id = '.$row['category_id'].'
   WHERE id = "'.$section_id.'"
 ;';
-        mysql_query($query);
+      mysql_query($query);
+      
+      // update stats
+      if ( $conf['use_stats'] and $generate_stats )
+      {
+        make_section_stats($section_id);
       }
     }
     else
@@ -167,7 +200,7 @@ UPDATE '.SECTIONS_TABLE.'
 // +-----------------------------------------------------------------------+
 // |                         ADD SECTION
 // +-----------------------------------------------------------------------+
-if ( isset($_POST['add_section']) and is_admin() )
+if ( isset($_POST['add_section']) and ( is_admin() or $user['manage_perms']['can_add_projects'] ) )
 {
   // check name and id
   if (empty($_POST['name']))
@@ -203,6 +236,15 @@ SELECT id
     else
     {
       $svn_result = svn_checkout($conf['svn_server'].$_POST['directory'], $conf['local_dir'].$_POST['id']);
+      if ($svn_result['level'] == 'error')
+      {
+        array_push($page['errors'], $svn_result['msg']);
+      }
+      else
+      {
+        $svn_result = $svn_result['msg'];
+        chmod($conf['local_dir'].$_POST['id'], 0777);
+      }
     }
   }
   else if (count($page['errors']) == 0)
@@ -210,7 +252,7 @@ SELECT id
     $svn_result = 'section created.';
     if (!file_exists($conf['local_dir'].$_POST['id']))
     {
-      mkdir($conf['local_dir'].$_POST['id'], 0777);
+      mkdir($conf['local_dir'].$_POST['id'], 0777, true);
     }
   }
   // check files
@@ -227,7 +269,7 @@ SELECT id
   // check category
   if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
   {
-    $row['category_id'] = add_category($_POST['category_id'], 'section');
+    $_POST['category_id'] = add_category($_POST['category_id'], 'section');
   }
   if (empty($_POST['category_id']))
   {
@@ -261,11 +303,33 @@ INSERT INTO '.SECTIONS_TABLE.'(
     $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET sections = IF( sections="", "'.$_POST['id'].'", CONCAT(sections, ",'.$_POST['id'].'") )
-  WHERE '.($conf['section_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR ' : null).'status = "admin"
+  WHERE '.($conf['section_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
 ;';
     mysql_query($query);
     
+    if (is_manager())
+    {
+      $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET manage_sections = IF( manage_sections="", "'.$_POST['id'].'", CONCAT(manage_sections, ",'.$_POST['id'].'") )
+  WHERE user_id = '.$user['id'].'
+;';
+      mysql_query($query);
+    }
+    
+    // generate stats
+    if ($conf['use_stats'])
+    {
+      $query = 'SELECT * FROM '.SECTIONS_TABLE.' ORDER BY id;';
+      $conf['all_sections'] = hash_from_query($query, 'id');
+      ksort($conf['all_sections']);
+
+      make_section_stats($_POST['id']);
+    }
+    
     array_push($page['infos'], '<b>'.$_POST['name'].'</b> : '.$svn_result);
+    $highlight_section = $_POST['id'];
+    $_POST['erase_search'] = true;
   }
 }
 
@@ -338,12 +402,8 @@ if (!isset($_GET['section_id']) and $where_clauses != array('1=1') )
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-$displayed_sections = array_keys($conf['all_sections']);
-if (is_manager())
-{
-  $displayed_sections = $user['sections'];
-  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
-}
+$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
+array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
 
 $query = '
 SELECT 
@@ -371,7 +431,7 @@ $categories = hash_from_query($query, 'id');
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
 // add section
-if (is_admin())
+if ( is_admin() or $user['manage_perms']['can_add_projects'] )
 {
 echo '
 <form action="admin.php?page=projects" method="post">
@@ -402,7 +462,7 @@ echo '
 }
 
 // search sections
-if (count($_DIRS) or count($where_clauses) > 1)
+if ( count($_DIRS) or count($where_clauses) > 1 )
 {
 echo '
 <form action="admin.php?page=projects" method="post">
@@ -463,7 +523,7 @@ echo '
     foreach ($_DIRS as $row)
     {
       echo '
-      <tr>
+      <tr class="'.($highlight_section==$row['id'] ? 'highlight' : null).'">
         <td class="id">
           '.$row['id'].'
         </td>
@@ -489,12 +549,12 @@ echo '
           <input type="text" name="sections['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
         </td>
         <td class="users">
-          <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users')).'">'.$row['total_users'].'</a>
+          <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
           '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
-          <a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this section" onclick="return confirm(\'Are you sure?\');">
-            <img src="template/images/cross.png" alt="[x]"></a>
+          '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this section" onclick="return confirm(\'Are you sure?\');">
+            <img src="template/images/cross.png" alt="[x]"></a>' : null).'
         </td>
       </tr>';
     }
@@ -509,17 +569,15 @@ echo '
     </tbody>
   </table>
   
-  <input type="submit" name="save_section" class="blue big" value="Save">
-  
+  <div class="centered">
+    <input type="submit" name="save_section" class="blue big" value="Save">
+  </div>
 </fieldset>
 </form>';
 }
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tokeninput.css">
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tablesorter.css">
-<script type="text/javascript" src="template/js/jquery.tokeninput.min.js"></script>
-<script type="text/javascript" src="template/js/jquery.tablesorter.min.js"></script>';
+load_jquery('tablesorter');
+load_jquery('tokeninput');
 
 $page['script'].= '  
 $("input.category").tokenInput([';

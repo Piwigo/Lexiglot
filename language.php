@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 // +-----------------------------------------------------------------------+
 // |                         LANGUAGE PROPERTIES
 // +-----------------------------------------------------------------------+
@@ -75,14 +72,13 @@ if (isset($_POST['add_section']))
   {
     array_push($page['errors'], 'You have no rights to add this project.');
   }
+  else if (mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], 0777, true))
+  {
+    redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
+  }
   else
   {
-    @mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], 0777);
-    if ($conf['svn_activated'])
-    {
-      svn_add($conf['local_dir'].$_POST['section'].'/'.$page['language']);
-    }
-    redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']),'all','edit'));
+    array_push($page['errors'], 'Can\t create forder. Please contact administrators.');
   }
 }
 
@@ -148,7 +144,7 @@ foreach ($section_translated as $row)
   
   echo '
   <li '.( !$row['lang_exists'] || ($use_stats && empty($stats[$row['id']])) ? 'class="new"' : null).'>
-    <a href="'.get_url_string(array('language'=>$page['language'],'section'=>$row['id']), 'all', 'edit').'">
+    <a href="'.get_url_string(array('language'=>$page['language'],'section'=>$row['id']), true, 'edit').'">
       '.$row['name'].'
       '.($use_stats ? display_progress_bar($stats[$row['id']], 150) : null).'
     </a>

@@ -43,27 +43,17 @@ if (is_manager())
 $pages = array(
   'history' => 'History', 
   'commit' => 'Commit',
+  'users' => 'Users',
+  'projects' => 'Projects',
   );
 $sub_pages = array(
   'user_perm' => 'User permissions',
   );
 
-// manager pages
-if (is_manager())
-{
-  if (@$_GET['page'] == 'users') redirect(get_url_string(array('page'=>'users_lite')));
-  $pages = array_merge($pages, array(
-    'users_lite' => 'Users', 
-    'projects' => 'Projects',
-    ));
-}
-
 // admin pages
 if (is_admin())
 {
   $pages = array_merge($pages, array(
-    'users' => 'Users', 
-    'projects' => 'Projects', 
     'languages' => 'Languages', 
     'config' => 'Configuration',
     'maintenance' => 'Maintenance',
@@ -84,15 +74,13 @@ else
 // +-----------------------------------------------------------------------+
 // page title
 $page['window_title'] = $page['title'] = 'Admin';
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/admin.css">';
 
 // tabsheet
 $tabsheet['param'] = 'page';
 $tabsheet['selected'] = $page['page'];
 foreach ($pages as $file => $name)
 {
-  $tabsheet['tabs'][ $file ] = array($name, null, 'all');
+  $tabsheet['tabs'][ $file ] = array($name, null, true);
 }
 if ( !array_key_exists($page['page'], $pages) )
 {

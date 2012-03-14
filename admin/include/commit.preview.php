@@ -29,15 +29,17 @@ defined('PATH') or die('Hacking attempt!');
 echo '
 <form id="check_commit" action="admin.php?page=commit" method="post">
 <fieldset class="common">
-  <legend>'.count($_ROWS).' commit(s) • '.$commit_title.'</legend>
+  <legend>'.count($_ROWS).' commit(s) '.(!empty($commit_title) ? '• '.$commit_title : null).'</legend>
   <table class="main" style="margin-bottom:10px;">';
   $i=0;
   // FOREACH COMMIT
   foreach ($_ROWS as $props => $files)
   {
+    // commit infos
     list($commit['section'], $commit['language']) = explode('||', $props);
     $commit['users'] = array();
     $commit['path'] = $conf['local_dir'].$commit['section'].'/'.$commit['language'].'/';
+    $commit['is_new'] = dir_is_empty($commit['path']);
     
     echo '
     <tr><td class="title commit" colspan="2"><b>Section :</b> '.$commit['section'].' — <b>Language :</b> '.$commit['language'].'</td></tr>
@@ -57,10 +59,9 @@ echo '
         
         ## plain file ##
         if (is_plain_file($file_infos['name']))
-        {         
-          $file_content = array_values($file_content);
-          $row = $file_content[0];
-          $commit['users'][$row['user_id']] = $_USERS[$row['user_id']]['username'];
+        {
+          $row = $file_content[ $file_infos['name'] ];
+          $commit['users'][ $row['user_id'] ] = $_USERS[ $row['user_id'] ]['username'];
           
           echo '
           <tr>
@@ -83,17 +84,16 @@ echo '
           <tr>
             <td class="marge"></td>
             <td><table class="rows">';
-            // FOREACH ROW
             // rows from database (new/edited) we skip obsolete
             foreach ($file_content as $key => $row)
             {
               if (!isset($_LANG_default[$key])) continue;
-              $commit['users'][$row['user_id']] = $_USERS[$row['user_id']]['username'];
+              $commit['users'][ $row['user_id'] ] = $_USERS[$row['user_id']]['username'];
               
               echo '
               <tr class="'.$row['status'].' '.($i%2==0?'odd':'even').'">
-                <td><pre>'.$key.'</pre></td>
-                <td><pre>'.$row['row_value'].'</pre></td>
+                <td><pre>'.htmlspecialchars($key).'</pre></td>
+                <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
               </tr>';
               $i++;
             }
@@ -106,8 +106,8 @@ echo '
                 {
                   echo '
                   <tr class="obsolete '.($i%2==0?'odd':'even').'">
-                    <td>'.$key.'</td>
-                    <td>'.$row['row_value'].'</td>
+                    <td>'.htmlspecialchars($key).'</td>
+                    <td>'.htmlspecialchars($row['row_value']).'</td>
                   </tr>';
                   $i++;
                 }
@@ -122,34 +122,36 @@ echo '
       </table>
     </td>
     </tr>
-    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] Update language '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
+    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' language '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
     
     unset($commit);
   }
   echo '
-  </table>';
+  </table>
   
-  // repeat some form inputs
-  if (isset($_POST['delete_obsolete']))
-  {
-    echo '
-    <input type="hidden" name="delete_obsolete" value="1">';
-  }
-  if ($_POST['mode'] != 'all')
-  {
-    foreach(array('section','language','user') as $mode)
+  <div class="centered">';
+    // repeat some form inputs
+    if (isset($_POST['delete_obsolete']))
     {
-      if ( !empty($_POST['filter_'.$mode]) and $_POST[$mode.'_id'] != '-1' )
+      echo '
+      <input type="hidden" name="delete_obsolete" value="1">';
+    }
+    if ($_POST['mode'] != 'all')
+    {
+      foreach(array('section','language','user') as $mode)
       {
-        echo '
-        <input type="hidden" name="filter_'.$mode.'" value="1">
-        <input type="hidden" name="'.$mode.'_id" value="'.$_POST[ $mode.'_id' ].'">';
+        if ( !empty($_POST['filter_'.$mode]) and $_POST[$mode.'_id'] != '-1' )
+        {
+          echo '
+          <input type="hidden" name="filter_'.$mode.'" value="1">
+          <input type="hidden" name="'.$mode.'_id" value="'.$_POST[ $mode.'_id' ].'">';
+        }
       }
     }
-  }
-  echo '
-  <input type="hidden" name="mode" value="'.$_POST['mode'].'">
-  <input type="submit" name="init_commit" class="blue big" value="Launch">
+    echo '
+    <input type="hidden" name="mode" value="'.$_POST['mode'].'">
+    <input type="submit" name="init_commit" class="blue big" value="Launch">
+  </div>
 </fieldset>
 </form>
 

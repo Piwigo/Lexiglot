@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 // +-----------------------------------------------------------------------+
 // |                         SECTION PROPERTIES
 // +-----------------------------------------------------------------------+
@@ -76,14 +73,13 @@ if (isset($_POST['add_lang']))
   {
     array_push($page['errors'], 'You have no rights to add this language.');
   }
+  else if (mkdir($conf['local_dir'].$page['section'].'/'.$_POST['language'], 0777, true))
+  {
+    redirect(get_url_string(array('language'=>$_POST['language'],'section'=>$page['section']), true, 'edit'));
+  }
   else
   {
-    @mkdir($conf['local_dir'].$page['section'].'/'.$_POST['language'], 0777);
-    if ($conf['svn_activated'])
-    {
-      svn_add($conf['local_dir'].$page['section'].'/'.$_POST['language']);
-    }
-    redirect(get_url_string(array('language'=>$_POST['language'],'section'=>$page['section']),'all','edit'));
+    array_push($page['errors'], 'Can\t create forder. Please contact administrators.');
   }
 }
 
@@ -148,7 +144,7 @@ foreach ($language_translated as $row)
   
   echo '
   <li '.( !$row['section_exists'] || ($use_stats && empty($stats[$row['id']])) ? 'class="new"' : null).'>
-    <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), 'all', 'edit').'">
+    <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), true, 'edit').'">
       '.$row['id'].' '.get_language_flag($row['id']).'
       '.(is_source_language($row['id']) ? '<i>(source)</i>': null).'
       '.($use_stats ? display_progress_bar($stats[$row['id']], 150) : null).'
@@ -168,7 +164,7 @@ if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) an
     <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
       <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
       You can only add language which you have permission to edit.<br>
-      Can\'t see the language you wish to translate ? Please <a href="'.get_url_string(array('request_language'=>null), 'all', 'misc').'">send us a request</a>.
+      Can\'t see the language you wish to translate ? Please <a href="'.get_url_string(array('request_language'=>null), true, 'misc').'">send us a request</a>.
     </div>
     <form action="" method="post" style="text-align:center;">
       Select a language : 

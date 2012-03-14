@@ -116,40 +116,7 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     break;
   }
-  
-  // ASSIGN PROJECT
-  case 'add_section':
-  {
-    $s = $_POST['section_add'];
-    if ( $s == '-1' or !array_key_exists($s, $conf['all_sections']) )
-    {
-      array_push($page['errors'], 'Wrong project !');
-    }
-    else
-    {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET 
-    sections = IF( 
-      sections="", 
-      "'.$s.'", 
-      IF( 
-        sections LIKE("%'.$s.'%"), 
-        sections, 
-        CONCAT(sections, ",'.$s.'")
-      )
-    )
-  WHERE 
-    user_id IN('.implode(',', $selection).')
-    AND status != "visitor"
-;';
-      mysql_query($query);
-      
-      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
-    }
-    break;
-  }
-  
+    
   // UNASSIGN LANGUAGE
   case 'remove_lang':
   {
@@ -180,6 +147,39 @@ UPDATE '.USER_INFOS_TABLE.'
       mysql_query($query);
       
       array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
+    }
+    break;
+  }
+  
+  // ASSIGN PROJECT
+  case 'add_section':
+  {
+    $s = $_POST['section_add'];
+    if ( $s == '-1' or !array_key_exists($s, $conf['all_sections']) )
+    {
+      array_push($page['errors'], 'Wrong project !');
+    }
+    else
+    {
+      $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET 
+    sections = IF( 
+      sections="", 
+      "'.$s.'", 
+      IF( 
+        sections LIKE("%'.$s.'%"), 
+        sections, 
+        CONCAT(sections, ",'.$s.'")
+      )
+    )
+  WHERE 
+    user_id IN('.implode(',', $selection).')
+    AND status != "visitor"
+;';
+      mysql_query($query);
+      
+      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
     }
     break;
   }

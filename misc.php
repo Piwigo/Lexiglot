@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 // +-----------------------------------------------------------------------+
 // |                         SEND REQUEST FOR NEW LANGUAGE
 // +-----------------------------------------------------------------------+
@@ -135,7 +132,7 @@ if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_ad
 }
 else
 {
-  array_push($page['errors'], 'Access denied.');
+  redirect('index.php');
 }
 
 print_page();

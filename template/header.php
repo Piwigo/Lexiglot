@@ -19,22 +19,25 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
-   "http://www.w3.org/TR/html4/strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" dir="ltr">
+echo '<!DOCTYPE html>
+<html lang="en" dir="ltr">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>'.(!empty($page['window_title']) ? $page['window_title'].' | ':null).' '.strip_tags($conf['install_name']).'</title>
+  <title>'.(!empty($page['window_title']) ? $page['window_title'].' | ' : null).' '.strip_tags($conf['install_name']).'</title>
   
+  <!-- default css & js -->
   <link type="text/css" rel="stylesheet" media="screen" href="template/style.css">
+  <link type="text/css" rel="stylesheet" media="screen" href="template/'.(defined('IN_ADMIN') ? 'admin' : 'public').'.css">
   <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.ui/jquery.ui.custom.css">
   <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tiptip.css">
   <script type="text/javascript" src="template/js/jquery.min.js"></script>
   <script type="text/javascript" src="template/js/jquery.ui.custom.min.js"></script>
   <script type="text/javascript" src="template/js/jquery.tiptip.min.js"></script>
   
+  <!-- special css & js -->
   '.$page['header'].'
   
+  <!-- jquery code -->
   <script type="text/javascript">
   $(document).ready(function() {
     '.$page['script'].'
@@ -52,7 +55,7 @@ if ($login_box)
   if (is_guest()) 
   {
     echo '
-    Welcome <b>guest</b> | <a href="user.php?login">Login</a> '.($conf['allow_registration']?'<i>or</i> <a href="user.php?register">Register</a>':'');
+    Welcome <b>guest</b> | <a href="user.php?login">Login</a> '.($conf['allow_registration'] ? '<i>or</i> <a href="user.php?register">Register</a>' : null);
   } 
   else 
   { 
@@ -62,16 +65,24 @@ if ($login_box)
     | <a href="index.php?action=logout">Logout</a>';
   }
     echo '
-    '.((is_manager() or is_admin()) ? ' | <a href="admin.php">Administration</a>':null).'
+    '.(is_manager() || is_admin() ? ' | <a href="admin.php">Administration</a>' : null).'
   </div></div>
   <div id="title">
     <a href="index.php">'.$conf['install_name'].'</a>
-    '.(!empty($page['title']) ? ' | <i>'.$page['title'].'</i>':'').'
+    '.(!empty($page['title']) ? ' | <a href="'.get_url_string().'"><i>'.$page['title'].'</i></a>' : null).'
   </div>
-</div>';
+</div><!-- the_header -->';
 }
 
 echo '
 <div id="the_page">
-'.(!empty($page['caption']) ? '<p class="caption">'.$page['caption'].'</p>' : null);
+<noscript>
+<div class="ui-state-warning" style="padding: 0.7em;margin-bottom:10px;">
+  <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
+  <b>JavaScript is not activated, some major functions may not work !</b>
+</div>
+</noscript>
+
+'.$page['begin'];
+
 ?>

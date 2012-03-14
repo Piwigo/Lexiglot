@@ -175,6 +175,7 @@ table.login tr td:first-child {
   font-size: 1.2em;
   border-radius: 4px;
   box-shadow: 0 0 5px #666;
+  z-index: 9999;
 }
 
 

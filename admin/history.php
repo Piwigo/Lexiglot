@@ -131,12 +131,8 @@ if ($where_clauses != array('1=1'))
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
-$displayed_sections = array_keys($conf['all_sections']);
-if (is_manager())
-{
-  $displayed_sections = $user['sections'];
-  array_push($where_clauses, 'l.section IN("'.implode('","', $displayed_sections).'")');
-}
+$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
+array_push($where_clauses, 'l.section IN("'.implode('","', $displayed_sections).'")');
 
 $query = '
 SELECT 
@@ -264,14 +260,14 @@ echo '
       <tr class="'.$row['status'].'">
         <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
         <td class="lang">
-          <a href="'.get_url_string(array('page'=>'languages','lang_id'=>$row['lang'])).'">'.get_language_name($row['lang']).'</a>
+          <a href="'.get_url_string(array('page'=>'languages','lang_id'=>$row['lang']), true).'">'.get_language_name($row['lang']).'</a>
         </td>
         <td class="section">
-          <a href="'.get_url_string(array('page'=>'projects','section_id'=>$row['section'])).'">'.get_section_name($row['section']).'</a>
+          <a href="'.get_url_string(array('page'=>'projects','section_id'=>$row['section']), true).'">'.get_section_name($row['section']).'</a>
         </td>
         <td class="file">'.$row['file_name'].'</td>
         <td class="user">
-          <a href="'.get_url_string(array('page'=>'users','user_id'=>$row['user_id'])).'">'.$row['username'].'</a>
+          <a href="'.get_url_string(array('page'=>'users','user_id'=>$row['user_id']), true).'">'.$row['username'].'</a>
         </td>
         <td class="date">'.format_date($row['last_edit'], true, false).'</td>
         <td class="value">
@@ -287,7 +283,7 @@ echo '
     {
       echo '
       <tr>
-        <td colspan="7"><i>No results</i></td>
+        <td colspan="8"><i>No results</i></td>
       </tr>';
     }
     echo '
@@ -325,9 +321,8 @@ echo '
 // +-----------------------------------------------------------------------+
 // |                        SCRIPTS
 // +-----------------------------------------------------------------------+
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tablesorter.css">
-<script type="text/javascript" src="template/js/jquery.tablesorter.min.js"></script>';
+load_jquery('tablesorter');
+
 $page['script'].= '
 $(".row_value").tipTip({ 
   maxWidth:"600px",

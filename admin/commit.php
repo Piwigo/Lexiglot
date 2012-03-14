@@ -30,11 +30,7 @@ if (!svn_check_connection())
 // +-----------------------------------------------------------------------+
 // |                        GET DATAS
 // +-----------------------------------------------------------------------+
-$displayed_sections = array_keys($conf['all_sections']);
-if (is_manager())
-{
-  $displayed_sections = $user['sections'];
-}
+$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
   
 // get users name
 $query = '
@@ -97,7 +93,7 @@ SELECT * FROM (
       file_name ASC,
       row_name ASC
   ) as t
-  GROUP BY t.row_name
+  GROUP BY CONCAT(t.row_name,t.lang,t.section)
 ;';
   $result = mysql_query($query);
   
@@ -110,7 +106,7 @@ SELECT * FROM (
   
   if (!count($_ROWS))
   {
-    array_push($page['warnings'], $commit_title.' > No changes to commit. <a href="'.get_url_string(array('page'=>'commit'),'all').'">Go back</a>');
+    array_push($page['warnings'], (!empty($commit_title) ? $commit_title.' > ' : null).'No changes to commit. <a href="'.get_url_string(array('page'=>'commit'), true).'">Go back</a>');
     print_page();
   }
   
@@ -206,8 +202,10 @@ else
       </li>
     </ul>
     
-    <input type="hidden" name="check_commit" value="1">
-    <input type="submit" name="init_commit" class="blue big" value="Launch">
+    <div class="centered">
+      <input type="hidden" name="check_commit" value="1">
+      <input type="submit" name="init_commit" class="blue big" value="Launch">
+    </div>
   </fieldset>
   </form>';
 }

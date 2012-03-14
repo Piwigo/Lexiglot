@@ -173,8 +173,6 @@ if ($in_search)
 }
 
 
-
-
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
@@ -202,42 +200,24 @@ $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 // +-----------------------------------------------------------------------+
 // |                         DISPLAY ROWS
 // +-----------------------------------------------------------------------+  
-// reference file
-$page['caption'].= '
-<a class="floating_link" '.
-  js_popup(
-    get_url_string(
-      array(
-        'section'=>$page['section'],
-        'language'=>$conf['default_language'],
-        'file'=>$page['file'],
-        ),
-      'all',
-      'simple_view'
-      ), 
-    'Reference page', 
-    800, 650
-  ).'>
-  View reference file</a>';
-
 // legend
 echo '
 <div class="pagination">'.pagination($paging).'</div>
 <div id="display_buttons">
-  <a href="'.get_url_string(array('display'=>'all'),array('page','ks')).'" class="all '.($page['display']=='all'?'active':null).'">All</a>
-  <a href="'.get_url_string(array('display'=>'missing'),array('page','ks')).'" class="missing '.($page['display']=='missing'?'active':null).'">Untranslated</a>
-  <a href="#" class="search '.($page['display']=='search'?'active':null).'">Search</a>
+  <a href="'.get_url_string(array('display'=>'all'), array('page','ks')).'" class="all '.($page['display']=='all'?'active display':null).'">All</a>
+  <a href="'.get_url_string(array('display'=>'missing'), array('page','ks')).'" class="missing '.($page['display']=='missing'?'active display':null).'">Untranslated</a>
+  <a href="#" class="search '.($page['display']=='search'?'active display':null).'">Search</a>
 </div>
 <div style="clear:both;"></div>';
 
 // search field
 echo '
-<form method="post" action="'.get_url_string(array('ks'=>null)).'" id="diffs_search" style="'.(!$in_search ? 'display:none;' : null).'">
+<form method="post" action="'.get_url_string(array('ks'=>null), array('page')).'" id="diffs_search" style="'.(!$in_search ? 'display:none;' : null).'">
 <fieldset class="common">
   <input type="text" name="needle" size="50" value="'.$search['needle'].'">
   &nbsp;&nbsp;Where ? 
     <label><input type="radio" name="where" value="row_value" '.($search['where']=='row_value' ? 'checked="checked"' : null).'> Translations</label> 
-    <label><input type="radio" name="where" value="row_name" '.($search['where']=='row_name' ? 'checked="checked"' : null).'> Source</label>
+    <label><input type="radio" name="where" value="original" '.($search['where']=='original' ? 'checked="checked"' : null).'> Source</label>
   &nbsp;&nbsp;<input type="submit" name="search" value="Search" class="blue">
 </fieldset>
 </form>';
@@ -270,18 +250,18 @@ echo '
                 );
     
     // original value can be highlighted
-    $original = $in_search && $search['where'] == 'row_name'
+    $original = $in_search && $search['where'] == 'original'
              ? highlight_search_result(htmlspecialchars($row['original']), array_merge(array($search['needle']), $search['words'])) 
              : htmlspecialchars($row['original']);
 
     echo '
     <tr class="main '.($i%2!=0?'odd':'even').' '.$status.'">
       <td class="original"><pre>'.$original.'</pre></td>
-      <td class="translation">';
+      <td class="translation">
+        <textarea name="rows['.$i.'][row_name]" style="display:none;">'.proper_utf8($key).'</textarea>';
         if ($is_translator)
         { // textarea with dynamic height, highlight is done in javascript
           echo '
-          <textarea name="rows['.$i.'][row_name]" style="display:none;">'.proper_utf8($key).'</textarea>
           <textarea name="rows['.$i.'][row_value]" style="height:'.max(count_lines(!empty($text)?$text:$row['original'], 68)*1.1, 2.1).'em;" tabindex="'.$i.'">'.proper_utf8($text).'</textarea>';
         }
         else if (!empty($text))
@@ -329,7 +309,10 @@ echo '
   </table>
   
   '.(count($_DIFFS) >= 20 ? '<div class="pagination">'.pagination($paging).'</div>' : null).'
-  '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'"> <input type="submit" name="submit" class="blue big" value="Save all" tabindex="'.($i+1).'">' : null).'
+  <div class="centered">
+    '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'">
+    <input type="submit" name="submit" class="blue big" value="Save all" tabindex="'.($i+1).'">' : null).'
+  </div>
 </fieldset>
 </form>
 
@@ -371,23 +354,46 @@ $("tr.details").hover(
   function() { $(this).prev("tr").removeClass("hover"); }
 );
 
+// toggle search form
 $("#display_buttons a.search").click(function() {
-  $("#display_buttons a").removeClass("active");
-  $(this).addClass("active");
-  $("#diffs_search").toggle("slow");
+  if ("'.$page['display'].'" != "search") {
+    if ($(this).hasClass("active")) {
+      $("#display_buttons a").removeClass("active");
+      $("#display_buttons a.display").addClass("active");
+      $("#diffs_search").hide("slow");
+    } else {
+      $("#display_buttons a").removeClass("active");
+      $(this).addClass("active");
+      $("#diffs_search").show("slow");
+    }
+  }
   return false;
+});
+
+$("#display_buttons a:not(.search)").click(function() {
+  if ($(this).hasClass("'.$page['display'].'")) {
+    $("#display_buttons a").removeClass("active");
+    $(this).addClass("active");
+    $("#diffs_search").hide("slow");
+    return false;
+  } else {
+    return true;
+  }
 });
 
 // perform ajax request for string details
 $("a.expand").click(function() {
-  if ($(this).parents("tr.main").next("tr.details").css("display") == "none") {
+  $trigger = $(this);
+  $details_row = $(this).parents("tr.main").next("tr.details");
+  
+  if ($details_row.css("display") == "none") {
     $("a.expand img").attr("src", "template/images/magnifier_zoom_in.png");
-    $("tr.details").css("display", "none");
+    $("tr.details").hide();
     
-    $(this).children("img").attr("src", "template/images/magnifier_zoom_out.png");
-    $(this).parents("tr.main").next("tr.details").css("display", "");
+    $trigger.children("img").attr("src", "template/images/magnifier_zoom_out.png");
+    $details_row.show();
     
-    $container = $(this).parents("tr.main").next("tr.details").children("td.translation");
+    $container = $details_row.children("td.translation");
     if ($container.hasClass("loaded") == false)
     {
       row_name = $("textarea[name=\'rows["+ $(this).attr("data") +"][row_name]\']").val();
@@ -396,14 +402,19 @@ $("a.expand").click(function() {
       $.ajax({
         type: "POST",
         url: "ajax.php",
-        data: "action=row_log&section='.$page['section'].'&language='.$page['language'].'&file='.$page['file'].'&key='.get_ephemeral_key(0).'&row_name="+ utf8_encode(row_name)
-      }).done(function(msg) {    
-        $container.addClass("loaded").html("<p>"+ msg +"</p>");
+        data: { "action":"row_log", "section":"'.$page['section'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(0).'", "row_name": utf8_encode(row_name) }
+      }).done(function(msg) {
+        msg = $.parseJSON(msg);
+        if (msg.errcode == "success") {
+          $container.addClass("loaded").html("<p>"+ msg.data +"</p>");
+        }  else {
+          overlayMessage(msg.data, msg.errcode, $trigger);
+        }
       });
     }
   } else {
-    $(this).children("img").attr("src", "template/images/magnifier_zoom_in.png");
-    $(this).parents("tr.main").next("tr.details").css("display", "none");
+    $trigger.children("img").attr("src", "template/images/magnifier_zoom_in.png");
+    $details_row.hide();
   }
   
   return false;
@@ -421,16 +432,14 @@ if ($is_translator)
     $.ajax({
       type: "POST",
       url: "ajax.php",
-      data: "action=save_row&section='.$page['section'].'&language='.$page['language'].'&file='.$page['file'].'&key='.get_ephemeral_key(2).'&row_name="+ utf8_encode(row_name) +"&row_value="+ utf8_encode(row_value)
+      data: { "action":"save_row", "section":"'.$page['section'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(2).'", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) }
     }).done(function(msg) {
-      if (msg == "Saved")
-      {
+      msg = $.parseJSON(msg);
+      if (msg.errcode == "success") {
         $trigger.parents("tr.main").removeClass("missing").addClass("new");
-        overlayMessage(msg, "highlight", $trigger);
-      }
-      else
-      {
-        overlayMessage(msg, "error", $trigger);
+        overlayMessage(msg.data, "highlight", $trigger);
+      }  else {
+        overlayMessage(msg.data, msg.errcode, $trigger);
       }
     });
     
@@ -440,10 +449,8 @@ if ($is_translator)
 
 if ( $in_search and $search['where'] == 'row_value' )
 {
-  $page['header'].= '
-  <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.highlighttextarea.css">
-  <script type="text/javascript" src="template/js/jquery.highlighttextarea.min.js"></script>';
-
+  load_jquery('highlighttextarea');
+  
   $page['script'].= '
   $("textarea:visible").highlightTextarea({
     words: ["'.implode('","', array_merge(array($search['needle']), $search['words'])).'"],

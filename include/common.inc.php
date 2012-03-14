@@ -36,6 +36,7 @@ include_once(PATH.'include/functions.inc.php');
 // protect vars
 header('Content-type: text/html; charset=utf-8');
 fix_magic_quotes();
+umask(0);
 
 // default arrays
 $conf = array();
@@ -45,7 +46,7 @@ $page = array(
   'header' => null,
   'script' => null,
   'content' => null,
-  'caption' => null,
+  'begin' => null,
   'errors' => array(),
   'warnings' => array(),
   'infos' => array(),

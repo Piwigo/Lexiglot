@@ -92,31 +92,13 @@ if ( empty($_LANG) and empty($_LANG_db) )
 
 if ($_DIFFS)
 {
-  array_push($page['errors'], 'This file is not translated yet.');
+  array_push($page['warnings'], 'This file is not translated yet.');
 }
 
 
 // +-----------------------------------------------------------------------+
 // |                         DISPLAY FILE
 // +-----------------------------------------------------------------------+  
-// reference file
-$page['caption'].= '
-<a class="floating_link" '.
-  js_popup(
-    get_url_string(
-      array(
-        'section'=>$page['section'],
-        'language'=>$conf['default_language'],
-        'file'=>$page['file'],
-        ),
-      'all',
-      'simple_view_plain'
-      ),
-    'Reference page', 
-    800, 650
-  ).'>
-  View reference file</a>';
-
 // value, database has priority
 $text = ( !empty($_LANG_db) ) 
         ? $_LANG_db['row_value'] 
@@ -132,7 +114,10 @@ echo '
 <fieldset class="common">
   <legend>File content</legend>
   <textarea name="row_value" style="width:99.5%;height:'. max(count_lines($text, 126)+3, 10)*1.1 .'em;margin-bottom:10px;" tabindex="1">'.proper_utf8($text).'</textarea>
-  '.($is_translator ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'"> <input type="submit" name="submit" value="Save" class="blue big" tabindex="2">' : null).'
+  <div class="centered">
+    '.($is_translator ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'">
+    <input type="submit" name="submit" value="Save" class="blue big" tabindex="2">' : null).'
+  </div>
 </fieldset>
 </form>';
 
@@ -143,8 +128,7 @@ if (count_lines($text, 126) > 40)
   <a href="#top" id="top-link" title="To top"></a>
   <a href="#bottom" id="bottom-link" title="To bottom"></a>';
   
-  $page['header'].= '
-  <script type="text/javascript" src="template/js/jquery.scrollTo.min.js"></script>';
+  load_jquery('scrollTo', false);
   
   $page['script'].= '
   //smoothscroll

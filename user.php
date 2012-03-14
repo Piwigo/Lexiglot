@@ -22,9 +22,6 @@
 define('PATH', './');
 include(PATH.'include/common.inc.php');
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/public.css">';
-
 if ( (isset($_POST['login']) or isset($_POST['reset_password']) or isset($_POST['register']) ) and !verify_ephemeral_key(@$_POST['key']) )
 {
   array_push($page['errors'], 'Invalid/expired form key');
@@ -235,7 +232,7 @@ else if ( isset($_GET['register']) and $conf['allow_registration'] )
 }
 else
 {
-  array_push($page['errors'], 'Access denied.');
+  redirect('index.php');
 }
 
 $page['script'].= '

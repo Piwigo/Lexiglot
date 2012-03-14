@@ -201,11 +201,13 @@ echo '
     </div>
   </fieldset>
   
-  <input type="submit" name="save_config" value="Save" class="blue big">
+  <div class="centered">
+  	<input type="submit" name="save_config" value="Save" class="blue big">
+  </div>
 </form>';
 
-$page['header'].= '
-<script type="text/javascript" src="template/js/jquery.autoresize.min.js"></script>';
+load_jquery('autoresize', false);
+
 $page['script'].= '
 $("textarea").autoResize({
   maxHeight:2000,

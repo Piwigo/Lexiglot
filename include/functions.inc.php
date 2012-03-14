@@ -32,8 +32,8 @@ include_once(PATH.'include/functions_stats.inc.php');
 /**
  * create an url from current url
  * @param array add/modify
- * @param array reject
- * @param string script_name
+ * @param array reject ('true' for reject all)
+ * @param string filename
  * @return string
  */
 function get_url_string($add=array(), $reject=array(), $file=null)
@@ -41,16 +41,19 @@ function get_url_string($add=array(), $reject=array(), $file=null)
   global $conf, $page;
   $query_string = '';
   
-  $str = $_SERVER['QUERY_STRING'];
-  parse_str($str, $vars);
-  
   if ($file == null) $file = script_basename();
-  if ($reject == 'all') $reject = array_keys($vars);
   
-  foreach ($reject as $key)
+  if ($reject !== true)
   {
-    unset($vars[$key]);
+    $str = $_SERVER['QUERY_STRING'];
+    parse_str($str, $vars);
+  
+    foreach ($reject as $key)
+    {
+      unset($vars[$key]);
+    }
   }
+  
   foreach ($add as $key => $value)
   {
     $vars[$key] = $value;
@@ -448,17 +451,20 @@ function format_date($date, $show_time=false, $show_day=true)
     $tok = strtok('- :');
   }
 
-  if ( count($ymdhms)<3 )
+  if (count($ymdhms) < 3)
   {
     return false;
   }
 
   $formated_date = '';
-  if ($show_day) $formated_date.= date('l', mktime(12,0,0,$ymdhms[1],$ymdhms[2],$ymdhms[0]));
+  if ($show_day) 
+  {
+    $formated_date.= date('l', mktime(12,0,0,$ymdhms[1],$ymdhms[2],$ymdhms[0]));
+  }
   $formated_date.= ' '.$ymdhms[2];
   $formated_date.= ' '.date('F', mktime(12,0,0,$ymdhms[1]));
   $formated_date.= ' '.$ymdhms[0];
-  if ($show_time and count($ymdhms)>=5 )
+  if ( $show_time and count($ymdhms) >= 5 )
   {
     $formated_date.= ' '.$ymdhms[3].':'.$ymdhms[4];
   }

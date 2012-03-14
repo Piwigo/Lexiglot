@@ -93,6 +93,7 @@ SELECT * FROM (
       lang = "'.$language.'" 
       AND file_name = "'.$file.'"
       AND section = "'.$section.'"
+      AND status != "done"
       '.(!empty($row_name) ? 'AND row_name = "'.mres($row_name).'"' : null).'
     ORDER BY last_edit DESC
   ) as t
@@ -138,6 +139,12 @@ function get_language_name($lang)
   return $lang;
 }
 
+function get_language_rank($lang)
+{
+  global $conf;
+  return $conf['all_languages'][$lang]['rank'];
+}
+
 /**
  * get language flag img tag
  * @param string lang
@@ -178,6 +185,12 @@ function get_section_name($section)
     return $conf['all_sections'][$section]['name'];
   }
   return $section;
+}
+
+function get_section_rank($lang)
+{
+  global $conf;
+  return $conf['all_sections'][$lang]['rank'];
 }
 
 /**

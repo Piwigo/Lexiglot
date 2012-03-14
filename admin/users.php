@@ -21,10 +21,12 @@
 
 defined('PATH') or die('Hacking attempt!');
 
+$highlight_user = isset($_GET['from_id']) ? $_GET['from_id'] : null;
+
 // +-----------------------------------------------------------------------+
 // |                         DELETE USER
 // +-----------------------------------------------------------------------+
-if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) )
+if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) and is_admin() )
 {
   $query = 'DELETE FROM '.USERS_TABLE.' WHERE '.$conf['user_fields']['id'].' = '.$_GET['delete_user'].';';
   $done = (bool)mysql_query($query);
@@ -46,83 +48,86 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 // +-----------------------------------------------------------------------+
 // |                         SAVE STATUS
 // +-----------------------------------------------------------------------+
-if (isset($_POST['save_status']))
+if ( isset($_POST['save_status']) and is_admin() )
 {
-  $query = '
-SELECT 
-    status as old_status,
-    my_languages,
-    user_id
-  FROM '.USER_INFOS_TABLE.'
-;';
-  $users = hash_from_query($query, 'user_id');
+  $local_user = build_user($_POST['save_status']);
+  $new_status = $_POST['status'][ $local_user['id'] ];
+  $sets = array('status = "'.$new_status.'"');
   
-  foreach ($_POST['status'] as $user_id => $new_status)
+  // adapt permissions
+  switch ($local_user['status'].'->'.$new_status)
   {
-    $sets = array('status = "'.$new_status.'"');
-    
-    switch ($users[$user_id]['old_status'].'->'.$new_status)
-    {
-      // to translator (languages/sections depend on config)
-      case 'visitor->translator':
-        if ($conf['user_default_language'] == 'all')
-        {
-          array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
-        }
-        else if ($conf['user_default_language'] == 'own')
-        {
-          array_push($sets, 'languages = "'.$users[$user_id]['my_languages'].'"');
-        }
-        if ($conf['user_default_section'] == 'all')
-        {
-          array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-        }
-        break;
-      
-      // to manager (all languages, sections depend on config)
-      case 'visitor->manager':
-        if ($conf['user_default_section'] == 'all')
-        {
-          array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-        }
-      case 'translator->manager':
+    // to translator (languages/sections depend on config)
+    case 'visitor->translator':
+    // case 'manager->translator':
+    // case 'admin->translator':
+      if ($conf['user_default_language'] == 'all')
+      {
         array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
-        break;
-        
-      // to admin (all languages/sections)
-      case 'visitor->admin':
-      case 'translator->admin':
-      case 'manager->admin':
-        array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
+      }
+      else if ($conf['user_default_language'] == 'own')
+      {
+        array_push($sets, 'languages = "'.implode(',', $local_user['my_languages']).'"');
+      }
+      if ($conf['user_default_section'] == 'all')
+      {
         array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-        break;
-        
-      // to visitor (none languages/sections)
-      case 'translator->visitor':
-      case 'manager->visitor':
-      case 'admin->visitor':
-        array_push($sets, 'languages = ""');
-        array_push($sets, 'sections = ""');
-        break;
-    }
-  
-    $query = '
+      }
+      break;
+      
+    // to manager (languages/sections depend on config)
+    case 'visitor->manager':
+      if ($conf['user_default_language'] == 'all')
+      {
+        array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
+      }
+      else if ($conf['user_default_language'] == 'own')
+      {
+        array_push($sets, 'languages = "'.implode(',', $local_user['my_languages']).'"');
+      }
+      if ($conf['user_default_section'] == 'all')
+      {
+        array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
+      }
+    case 'translator->manager':
+    case 'admin->manager':
+      array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.DEFAULT_MANAGER_PERMS.'\')');
+      break;
+      
+    // to admin (all languages/sections)
+    case 'visitor->admin':
+    case 'translator->admin':
+    case 'manager->admin':
+      array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
+      array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
+      break;
+      
+    // to visitor (none languages/sections)
+    case 'translator->visitor':
+    case 'manager->visitor':
+    case 'admin->visitor':
+      array_push($sets, 'languages = ""');
+      array_push($sets, 'sections = ""');
+      break;
+  }
+
+  $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET 
     '.implode(",    \n", $sets).'
-  WHERE user_id = '.$user_id.'
+  WHERE user_id = '.$local_user['id'].'
 ;';
-    mysql_query($query);
-  }
+  echo $query;
+  mysql_query($query);
   
-  unset($users);
   array_push($page['infos'], 'Status saved.');
+  $highlight_user = $local_user['id'];
 }
 
 // +-----------------------------------------------------------------------+
 // |                         ADD USER
 // +-----------------------------------------------------------------------+
-if (isset($_POST['add_user']))
+if ( isset($_POST['add_user']) and is_admin() )
 {
   $page['errors'] = register_user(
     $_POST['username'],
@@ -133,8 +138,43 @@ if (isset($_POST['add_user']))
   if (count($page['errors']) == 0)
   {
     array_push($page['infos'], 'User added');
+    $highlight_user = get_userid($_POST['username']);
   }
 }
+
+if ( isset($_POST['add_external_user']) and is_admin() )
+{
+  if ( empty($_POST['username']) and empty($_POST['id']) )
+  {
+    array_push($page['errors'], 'Missing username or user id');
+  }
+  else if (!empty($_POST['id']))
+  {
+    if ( ($username = get_username($_POST['id'])) === false )
+    {
+      array_push($page['errors'], 'Invalid user id');
+    }
+    else
+    {
+      create_user_infos($_POST['id']);
+      array_push($page['infos'], 'User &laquo; '.$username.' &raquo; added');
+      $highlight_user = $_POST['id'];
+    }
+  }
+  else if (!empty($_POST['username']))
+  {
+    if ( ($user_id = get_userid($_POST['username'])) === false )
+    {
+      array_push($page['errors'], 'Invalid username');
+    }
+    else
+    {
+      create_user_infos($user_id);
+      array_push($page['infos'], 'User &laquo; '.$_POST['username'].' &raquo; added');
+      $highlight_user = $user_id;
+    }
+  }
+}  
 
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
@@ -208,7 +248,15 @@ if ($search['language'] != '-1')
 }
 if ($search['section'] != '-1') 
 {
-  array_push($where_clauses, 'i.sections LIKE "%'.$search['section'].'%"');
+  if ($search['section'] == 'none') 
+  {
+    foreach ($user['manage_sections'] as $section)
+      array_push($where_clauses, 'i.sections NOT LIKE "%'.$section.'%"');
+  }
+  else
+  {
+    array_push($where_clauses, 'i.sections LIKE "%'.$search['section'].'%"');
+  }
 }
 
 // save search
@@ -236,32 +284,66 @@ $_USERS = hash_from_query($query, 'id');
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// add user
-echo '
-<form action="admin.php?page=users" method="post">
-<fieldset class="common">
-  <legend>Add a user</legend>
-  
-  <table class="search">
-    <tr>
-      <th>Username <span class="red">*</span></th>
-      <th>Password <span class="red">*</span></th>
-      <th>Email <span class="red">*</span></th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" name="username"></td>
-      <td><input type="password" name="password"></td>
-      <td><input type="text" name="email"></td>
-      <td><input type="submit" name="add_user" class="blue" value="Add"></td>
-    </tr>
-  </table>
-  
-</fieldset>
-</form>';
+$has_admin_rights = is_admin() || $user['manage_perms']['can_change_users_projects'];
+$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], array_combine($user['manage_sections'], $user['manage_sections']));
+
+// create a new user
+if (is_admin())
+{
+  echo '
+  <form action="admin.php?page=users" method="post" '.(USERS_TABLE != DB_PREFIX.'users' ? 'style="float:left;width:70%;"' : null).'>
+  <fieldset class="common">
+    <legend>Create a new user</legend>
+    
+    <table class="search">
+      <tr>
+        <th>Username <span class="red">*</span></th>
+        <th>Password <span class="red">*</span></th>
+        <th>Email <span class="red">*</span></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td><input type="text" name="username"></td>
+        <td><input type="password" name="password"></td>
+        <td><input type="text" name="email"></td>
+        <td><input type="submit" name="add_user" class="blue" value="Add"></td>
+      </tr>
+    </table>
+    
+  </fieldset>
+  </form>';
+
+  // add user from external table
+  if (USERS_TABLE != DB_PREFIX.'users')
+  {
+  echo '
+  <form action="admin.php?page=users" method="post" style="float:left;width:30%;">
+  <fieldset class="common">
+    <legend>Add an user from external table</legend>
+    
+    <table class="search">
+      <tr>
+        <th>Username</th>
+        <th></th>
+        <th>Id</th>
+        <th></th>
+      </tr>
+      <tr>
+        <td><input type="text" name="username"></td>
+        <td>or</td>
+        <td><input type="text" name="id" size="5"></td>
+        <td><input type="submit" name="add_external_user" class="blue" value="Add"></td>
+      </tr>
+    </table>
+    
+  </fieldset>
+  </form>
+  <div style="clear:both;"></div>';
+  }
+}
 
 // search users
-if (count($_USERS) or count($where_clauses) > 1)
+if ( count($_USERS) or count($where_clauses) > 1 )
 {
 echo '
 <form action="admin.php?page=users" method="post">
@@ -301,8 +383,9 @@ echo '
       </td>
       <td>
         <select name="section">
-          <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
-        foreach ($conf['all_sections'] as $row)
+          <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>
+          '.(is_manager() ? '<option value="none" '.('none'==$search['section']?'selected="selected"':null).'>-- none of mine --</option>' : null);
+        foreach ($displayed_sections as $row)
         {
           echo '
           <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
@@ -327,15 +410,15 @@ echo '
   <table class="common tablesorter">
     <thead>
       <tr>
-        <th class="chkb"></th>
+        '.($has_admin_rights ? '<th class="chkb"></th>' : null).'
         <th class="user">Username</th>
         <th class="email">Email</th>
         <th class="date">Registration date</th>
-        <th class="lang tiptip" title="Spoken">Languages</th>
+        <th class="lang lang-tip" title="Spoken">Languages</th>
         <th class="status">Status</th>
-        <th class="lang tiptip" title="Assigned">Languages</th>
+        <th class="lang lang-tip" title="Assigned">Languages</th>
         <th class="section">Projects</th>
-        <th class="actions"></th>
+        '.($has_admin_rights ? '<th class="actions"></th>' : null).'
       </tr>
     </thead>
     <tbody>';
@@ -346,80 +429,69 @@ echo '
       $row['sections'] = !empty($row['sections']) ? explode(',', $row['sections']) : array();
       
       echo '
-      <tr class="'.$row['status'].'">
-        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
-        <td class="user">'.$row['username'].'</td>
-        <td class="email">'.((!empty($row['email']) and $row['id']!=$conf['guest_id']) ? '<a href="mailto:'.$row['email'].'">'.$row['email'].'</a>' : null).'</td>
+      <tr class="'.$row['status'].' '.($highlight_user==$row['id'] ? 'highlight' : null).'">
+        '.($has_admin_rights ? '<td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>' :null).'
+        <td class="user">'.($row['id']!=$conf['guest_id'] ? '<a href="'.get_url_string(array('user_id'=>$row['id']), true, 'profile').'">'.$row['username'].'</a>' : $row['username']).'</td>
+        <td class="email">'.(!empty($row['email']) && $row['id']!=$conf['guest_id'] ? '<a href="mailto:'.$row['email'].'">'.$row['email'].'</a>' : null).'</td>
         <td class="date">'.format_date($row['registration_date'], true, false).'</td>
         <td class="lang">';
         if (count($row['my_languages']) > 0)
         {
-          echo '<a class="expand" title=\'<table class="tooltip"><tr>';
-          $i=1; $j=ceil(sqrt(count($row['my_languages'])/2));
-          foreach ($row['my_languages'] as $lang)
-          {
-            echo '<td>'.get_language_flag($lang).' '.get_language_name($lang).'</td>';
-            if($i%$j==0) echo '</tr><tr>'; $i++;
-          }
-          echo '</tr></table>\'>
-            '.count($row['my_languages']).' <img src="template/images/bullet_toggle_plus.png" style="margin:5px 0 -5px 0;"></a>';
+          echo print_user_languages_tooltip($row['my_languages']);
         }
         echo '
         </td>
-        <td class="status">
+        <td class="status">';
+        if (is_admin())
+        {
+          echo'
           <span style="display:none;">'.$row['status'].'</span>
-          <select name="status['.$row['id'].']" '.(($row['id']==$user['id'] or $row['id']==$conf['guest_id'])?'disabled="disabled"':null).'>
+          <select name="status['.$row['id'].']" data="'.$row['id'].'" '.($row['id']==$user['id'] || $row['id']==$conf['guest_id'] ? 'disabled="disabled"' : null).'>
             '.($row['id']==$conf['guest_id'] ? '<option value="guest" selected="selected">Guest</option>' : null).'
             <option value="visitor" '.('visitor'==$row['status']?'selected="selected"':null).'>Visitor</option>
             <option value="translator" '.('translator'==$row['status']?'selected="selected"':null).'>Translator</option>
             <option value="manager" '.('manager'==$row['status']?'selected="selected"':null).'>Manager</option>
             <option value="admin" '.('admin'==$row['status']?'selected="selected"':null).'>Admin</option>
-          </select>
+          </select>';
+        }
+        else
+        {
+          echo $row['status'];
+        }
+        echo '
         </td>
         <td class="lang">';
         if (count($row['languages']) > 0)
         {
-          echo '<a class="expand" title=\'<table class="tooltip"><tr>';
-          $i=1; $j=ceil(sqrt(count($row['languages'])/2));
-          foreach ($row['languages'] as $lang)
-          {
-            echo '<td>'.get_language_flag($lang).' '.get_language_name($lang).'</td>';
-            if($i%$j==0) echo '</tr><tr>'; $i++;
-          }
-          echo '</tr></table>\'>
-            '.count($row['languages']).' <img src="template/images/bullet_toggle_plus.png" style="margin:5px 0 -5px 0;"></a>';
+          echo print_user_languages_tooltip($row['languages']);
         }
         echo '
         </td>
         <td class="section">';
         if (count($row['sections']) > 0)
         {
-          echo '<a class="expand" title=\'<table class="tooltip"><tr>';
-          $i=1; $j=ceil(sqrt(count($row['sections'])/2));
-          foreach ($row['sections'] as $section)
-          {
-            echo '<td>'.get_section_name($section).'</td>';
-            if($i%$j==0) echo '</tr><tr>'; $i++;
-          }
-          echo '</tr></table>\'>
-            '.count($row['sections']).' <img src="template/images/bullet_toggle_plus.png" style="margin:5px 0 -5px 0;"></a>';
+          echo print_user_sections_tooltip($row['sections']);
         }
         echo '
-        </td>
-        <td class="actions">
-          <img src="template/images/blank.png">';
-        if ( in_array($row['status'], array('translator','manager','guest')) )
+        </td>';
+      if ($has_admin_rights)
+      {
+        echo '
+        <td class="actions">';
+        if ( !in_array($row['status'], array('admin','visitor')) and $row['id'] != $user['id'] and (!is_manager() or $row['id']!=$conf['guest_id']) )
         {
           echo '
-          <a href="'.get_url_string(array('page'=>'user_perm','user_id'=>$row['id']), 'all').'" title="Manage permissions"><img src="template/images/user_edit.png"></a>';
+          <a href="'.get_url_string(array('page'=>'user_perm','user_id'=>$row['id']), true).'" title="Manage permissions"><img src="template/images/user_edit.png"></a>';
         }
-        if ( !in_array($row['status'], array('admin','guest')) and $row['id'] != $user['id'] )
+        if ( !in_array($row['status'], array('admin','guest')) and $row['id'] != $user['id'] and is_admin() )
         {
           echo '
           <a href="'.get_url_string(array('delete_user'=>$row['id'])).'" title="Delete this user" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="[x]"></a>';
         }
         echo '
-        </td>
+        </td>';
+      }
+      echo '
       </tr>';
     }
     if (count($_USERS) == 0)
@@ -432,91 +504,93 @@ echo '
     echo '
     </tbody>
   </table>
-  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
-</fieldset>
+  '.($has_admin_rights ? '<a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>' : null).'
+</fieldset>';
 
-<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
-  <legend>Global action <span class="unselectAll">[close]</span></legend>
-  
-  <select name="selectAction">
-    <option value="-1">Choose an action...</option>
-    <option disabled="disabled">------------------</option>
-    <option value="delete_users">Delete users</option>
-    <option value="change_status">Change Status</option>
-    <option value="add_lang">Assign a language</option>
-    <option value="add_section">Assign a project</option>
-    <option value="remove_lang">Unassign a language</option>
-    <option value="remove_section">Unassign a project</option>
-  </select>
-  
-  <span id="action_delete_users" class="action-container">
-    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
-  </span>
-  
-  <span id="action_change_status" class="action-container">
-    <select name="batch_status">
-      <option value="-1">-------</option>
-      <option value="visitor">Visitor</option>
-      <option value="translator">Translator</option>
-      <option value="manager">Manager</option>
+if ($has_admin_rights)
+{
+  echo '
+  <fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
+    <legend>Global action <span class="unselectAll">[close]</span></legend>
+    
+    <select name="selectAction">
+      <option value="-1">Choose an action...</option>
+      <option disabled="disabled">------------------</option>
+      '.(is_admin() ? '<option value="delete_users">Delete users</option>
+      <option value="change_status">Change Status</option>
+      <option value="add_lang">Assign a language</option>
+      <option value="remove_lang">Unassign a language</option>' : null).'
+      <option value="add_section">Assign a project</option>
+      <option value="remove_section">Unassign a project</option>
     </select>
-  </span>
-  
-  <span id="action_add_lang" class="action-container">
-    <select name="language_add">
-      <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
-    foreach ($conf['all_languages'] as $row)
-    {
+    
+    <span id="action_delete_users" class="action-container">
+      <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
+    </span>
+    
+    <span id="action_change_status" class="action-container">
+      <select name="batch_status">
+        <option value="-1">-------</option>
+        <option value="visitor">Visitor</option>
+        <option value="translator">Translator</option>
+        <option value="manager">Manager</option>
+      </select>
+    </span>
+    
+    <span id="action_add_lang" class="action-container">
+      <select name="language_add">
+        <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
+      foreach ($conf['all_languages'] as $row)
+      {
+        echo '
+        <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
+      }
       echo '
-      <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
-    }
-    echo '
-    </select>
-  </span>
-  
-  <span id="action_add_section" class="action-container">
-    <select name="section_add">
-      <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
-    foreach ($conf['all_sections'] as $row)
-    {
+      </select>
+    </span>
+    
+    <span id="action_remove_lang" class="action-container">
+      <select name="language_remove">
+        <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
+      foreach ($conf['all_languages'] as $row)
+      {
+        echo '
+        <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
+      }
       echo '
-      <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
-    }
-    echo '
-    </select>
-  </span>
-  
-  <span id="action_remove_lang" class="action-container">
-    <select name="language_remove">
-      <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
-    foreach ($conf['all_languages'] as $row)
-    {
+      </select>
+    </span>
+    
+    <span id="action_add_section" class="action-container">
+      <select name="section_add">
+        <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
+      foreach ($conf['all_sections'] as $row)
+      {
+        echo '
+        <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
+      }
       echo '
-      <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
-    }
-    echo '
-    </select>
-  </span>
-  
-  <span id="action_remove_section" class="action-container">
-    <select name="section_remove">
-      <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
-    foreach ($conf['all_sections'] as $row)
-    {
+      </select>
+    </span>
+    
+    <span id="action_remove_section" class="action-container">
+      <select name="section_remove">
+        <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
+      foreach ($conf['all_sections'] as $row)
+      {
+        echo '
+        <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
+      }
       echo '
-      <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
-    }
-    echo '
-    </select>
-  </span>
-  
-  <span id="action_apply" class="action-container">
-    <input type="submit" name="apply_action" class="blue" value="Apply">
-  </span>
-</fieldset>
-  
-<input id="save_status" type="submit" name="save_status" class="blue big" value="Save status">
-</form>';
+      </select>
+    </span>
+    
+    <span id="action_apply" class="action-container">
+      <input type="submit" name="apply_action" class="blue" value="Apply">
+    </span>
+  </fieldset>
+  </form>';
+}
 
 $global_mail = 'mailto:'; $f = 1;
 foreach ($_USERS as $row)
@@ -527,23 +601,29 @@ foreach ($_USERS as $row)
     $global_mail.= $row['email'];
   }
 }
-
 echo '
 <a href="'.$global_mail.'">Send a mail to all users displayed</a>';
+
 }
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tablesorter.css">
-<script type="text/javascript" src="template/js/jquery.tablesorter.min.js"></script>';
+load_jquery('tablesorter');
+
+if (is_admin())
+{
+$page['script'].= '
+$("#users select[name^=\"status\"]").change(function() {
+  $("#users").append("<input name=\"save_status\" value=\""+ $(this).attr("data") +"\">").submit();
+});';
+}
 
 $page['script'].= '
-$(".expand").tipTip({ 
+$(".expand").css("cursor", "help").tipTip({ 
   maxWidth:"800px",
   delay:200,
   defaultPosition:"left"
 });
 
-$(".tiptip").tipTip({
+$(".lang-tip").css("cursor", "help").tipTip({
   delay:200,
   defaultPosition:"top"
 });
@@ -552,8 +632,11 @@ $("#users table").tablesorter({
   sortList: [[1,0]],
   headers: { 0: {sorter: false}, 8: {sorter: false} },
   widgets: ["zebra"]
-});
+});';
 
+if ($has_admin_rights)
+{
+$page['script'].= '
 /* actions */
 function checkPermitAction() {
   var nbSelected = 0;
@@ -604,5 +687,6 @@ $("select[name=selectAction]").change(function() {
     $("#action_apply").hide();
   }
 });';
+}
 
 ?>

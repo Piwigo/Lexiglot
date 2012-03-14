@@ -19,7 +19,9 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!'); 
+defined('PATH') or die('Hacking attempt!');
+
+$highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 
 // +-----------------------------------------------------------------------+
 // |                         DELETE LANG
@@ -44,6 +46,21 @@ UPDATE '.USER_INFOS_TABLE.'
           IF(languages LIKE "%,'.$i.',%", 
             REPLACE(languages, ",'.$i.',", ","),
             languages
+      ) ) ) )
+;';
+  mysql_query($query);
+  $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET my_languages = 
+    IF(my_languages = "'.$i.'", 
+      "",
+      IF(my_languages LIKE "'.$i.',%",
+        REPLACE(my_languages, "'.$i.',", ""),
+        IF(my_languages LIKE "%,'.$i.'", 
+          REPLACE(my_languages, ",'.$i.'", ""),
+          IF(my_languages LIKE "%,'.$i.',%", 
+            REPLACE(my_languages, ",'.$i.',", ","),
+            my_languages
       ) ) ) )
 ;';
   mysql_query($query);
@@ -86,6 +103,7 @@ UPDATE '.LANGUAGES_TABLE.'
   
   $conf['all_languages'][$_GET['delete_flag']]['flag'] = null;
   array_push($page['infos'], 'Flag deleted.');
+  $highlight_language = $_GET['delete_flag'];
 }
 
 // +-----------------------------------------------------------------------+
@@ -97,6 +115,7 @@ if (isset($_GET['make_stats']))
   {
     make_language_stats($_GET['make_stats']);
     array_push($page['infos'], 'Stats refreshed for language &laquo; '.get_language_name($_GET['make_stats']).' &raquo;');
+    $highlight_language = $_GET['make_stats'];
   }
 }
 
@@ -260,11 +279,22 @@ INSERT INTO '.LANGUAGES_TABLE.'(
     $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET languages = IF( languages="", "'.$_POST['id'].'", CONCAT(languages, ",'.$_POST['id'].'") )
-  WHERE '.($conf['language_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR ' : null).'status = "admin"
+  WHERE '.($conf['language_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
 ;';
     mysql_query($query);
     
+    // generate stats
+    if ($conf['use_stats'])
+    {
+      $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
+      $conf['all_languages'] = hash_from_query($query, 'id');
+      ksort($conf['all_languages']);
+      
+      make_language_stats($_POST['id']);
+    }
+    
     array_push($page['infos'], 'Language added');
+    $highlight_language = $_POST['id'];
   }
 }
 
@@ -469,7 +499,7 @@ echo '
     foreach ($_LANGS as $row)
     {
       echo '
-      <tr>
+      <tr class="'.($highlight_language==$row['id'] ? 'highlight' : null).'">
         <td class="id">'.$row['id'].'</td>
         <td class="name">
           <input type="text" name="langs['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
@@ -499,7 +529,7 @@ echo '
           <input type="text" name="langs['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
         </td>
         <td class="users">
-          <a href="'.get_url_string(array('lang_id'=>$row['id'],'page'=>'users')).'">'.$row['total_users'].'</a>
+          <a href="'.get_url_string(array('lang_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
           '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
@@ -519,17 +549,16 @@ echo '
     </tbody>
   </table>
   
-  <input type="hidden" name="MAX_FILE_SIZE" value="10240">
-  <input type="submit" name="save_lang" class="blue big" value="Save">
+  <div class="centered">
+    <input type="hidden" name="MAX_FILE_SIZE" value="10240">
+    <input type="submit" name="save_lang" class="blue big" value="Save">
+  </div>
 </fieldset>
 </form>';
 }
 
-$page['header'].= '
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tokeninput.css">
-<link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tablesorter.css">
-<script type="text/javascript" src="template/js/jquery.tokeninput.min.js"></script>
-<script type="text/javascript" src="template/js/jquery.tablesorter.min.js"></script>';
+load_jquery('tablesorter');
+load_jquery('tokeninput');
 
 $page['script'].= '  
 $("input.category").tokenInput([';

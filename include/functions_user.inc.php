@@ -21,6 +21,8 @@
  
 defined('PATH') or die('Hacking attempt!'); 
 
+define('DEFAULT_MANAGER_PERMS', serialize(array('can_add_projects'=>true, 'can_delete_projects'=>true, 'can_change_users_projects'=>true)));
+
 /**
  * get user infos
  * @param int user_id
@@ -38,10 +40,8 @@ SELECT ';
   $is_first = true;
   foreach ($conf['user_fields'] as $localfield => $dbfield)
   {
-    if ($is_first)
-      $is_first = false;
-    else
-      $query.= ', ';
+    if ($is_first) $is_first = false;
+    else           $query.= ', ';
     
     $query.= $dbfield.' AS '.$localfield;
   }
@@ -69,19 +69,7 @@ SELECT *
   // the user came from an external base, we must register it
   if (!mysql_num_rows($result))
   {
-    $query = '
-INSERT INTO '.USER_INFOS_TABLE.'(
-  user_id,
-  status,
-  registration_date
-  )
-VALUES(
-  "'.$user['id'].'",
-  "visitor",
-  NOW()
-  )
-;';
-    mysql_query($query);
+    create_user_infos($user_id);
     
     $query = '
 SELECT *
@@ -120,36 +108,50 @@ SELECT *
     $user['sections'] = $guest['sections'];
   }
   
+  if ($user['status'] == 'manager')
+  {
+    if (!empty($user['manage_perms']))
+    {
+      $user['manage_perms'] = unserialize($user['manage_perms']);
+    }
+    else
+    {
+      $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+    }
+  }
+  
   // explode languages and sections arrays
-  if (!empty($user['languages']))
+  foreach (array('languages','sections','my_languages','manage_sections') as $mode)
   {
-    $user['languages'] = explode(',', $user['languages']);
-    sort($user['languages']);
-  }
-  else
-  {
-    $user['languages'] = array();
-  }
-  if (!empty($user['sections']))
-  {
-    $user['sections'] = explode(',', $user['sections']);
-    sort($user['sections']);
-  }
-  else
-  {
-    $user['sections'] = array();
-  }
-  if (!empty($user['my_languages']))
-  {
-    $user['my_languages'] = explode(',', $user['my_languages']);
-    sort($user['my_languages']);
-  }
-  else
-  {
-    $user['my_languages'] = array();
+    if (!empty($user[$mode]))
+    {
+      $user[$mode] = explode(',', $user[$mode]);
+      sort($user[$mode]);
+    }
+    else
+    {
+      $user[$mode] = array();
+    }
   }
 
   return $user;
+}
+
+function create_user_infos($user_id, $status='visitor')
+{
+  $query = '
+INSERT IGNORE INTO '.USER_INFOS_TABLE.'(
+  user_id,
+  status,
+  registration_date
+  )
+VALUES(
+  "'.$user_id.'",
+  "'.$status.'",
+  NOW()
+  )
+;';
+  mysql_query($query);
 }
 
 /**
@@ -414,7 +416,7 @@ function register_user($login, $password, $mail_address)
     array_push($errors, 'HTML tags are not allowed in login');
   }
   $mail_error = validate_mail_address(null, $mail_address);
-  if ('' != $mail_error)
+  if (!empty($mail_error))
   {
     array_push($errors, $mail_error);
   }
@@ -423,8 +425,15 @@ function register_user($login, $password, $mail_address)
   if (count($errors) == 0)
   {
     // if used with a external users table we can specify additional fields to fill while add an user
-    $insert_names = array_keys($conf['additional_user_infos']);
-    $insert_values = array_values($conf['additional_user_infos']);
+    if (USERS_TABLE != DB_PREFIX.'users')
+    {
+      $insert_names = array_keys($conf['additional_user_infos']);
+      $insert_values = array_values($conf['additional_user_infos']);
+    }
+    else
+    {
+      $insert_names = $insert_values = array();
+    }
     array_push($insert_names, $conf['user_fields']['username'], $conf['user_fields']['password'], $conf['user_fields']['email']);
     array_push($insert_values, mres($login), $conf['pass_convert']($password), $mail_address);
   
@@ -462,7 +471,7 @@ INSERT INTO '.USER_INFOS_TABLE.'(
  */
 function get_user_status($user_id=null)
 {
-  global $conf, $user;
+  global $user;
 
   if ($user_id == null)
   {
@@ -506,14 +515,18 @@ function is_visitor()
 }
 
 /**
- * search if current user is translator (admins and managers are always translators)
+ * search if current user is translator
+ *   admins are always translators
+ *   managers have same rights of translators
  * @param string language
  * @param string section
  * @return bool
  */
 function is_translator($lang=null, $section=null)
 {
-  global $conf, $user;
+  if (is_admin()) return true;
+  
+  global $user;
   
   $cond = true;
   if ($lang != null) // access to language
@@ -524,9 +537,9 @@ function is_translator($lang=null, $section=null)
   {
     $cond = $cond && in_array($section, $user['sections']);
   }
-  $cond = $cond && get_user_status() == 'translator'; // status
+  $cond = $cond && (get_user_status() == 'translator' || get_user_status() == 'manager'); // status
   
-  return $cond || is_manager($section) || is_admin();
+  return $cond;
 }
 
 /**
@@ -536,12 +549,14 @@ function is_translator($lang=null, $section=null)
  */
 function is_manager($section=null)
 {
+  // if (is_admin()) return true;
+  
   global $user;
   
   $cond = true;
   if ($section != null) // access to section
   {
-    $cond = $cond && in_array($section, $user['sections']);
+    $cond = $cond && in_array($section, $user['manage_sections']);
   }
   $cond = $cond && get_user_status() == 'manager'; // status
   
