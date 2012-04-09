@@ -30,7 +30,7 @@ if (!svn_check_connection())
 // +-----------------------------------------------------------------------+
 // |                        GET DATAS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
+$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], array_combine($user['manage_sections'], $user['manage_sections']));
   
 // get users name
 $query = '
@@ -74,7 +74,7 @@ if (isset($_POST['init_commit']))
   
   if (is_manager())
   {
-    array_push($where_clauses, 'section IN("'.implode('","', $displayed_sections).'")');
+    array_push($where_clauses, 'section IN("'.implode('","', array_keys($displayed_sections)).'")');
   }
   
   // must use imbricated query to order before group
@@ -149,10 +149,10 @@ else
           
           <select name="section_id" style="display:none;">
             <option value="-1">--------</option>';
-          foreach ($displayed_sections as $section)
+          foreach ($displayed_sections as $row)
           {
             echo '
-            <option value="'.$section.'">'.get_section_name($section).'</option>';
+            <option value="'.$row['id'].'">'.$row['name'].'</option>';
           }
           echo '
           </select>

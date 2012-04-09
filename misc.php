@@ -49,7 +49,7 @@ SELECT
   WHERE i.status = "admin"
 ;';
     $to = hash_from_query($query);
-    array_walk($to, function(&$k,$v){$k=format_email($k['email'],$k['username']);});
+    array_walk($to, create_function('&$k,$v', '$k=format_email($k["email"],$k["username"]);'));
     
     // send mail
     $subject = '['.strip_tags($conf['install_name']).'] New language request';

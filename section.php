@@ -87,15 +87,21 @@ if (isset($_POST['add_lang']))
 // |                         DISPLAY LANGUAGES
 // +-----------------------------------------------------------------------+
 // statistics (must be computed with a clean rank)
-$old_section_rank = $conf['all_sections'][$page['section']]['rank'];
-$conf['all_sections'][$page['section']]['rank'] = 1;
 if ($conf['use_stats'])
 {
+  $old_section_rank = $conf['all_sections'][$page['section']]['rank'];
+  $conf['all_sections'][$page['section']]['rank'] = 1;
+
+  /*if ( time() - strtotime(get_cache_date($page['section'])) > $conf['stats_cache_life'] )
+  {
+    make_section_stats($page['section']);
+  }*/
   $stats = get_cache_stats($page['section'], null, 'language');
   $section_stats = get_cache_stats($page['section'], null, 'all');
+  
+  $conf['all_sections'][$page['section']]['rank'] = $old_section_rank;
 }
 $use_stats = !empty($stats);
-$conf['all_sections'][$page['section']]['rank'] = $old_section_rank;
 
 // languages not translated, translated and editable, not translated and editable
 $language_not_translated = $language_translated = $language_available = $conf['all_languages'];
@@ -145,7 +151,7 @@ foreach ($language_translated as $row)
   echo '
   <li '.( !$row['section_exists'] || ($use_stats && empty($stats[$row['id']])) ? 'class="new"' : null).'>
     <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), true, 'edit').'">
-      '.$row['id'].' '.get_language_flag($row['id']).'
+      '.$row['name'].' '.get_language_flag($row['id']).'
       '.(is_source_language($row['id']) ? '<i>(source)</i>': null).'
       '.($use_stats ? display_progress_bar($stats[$row['id']], 150) : null).'
     </a>

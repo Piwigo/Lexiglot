@@ -133,6 +133,11 @@ SELECT *
       $user[$mode] = array();
     }
   }
+  
+  if ($user['status'] == 'translator')
+  {
+    $user['main_language'] = $user['manage_sections'];
+  }
 
   return $user;
 }

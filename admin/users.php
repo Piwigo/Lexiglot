@@ -28,11 +28,18 @@ $highlight_user = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) and is_admin() )
 {
-  $query = 'DELETE FROM '.USERS_TABLE.' WHERE '.$conf['user_fields']['id'].' = '.$_GET['delete_user'].';';
-  $done = (bool)mysql_query($query);
+  if (USERS_TABLE == DB_PREFIX.'users')
+  {
+    $query = 'DELETE FROM '.USERS_TABLE.' WHERE '.$conf['user_fields']['id'].' = '.$_GET['delete_user'].';';
+    $done = (bool)mysql_query($query);
+  }
+  else
+  {
+    $done = true;
+  }
   
   $query = 'DELETE FROM '.USER_INFOS_TABLE.' WHERE user_id = '.$_GET['delete_user'].';';
-  mysql_query($query);
+  $done = $done && (bool)mysql_query($query);
   
   if ($done) array_push($page['infos'], 'User deleted');
 }
@@ -433,7 +440,7 @@ echo '
         '.($has_admin_rights ? '<td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>' :null).'
         <td class="user">'.($row['id']!=$conf['guest_id'] ? '<a href="'.get_url_string(array('user_id'=>$row['id']), true, 'profile').'">'.$row['username'].'</a>' : $row['username']).'</td>
         <td class="email">'.(!empty($row['email']) && $row['id']!=$conf['guest_id'] ? '<a href="mailto:'.$row['email'].'">'.$row['email'].'</a>' : null).'</td>
-        <td class="date">'.format_date($row['registration_date'], true, false).'</td>
+        <td class="date"><span style="display:none;">'.strtotime($row['registration_date']).'</span>'.format_date($row['registration_date'], true, false).'</td>
         <td class="lang">';
         if (count($row['my_languages']) > 0)
         {

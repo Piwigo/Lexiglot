@@ -47,7 +47,6 @@ if (isset($_POST['save_perm']))
   
   if (is_admin())
   {
-    
     if (!empty($_POST['available_languages']))
     {
       ksort($_POST['available_languages']);
@@ -75,6 +74,17 @@ if (isset($_POST['save_perm']))
       }
       array_push($sets, 'manage_perms = \''.serialize($manage_perms).'\'');
     }
+    else if (get_user_status($_POST['user_id']) == 'translator')
+    {
+      if (!empty($_POST['main_language']))
+      {
+        array_push($sets, 'manage_sections = "'.$_POST['main_language'].'"');
+      }
+      else
+      {
+        array_push($sets, 'manage_sections = ""');
+      }
+    }
   }
   
   $query = '
@@ -101,12 +111,13 @@ if ( is_manager() and !$user['manage_perms']['can_change_users_projects'] )
   print_page();
 }
 
-$movable_sections = is_manager() ? $user['sections'] : array_keys($conf['all_sections']);
+$movable_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
 
 
 // +-----------------------------------------------------------------------+
 // |                         TEMPLATE
 // +-----------------------------------------------------------------------+
+// sort sections and languages by rank
 function cmp1($a, $b)
 {
   if ($a['rank'] == $b['rank']) return strcmp($a['id'], $b['id']);
@@ -122,11 +133,13 @@ function cmp2_sect($a, $b)
   if (get_section_rank($a) == get_section_rank($b)) return strcmp($a, $b);
   return get_section_rank($a) < get_section_rank($b) ? 1 : -1;
 }
+
 uasort($local_user['languages'], 'cmp2_lang');
 uasort($conf['all_languages'], 'cmp1');
 uasort($local_user['sections'], 'cmp2_sect');
 uasort($conf['all_sections'], 'cmp1');
 
+// count number of different rnaks, if 1, we consider that we don't use ranks
 $use_lang_rank = count(array_unique_deep($conf['all_languages'], 'rank')) > 1;
 $use_section_rank = count(array_unique_deep($conf['all_sections'], 'rank')) > 1;
 
@@ -146,7 +159,11 @@ if (is_admin())
       if (array_key_exists($lang, $conf['all_languages']))
       {
         echo '
-        <li id="'.$lang.'" class="lang">'.get_language_flag($lang).' '.get_language_name($lang).' '.($use_lang_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'</li>';
+        <li id="'.$lang.'" class="lang">
+          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$lang.'" '.(in_array($lang,$local_user['main_language'])?'checked="checked"':null).'>' : null).'
+          '.get_language_flag($lang).' '.get_language_name($lang).'
+          '.($use_lang_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
+        </li>';
       }
     }
     echo '
@@ -159,7 +176,11 @@ if (is_admin())
       if (!in_array($row['id'], $local_user['languages']))
       {
         echo '
-        <li id="'.$row['id'].'" class="lang">'.get_language_flag($row['id']).' '.$row['name'].' '.($use_lang_rank ? '<i>'.$row['rank'].'</i>' : null).'</li>';
+        <li id="'.$row['id'].'" class="lang">
+          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
+          '.get_language_flag($row['id']).' '.$row['name'].'
+          '.($use_lang_rank ? '<i>'.$row['rank'].'</i>' : null).'
+        </li>';
       }
     }
     echo '
@@ -242,6 +263,11 @@ $(".lang-container").droppable({
   drop: function(event, ui) {
     var $gallery = this;
     ui.draggable.fadeOut("fast", function() {
+      if ($($gallery).attr("id") == "available_languages") {
+        $(this).children("input").show();
+      } else {
+        $(this).children("input").hide();
+      }
       $(this).appendTo($gallery).fadeIn("fast");
       update_height("languages");
     });      
@@ -250,6 +276,7 @@ $(".lang-container").droppable({
 $("#authorizeAllLang").click(function() {
   $("#unavailable_languages li").each(function() {
     $(this).fadeOut("fast", function() {
+      $(this).children("input").show();
       $(this).appendTo($("#available_languages")).fadeIn("fast");
       
     });
@@ -260,6 +287,7 @@ $("#authorizeAllLang").click(function() {
 $("#forbidAllLang").click(function() {
   $("#available_languages li").each(function() {
     $(this).fadeOut("fast", function() {
+      $(this).children("input").hide();
       $(this).appendTo($("#unavailable_languages")).fadeIn("fast");
     });
   }).promise().done(function() { 

@@ -131,8 +131,8 @@ if ($where_clauses != array('1=1'))
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
-array_push($where_clauses, 'l.section IN("'.implode('","', $displayed_sections).'")');
+$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], array_combine($user['manage_sections'], $user['manage_sections']));
+array_push($where_clauses, 'l.section IN("'.implode('","', array_keys($displayed_sections)).'")');
 
 $query = '
 SELECT 
@@ -206,10 +206,10 @@ echo '
       <td>
         <select name="section">
           <option value="-1" '.('-1'==$search['section']?'selected="selected"':'').'>-------</option>';
-          foreach ($displayed_sections as $section)
+          foreach ($displayed_sections as $row)
           {
             echo '
-          <option value="'.$section.'" '.($section==$search['section']?'selected="selected"':'').'>'.get_section_name($section).'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
@@ -269,7 +269,7 @@ echo '
         <td class="user">
           <a href="'.get_url_string(array('page'=>'users','user_id'=>$row['user_id']), true).'">'.$row['username'].'</a>
         </td>
-        <td class="date">'.format_date($row['last_edit'], true, false).'</td>
+        <td class="date"><span style="display:none;">'.strtotime($row['last_edit']).'</span>'.format_date($row['last_edit'], true, false).'</td>
         <td class="value">
           <pre class="row_value" title="'.str_replace('"',"'",$row['row_name']).'">'.cut_string(htmlspecialchars($row['row_value']), 400).'</pre>
         </td>

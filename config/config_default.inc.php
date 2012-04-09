@@ -47,6 +47,9 @@ $conf['exec_before_file'] = '';
 // how to navigate : sections, languages, both
 $conf['navigation_type'] = 'both';
 
+// cache validation time
+$conf['stats_cache_life'] = 172800;
+
 // status, /!\ don't modify /!\
 $conf['status'] = array(
   'guest'       => 1,

@@ -142,6 +142,7 @@ echo '
     <li><b>Users :</b> '.$db_tables['user_infos'].'</li>
     <li><b>Projects :</b> '.$db_tables['sections'].'</li>
     <li><b>Languages :</b> '.$db_tables['languages'].'</li>
+    '.(!$conf['delete_done_rows'] ? '<li><b>Translations :</b> '.$db_tables['rows'].'</li>' : null).'
     <li><b>Categories :</b> '.$db_tables['categories'].'
       '.($nb_unused_categories !=0 ? '('.$nb_unused_categories.' unused <a href="'.get_url_string(array('action'=>'delete_unused_categories')).'">Delete</a>)' : null).'</li>
   </ul>

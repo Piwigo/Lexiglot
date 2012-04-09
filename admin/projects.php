@@ -35,8 +35,8 @@ if ( isset($_GET['delete_section']) and ( is_admin() or (is_manager($_GET['delet
   // delete section form user infos (such a wonderfull query !)
   $i = $_GET['delete_section'];
   $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET sections = 
+UPDATE '.USER_INFOS_TABLE.' SET 
+  sections = 
     IF(sections = "'.$i.'", 
       "",
       IF(sections LIKE "'.$i.',%",
@@ -46,12 +46,8 @@ UPDATE '.USER_INFOS_TABLE.'
           IF(sections LIKE "%,'.$i.',%", 
             REPLACE(sections, ",'.$i.',", ","),
             sections
-      ) ) ) )
-;';
-  mysql_query($query);  
-  $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET manage_sections = 
+      ) ) ) ),
+  manage_sections = 
     IF(manage_sections = "'.$i.'", 
       "",
       IF(manage_sections LIKE "'.$i.',%",

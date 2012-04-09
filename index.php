@@ -49,10 +49,9 @@ SELECT
     rank DESC,
     l.id ASC
 ;';
-  $conf['all_languages'] = hash_from_query($query, 'id');
+  $language_translated = hash_from_query($query, 'id');
   
   // languages which this user can edit/view
-  $language_translated = $conf['all_languages'];
   foreach (array_keys($language_translated) as $lang)
   {
     if (!in_array($lang, $user['languages']))
@@ -132,10 +131,9 @@ SELECT
     rank DESC,
     s.name ASC
 ;';
-  $conf['all_sections'] = hash_from_query($query, 'id');
+  $section_translated = hash_from_query($query, 'id');
   
   // sections which this user can edit/view
-  $section_translated = $conf['all_sections'];
   foreach ($conf['all_sections'] as $row)
   {
     if (!in_array($row['id'], $user['sections']))

@@ -87,15 +87,21 @@ if (isset($_POST['add_section']))
 // |                         DISPLAY SECTIONS
 // +-----------------------------------------------------------------------+
 // statistics (must be computed with a clean rank)
-$old_language_rank = $conf['all_languages'][$page['language']]['rank'];
-$conf['all_languages'][$page['language']]['rank'] = 1;
 if ($conf['use_stats'])
 {
+  $old_language_rank = $conf['all_languages'][$page['language']]['rank'];
+  $conf['all_languages'][$page['language']]['rank'] = 1;
+
+  /*if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_cache_life'] )
+  {
+    make_language_stats($page['language']);
+  }*/
   $stats = get_cache_stats(null, $page['language'], 'section');
   $language_stats = get_cache_stats(null, $page['language'], 'all');
+  
+  $conf['all_languages'][$page['language']]['rank'] = $old_language_rank;
 }
 $use_stats = !empty($stats);
-$conf['all_languages'][$page['language']]['rank'] = $old_language_rank;
 
 // sections not translated, translated and editable, not translated and editable
 $section_not_translated = $section_translated = $section_available = $conf['all_sections'];

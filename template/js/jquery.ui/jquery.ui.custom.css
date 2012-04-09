@@ -64,7 +64,7 @@
 ----------------------------------*/
 .ui-state-highlight, .ui-widget-content .ui-state-highlight, .ui-widget-header .ui-state-highlight  {border: 1px solid #cccccc; background: #f6f6f6; color: #444444; border-radius:2px;}
 .ui-state-highlight a, .ui-widget-content .ui-state-highlight a,.ui-widget-header .ui-state-highlight a { color: #0472ec; border-color: #0472ec; font-weight: bold; }
-.ui-state-warning, .ui-widget-content .ui-state-warning, .ui-widget-header .ui-state-warning {border: 1px solid #e69700; background: url(images/08_diagonals_thick.png) 50% 50% repeat-x; color: #ffffff; border-radius:2px; }
+.ui-state-warning, .ui-widget-content .ui-state-warning, .ui-widget-header .ui-state-warning {border: 1px solid #e69700; background: url(images/08_diagonals_thick.png) 50% 50% repeat; color: #ffffff; border-radius:2px; }
 .ui-state-warning a, .ui-widget-content .ui-state-warning a, .ui-widget-header .ui-state-warning a { color: #ffff00; border-color:#ffffff; font-weight: bold; }
 .ui-state-error, .ui-widget-content .ui-state-error, .ui-widget-header .ui-state-error {border: 1px solid #cd0000; background: #cd0a0a; color: #ffffff; border-radius:2px; }
 .ui-state-error a, .ui-widget-content .ui-state-error a, .ui-widget-header .ui-state-error a { color: #ffffff; border-color:#ffffff; font-weight: bold; }

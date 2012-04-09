@@ -452,7 +452,7 @@ SELECT
         <tr>
           <td>Languages I speak :</td>
           <td>
-          '.(isset($_GET['new']) ? '<div class="ui-state-error ui-corner-all" style="padding:5px;"> <span class="ui-icon ui-icon-info" style="float:left; margin:3px 5px 0 0;"></span>' : null).'
+          '.(isset($_GET['new']) ? '<div class="ui-state-warning ui-corner-all" style="padding:5px;"> <span class="ui-icon ui-icon-info" style="float:left; margin:3px 5px 0 0;"></span>' : null).'
             <select id="my_languages" name="my_languages[]" multiple="multiple" data-placeholder="Select languages..." style="width:500px;">';
             foreach ($conf['all_languages'] as $row)
             {

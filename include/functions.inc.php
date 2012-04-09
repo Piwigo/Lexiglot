@@ -302,7 +302,7 @@ function close_page()
  * @param mixed key name
  * @return array
  */
-function array_unique_deep($array, $key)
+function array_unique_deep(&$array, $key)
 {
   $values = array();
   foreach ($array as $k1 => $row)
@@ -325,9 +325,9 @@ function array_unique_deep($array, $key)
  */
 function array_merge_recursive_distinct($Arr1, $Arr2)
 {
-  foreach($Arr2 as $key => $Value)
+  foreach ($Arr2 as $key => $Value)
   {
-    if( array_key_exists($key, $Arr1) && is_array($Value) )
+    if ( array_key_exists($key, $Arr1) && is_array($Value) )
     {
       $Arr1[$key] = array_merge_recursive_distinct($Arr1[$key], $Arr2[$key]);
     }
@@ -383,7 +383,7 @@ function rrmdir($dir)
  * @param bool search in PCRE mode
  * @return key or array of keys
  */
-function array_pos($needle, $haystack, $match_all=false, $preg_mode=false)
+function array_pos($needle, &$haystack, $match_all=false, $preg_mode=false)
 {
   if ($match_all) $matches = array();
   
@@ -419,7 +419,7 @@ function array_pos($needle, $haystack, $match_all=false, $preg_mode=false)
  * @param array
  * @return array
  */
-function reverse_2d_array($array)
+function reverse_2d_array(&$array)
 {
   $out = array();
   
