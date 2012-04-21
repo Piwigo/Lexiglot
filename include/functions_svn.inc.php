@@ -271,7 +271,7 @@ function svn_add($file, $recursive=false)
 }
 
 /**
- * recursively add a file or directoryt
+ * recursively add a file or directory
  * the aim is to search the first node not added yet
  * @param string local path
  * @return array
@@ -310,6 +310,37 @@ function svn_add_recursive($file)
   {
     return svn_add($file);
   }
+}
+
+/**
+ * create and add a directory
+ * @param string local path
+ * @param bool recursive
+ * @return array
+ */
+function svn_mkdir($path, $recursive=true)
+{
+  global $conf;
+  exec($conf['svn_path'].' mkdir '.($recursive ? '--parents' : null).' "'.$path.'" 2>&1', $out);
+
+  if (array_pos('A ', $out) !== false)
+  {
+    $level = 'success';
+    $msg = '\''.$path.'\' added';
+  }
+  else if (($i = array_pos('Can\'t create directory', $out)) !== false)
+  {
+    $level = 'error';
+    $msg = $out[i];
+  }
+  else
+  {
+    $level = 'error';
+    $msg = 'An unknown error occured';
+    
+  }
+var_dump($out);
+  return array('level'=>$level, 'msg'=>$msg);
 }
 
 ?>

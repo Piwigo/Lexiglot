@@ -72,13 +72,25 @@ if (isset($_POST['add_section']))
   {
     array_push($page['errors'], 'You have no rights to add this project.');
   }
-  else if (mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], 0777, true))
+  else 
   {
-    redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
-  }
-  else
-  {
-    array_push($page['errors'], 'Can\t create forder. Please contact administrators.');
+    if ($conf['svn_activated'])
+    {
+      $svn_result = svn_mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], true);
+      $svn_result = $svn_result['level'] == 'success';
+    }
+    else
+    {
+      $svn_result = mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], 0777, true);
+    }
+    if ($svn_result)
+    {
+      redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
+    }
+    else
+    {
+      array_push($page['errors'], 'Can\t create forder. Please contact administrators.');
+    }
   }
 }
 
@@ -92,10 +104,10 @@ if ($conf['use_stats'])
   $old_language_rank = $conf['all_languages'][$page['language']]['rank'];
   $conf['all_languages'][$page['language']]['rank'] = 1;
 
-  /*if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_cache_life'] )
+  if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_cache_life'] )
   {
     make_language_stats($page['language']);
-  }*/
+  }
   $stats = get_cache_stats(null, $page['language'], 'section');
   $language_stats = get_cache_stats(null, $page['language'], 'all');
   

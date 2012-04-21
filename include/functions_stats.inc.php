@@ -192,7 +192,107 @@ function make_full_stats($save=true)
  * @param string 'language','section','all'
  * @return array
  */
-function get_cache_stats($section=null, $language=null, $sum=null)
+function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
+{
+  global $conf;
+  
+  $where_clauses = array('1=1');
+  if (!empty($Slanguage))
+  {
+    $where_clauses[] = 'language = "'.$Slanguage.'"';
+  }
+  if (!empty($Ssection))
+  {
+    $where_clauses[] = 'section = "'.$Ssection.'"';
+  }
+  
+  $query = '
+SELECT * FROM (
+  SELECT
+      section,
+      language,
+      value
+    FROM '.STATS_TABLE.'
+    WHERE
+      '.implode("\n      AND ", $where_clauses).'
+    ORDER BY 
+      date DESC, 
+      section ASC, 
+      language ASC
+  ) as t
+  GROUP BY CONCAT(t.section, t.language)
+;';
+  $result = mysql_query($query);
+  $out = array();
+  
+  while ($row = mysql_fetch_assoc($result))
+  {
+    $out[ $row['section'] ][ $row['language'] ] = $row['value'];
+  }
+  
+  switch ($Ssum)
+  {
+    // sum sections progressions by language
+    case 'language':
+      $out = reverse_2d_array($out);
+      foreach ($out as $language => $row)
+      {
+        $num = $denom = 0;
+        $from = !empty($Ssection) ? array_keys($row) : array_keys($conf['all_sections']);
+        foreach ($from as $section)
+        {
+          $num+= @$row[$section] * get_section_rank($section);
+          $denom+= get_section_rank($section);
+        }
+        $out[ $language ] = ($num == 0) ? 0 : $num/$denom;
+      }
+      break;
+      
+    // sum languages progressions by section
+    case 'section':
+      foreach ($out as $section => $row)
+      {
+        $num = $denom = 0;
+        $from = !empty($Slanguage) ? array_keys($row) : array_keys($conf['all_languages']);
+        foreach ($from as $language)
+        {
+          $num+= @$row[$language] * get_language_rank($language);
+          $denom+= get_language_rank($language);
+        }
+        $out[ $section ] = ($num == 0) ? 0 : $num/$denom;
+      }
+      break;
+      
+    // sum all progressions
+    case 'all' :
+      $num = $denom = 0;
+      $from = !empty($Ssection) ? array_keys($out) : array_keys($conf['all_sections']);
+      foreach ($from as $section)
+      {
+        $sub_num = $sub_denom = 0;
+        $from = !empty($Slanguage) ? array_keys($out[$section]) : array_keys($conf['all_languages']);
+        foreach ($from as $language)
+        {
+          $sub_num+= @$out[$section][$language] * get_language_rank($language);
+          $sub_denom+= get_language_rank($language);
+        }
+        $num+= ($sub_num == 0 ? 0 : $sub_num/$sub_denom) * get_section_rank($section);
+        $denom+= get_section_rank($section);
+      }
+      $out = ($num == 0) ? 0 : $num/$denom;
+      break;
+  }
+  
+  return $out;
+}
+
+/**
+ * get the oldest generation date of a set of the cache
+ * @param string section
+ * @param string language
+ * @return string
+ */
+function get_cache_date($section=null, $language=null)
 {
   global $conf;
   
@@ -207,99 +307,42 @@ function get_cache_stats($section=null, $language=null, $sum=null)
   }
   
   $query = '
-SELECT * FROM (
-  SELECT
-      section,
-      language,
-      value
-    FROM '.STATS_TABLE.'
-    WHERE
-      '.implode("\n      AND ", $where_clauses).'
-    ORDER BY date DESC, section ASC, language ASC
-  ) as t
-  GROUP BY CONCAT(t.section, t.language)
+SELECT MIN(date)
+  FROM '.STATS_TABLE.'
+  WHERE
+    '.implode("\n    AND ", $where_clauses).'
 ;';
-
   $result = mysql_query($query);
-  $out = array();
-  
-  while ($row = mysql_fetch_assoc($result))
+
+  if (!mysql_num_rows($result))
   {
-    $out[ $row['section'] ][ $row['language'] ] = $row['value'];
+    return '0000-00-00 00:00:00';
   }
   
-  switch ($sum)
-  {
-    case 'language':
-      $out = reverse_2d_array($out);
-      foreach ($out as $language => $row)
-      {
-        $num = $denom = 0;
-        foreach ($row as $section => $value)
-        {
-          $num+= $value*$conf['all_sections'][ $section ]['rank'];
-          $denom+= $conf['all_sections'][ $section ]['rank'];
-        }
-        $out[ $language ] = $num==0 ? 0 : $num/$denom;
-      }
-      break;
-      
-    case 'section':
-      foreach ($out as $section => $row)
-      {
-        $num = $denom = 0;
-        foreach ($row as $language => $value)
-        {
-          $num+= $value*$conf['all_languages'][ $language ]['rank'];
-          $denom+= $conf['all_languages'][ $language ]['rank'];
-        }
-        $out[ $section ] = $num==0 ? 0 : $num/$denom;
-      }
-      break;
-      
-    case 'all' :
-      foreach ($out as $section => $row)
-      {
-        $num = $denom = 0;
-        foreach ($row as $language => $value)
-        {
-          $num+= $value*$conf['all_languages'][ $language ]['rank'];
-          $denom+= $conf['all_languages'][ $language ]['rank'];
-        }
-        $out[ $section ] = $num==0 ? 0 : $num/$denom;
-      }
-      $num = $denom = 0;
-      foreach ($out as $section => $value)
-      {
-        $num+= $value*$conf['all_sections'][ $section ]['rank'];
-        $denom+= $conf['all_sections'][ $section ]['rank'];
-      }
-      $out = $num==0 ? 0 : $num/$denom;
-      break;
-  }
-  
-  return $out;
+  list($date) = mysql_fetch_row($result);
+  return $date;
 }
 
 /** 
  * generate progression bar
  * @param float value
  * @param int width
+ * @param bool display percentage inside the bar
  * @return string html
  */
-function display_progress_bar($value, $width, $outside = false)
+function display_progress_bar($value, $width, $inside=true)
 {
-  if ($outside) $width-=48;
+  if (!$inside) $width-=48;
   return '
   <span class="progressBar '.($value==1?'full':null).'" style="width:'.$width.'px;">
-    <span class="bar" style="background-color:'.get_gauge_color($value).';width:'.floor($value*$width).'px;">'.(!$outside?'&nbsp;&nbsp;'.number_format($value*100,2).'%&nbsp;&nbsp;':null).'</span>
+    <span class="bar" style="background-color:'.get_gauge_color($value).';width:'.floor($value*$width).'px;">'.($inside?'&nbsp;&nbsp;'.number_format($value*100,2).'%&nbsp;&nbsp;':null).'</span>
   </span>
-  '.($outside?'&nbsp;&nbsp;'.number_format($value*100,2).'%':null);
+  '.(!$inside?'&nbsp;&nbsp;'.number_format($value*100,2).'%':null);
 }
 
 /**
  * return a color according to value (gradient is red-orange-green)
- * @param float value
+ * @param float value between 0 and 1
  * @return sring hex color
  */
 function get_gauge_color($value)

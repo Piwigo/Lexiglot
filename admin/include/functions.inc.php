@@ -97,7 +97,15 @@ function deep_file_put_contents($filename, $data, $flags=0)
   
   if ( !empty($path) and !file_exists($path) )
   {
-    if (!mkdir($path, 0777, true)) return false;
+    if ($conf['svn_activated'])
+    {
+      $svn_result = svn_mkdir($path, true);
+      if ($svn_result['level'] != 'success') return false;
+    }
+    else
+    {
+      if (!mkdir($path, 0777, true)) return false;
+    }
   }
   
   $out = file_put_contents($filename, $data, $flags);

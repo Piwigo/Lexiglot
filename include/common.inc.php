@@ -131,6 +131,16 @@ if (!defined('IN_AJAX'))
       print_page();
     }
   }
+  
+  // check SVN client
+  if ($conf['svn_activated'])
+  {
+    exec($conf['svn_path'].' 2>&1', $out);
+    if ($out[0] != 'Type \'svn help\' for usage.')
+    {
+      array_push($page['errors'], 'Unable to find SVN client &laquo; '.$conf['svn_path'].' &raquo;');
+    }
+  }
 }
 
 ?>

@@ -63,7 +63,7 @@ foreach ($_ROWS as $props => $files)
       }
       else
       {
-        array_push($file_infos['errors'], 'Can\'t update/create file\''.$file_infos['path'].'\'');
+        array_push($file_infos['errors'], 'Can\'t update/create file \''.$file_infos['path'].'\'');
       }
     }
     ## array file ##
@@ -77,7 +77,7 @@ foreach ($_ROWS as $props => $files)
       if (!$file_infos['is_new'])
       {
         $_FILE = file($file_infos['path'], FILE_IGNORE_NEW_LINES);
-        unset($_FILE[array_search('?>', $_FILE)]); // remove PHP end tag
+        unset($_FILE[ array_search('?>', $_FILE) ]); // remove PHP end tag
       }
       // create the file
       else
@@ -150,6 +150,7 @@ foreach ($_ROWS as $props => $files)
               unset_to_eor($_FILE, $i);
             }
             unset($_FILE[$i]);
+            array_push($file_infos['done_rows'], $row['id']);
           }
         }
       }
@@ -165,7 +166,7 @@ foreach ($_ROWS as $props => $files)
     }
     
     // try to svn_add the file if it's new
-    if (count($file_infos['done_rows']) > 0 and $conf['svn_activated'] and !$commit['is_new'] and $file_infos['is_new'] ) 
+    if ( count($file_infos['done_rows']) > 0 and $conf['svn_activated'] and $file_infos['is_new'] ) 
     {
       $svn_result = svn_add($file_infos['path'], true);
       if ($svn_result['level'] == 'error')
@@ -193,24 +194,11 @@ foreach ($_ROWS as $props => $files)
   $commit['users'] = array_unique($commit['users']);
   array_walk($commit['users'], 'print_username');
   
-  // try to svn_add the folder if it's new
-  if ( count($commit['done_rows']) > 0 and $conf['svn_activated'] and $commit['is_new'] )
-  {
-    $svn_result = svn_add($commit['path']);
-    if ($svn_result['level'] == 'error')
-    {
-      $commit['done_rows'] = array();
-      rrmdir($commit['path']);
-      mkdir($commit['path'], 0777);
-      array_push($commit['errors'], 'svn: '.$svn_result['msg']);
-    }
-  }
-  
   // everything fine, try to commit
   if ( count($commit['done_rows']) > 0 and $conf['svn_activated'] )
   {
     $svn_result = svn_commit($commit['path'], 
-      '['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
+      utf8_encode('['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' '.get_language_name($commit['language']).', thanks to : '.implode(' & ', $commit['users']))
       );
     
     // error while commit
@@ -218,28 +206,28 @@ foreach ($_ROWS as $props => $files)
     {
       svn_revert($commit['path']);
       $commit['done_rows'] = array();
-      array_push($page['errors'], '['.get_section_name($commit['section']).'] '.$commit['language'].': '.$svn_result['msg']);
+      array_push($page['errors'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
     }
     // commited successfully without files errors
     else if (count($commit['errors']) == 0)
     {
-      array_push($page['infos'], '['.get_section_name($commit['section']).'] '.$commit['language'].': '.$svn_result['msg']);
+      array_push($page['infos'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
     }
   }
   // everything fine, svn not activated
   else if ( count($commit['done_rows']) > 0 and count($commit['errors']) == 0 )
   {
-    array_push($page['infos'], '['.get_section_name($commit['section']).'] '.$commit['language'].': done');
+    array_push($page['infos'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': done');
   }
   // nothing done
   else if (count($commit['done_rows']) == 0)
   {
-    array_push($page['errors'], '['.get_section_name($commit['section']).'] '.$commit['language'].': failed<br>'.implode('<br>', $commit['errors']));
+    array_push($page['errors'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': failed<br>'.implode('<br>', $commit['errors']));
   }
   // some errors in files creation
   if ( count($commit['done_rows']) > 0 and count($commit['errors']) > 0 )
   {
-    array_push($page['warnings'], '['.get_section_name($commit['section']).'] '.$commit['language'].': partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+    array_push($page['warnings'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
   }
   
   // update database

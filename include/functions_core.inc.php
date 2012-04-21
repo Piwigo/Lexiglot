@@ -64,7 +64,10 @@ function load_language_file_plain($filename)
   $out = array();
   if (($file = @file_get_contents($filename)) !== false)
   {
-    $out = array('row_value' => $file);
+    $out = array(
+      'row_name' => $filename,
+      'row_value' => $file,
+      );
   }
   return $out;
 }
@@ -104,7 +107,7 @@ SELECT * FROM (
 }
 
 /**
- * determine if the language is the reference
+ * determine if the language is the reference one
  * @param string language
  * @return boolean
  */
@@ -139,10 +142,14 @@ function get_language_name($lang)
   return $lang;
 }
 
+/**
+ * get language rank
+ * @param string lang
+ */
 function get_language_rank($lang)
 {
   global $conf;
-  return $conf['all_languages'][$lang]['rank'];
+  return @$conf['all_languages'][$lang]['rank'];
 }
 
 /**
@@ -187,10 +194,14 @@ function get_section_name($section)
   return $section;
 }
 
+/**
+ * get section rank
+ * @param string section
+ */
 function get_section_rank($lang)
 {
   global $conf;
-  return $conf['all_sections'][$lang]['rank'];
+  return @$conf['all_sections'][$lang]['rank'];
 }
 
 /**
@@ -280,6 +291,11 @@ function search_fulltext($haystack, $needle, $where='row_value')
   return $haystack;
 }
 
+/**
+ * slice a search query into words, remove all special chars
+ * @param string
+ * @return array
+ */
 function get_fulltext_words($needle)
 {
   $str = preg_replace('#[\&\#\"\'\{\(\[\-\|\_\\\@\)\]\+\=\}\*\,\?\;\.\:\/\!]#', ' ', $needle);
@@ -288,6 +304,13 @@ function get_fulltext_words($needle)
   return $words;
 }
 
+/**
+ * highlight searched words with a span
+ * @param string
+ * @param array words
+ * @param string hex color
+ * @return string
+ */
 function highlight_search_result($text, $words, $color="#ff0")
 {
   $replace = implode('|', $words);

@@ -93,7 +93,15 @@ function get_home_url()
  */
 function get_absolute_home_url()
 {
-  $host = 'http://'.$_SERVER['SERVER_NAME'];
+  if (isset($_SERVER['HTTPS']) && ( strtolower($_SERVER['HTTPS']) == 'on' or $_SERVER['HTTPS'] == 1 ) )
+  {
+    $host = 'https://';
+  }
+  else
+  {
+    $host = 'http://';
+  }
+  $host.= $_SERVER['SERVER_NAME'];
   $host.= str_replace(basename($_SERVER['SCRIPT_NAME']), null, $_SERVER['SCRIPT_NAME']);
   return $host;
 }

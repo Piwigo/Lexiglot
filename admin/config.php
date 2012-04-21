@@ -31,12 +31,6 @@ if (isset($_POST['save_config']))
     'delete_done_rows' =>       set_boolean(isset($_POST['delete_done_rows'])),
     'use_stats' =>              set_boolean(isset($_POST['use_stats'])),
     
-    'svn_activated' =>          set_boolean(isset($_POST['svn_activated'])),
-    'svn_server' =>             rtrim($_POST['svn_server'], '/').'/',
-    'svn_path' =>               $_POST['svn_path'],
-    'svn_user' =>               $_POST['svn_user'],
-    'svn_password' =>           $_POST['svn_password'],
-    
     'access_to_guest' =>        set_boolean(isset($_POST['access_to_guest'])),
     'allow_registration' =>     set_boolean(isset($_POST['allow_registration'])),
     'allow_profile' =>          set_boolean(isset($_POST['allow_profile'])),
@@ -50,12 +44,22 @@ if (isset($_POST['save_config']))
     'new_file_content' =>       $_POST['new_file_content'],
     );
     
-  // we must relocate all working directories
-  if ($new_conf['svn_activated'] == 'true' and $new_conf['svn_server'] != $conf['svn_server'])
+  if (function_exists('exec'))
   {
-    foreach ($conf['all_sections'] as $key => $row)
-    {
-      svn_switch($new_conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id'], $conf['svn_server'].$row['directory']);
+    $new_conf = array_merge($new_conf, array(
+      'svn_activated' =>          set_boolean(isset($_POST['svn_activated'])),
+      'svn_server' =>             rtrim($_POST['svn_server'], '/').'/',
+      'svn_path' =>               $_POST['svn_path'],
+      'svn_user' =>               $_POST['svn_user'],
+      'svn_password' =>           $_POST['svn_password'],
+      ));
+      
+    if ($new_conf['svn_activated'] == 'true' and $new_conf['svn_server'] != $conf['svn_server'])
+    { // we must relocate all working directories
+      foreach ($conf['all_sections'] as $key => $row)
+      {
+        svn_switch($new_conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id'], $conf['svn_server'].$row['directory']);
+      }
     }
   }
     
@@ -104,8 +108,11 @@ echo '
         <td><input type="checkbox" name="use_stats" value="1" '.($conf['use_stats']?'checked="checked"':'').'></td>
       </tr>
     </table>
-  </fieldset>
+  </fieldset>';
   
+if (function_exists('exec'))
+{
+  echo '
   <fieldset class="common">
     <legend>Subversion configuration</legend>
     
@@ -131,8 +138,14 @@ echo '
         <td><input type="text" name="svn_password" value="'.$conf['svn_password'].'"></td>
       </tr>
     </table>
-  </fieldset>
-  
+  </fieldset>';
+}
+else
+{
+  array_push($page['warnings'], 'SVN support not available. You can not use <b>exec()</b> function on this server.');
+}
+
+echo '
   <fieldset class="common">
     <legend>Users configuration</legend>
     
