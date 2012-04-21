@@ -195,6 +195,7 @@ function make_full_stats($save=true)
 function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
 {
   global $conf;
+ if (!$conf['use_stats']) return array();
   
   $where_clauses = array('1=1');
   if (!empty($Slanguage))
@@ -295,6 +296,7 @@ SELECT * FROM (
 function get_cache_date($section=null, $language=null)
 {
   global $conf;
+  if (!$conf['use_stats']) return '0000-00-00 00:00:00';
   
   $where_clauses = array('1=1');
   if (!empty($language))
@@ -345,11 +347,11 @@ function display_progress_bar($value, $width, $inside=true)
  * @param float value between 0 and 1
  * @return sring hex color
  */
-function get_gauge_color($value)
+function get_gauge_color($value, $color='light')
 {
-  $gradient = array("F88C8C","F9A88C","FBC58C","FDE28C","FFFF8C","E2FF8C","C5FF8C","A8FF8C","8CFF8C");
-  // $gradient = array('ff0000','ff3f00','ff7f00','ffbf00','ffff00','bfff00','7fff00','3fff00','00ff00');
-  $index = floor($value*(count($gradient)-1));
-  return '#'.$gradient[$index];
+  $light = array("F88C8C","F9A88C","FBC58C","FDE28C","FFFF8C","E2FF8C","C5FF8C","A8FF8C","8CFF8C");
+  $dark = array("FF0000","FF3600","FF6C00","FFA200","FFD900","C0D601","81D402","42D103","04CF04");
+  $index = floor($value*(count(${$color})-1));
+  return '#'.${$color}[$index];
 }
 ?>

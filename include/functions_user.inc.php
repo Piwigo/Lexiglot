@@ -108,20 +108,8 @@ SELECT *
     $user['sections'] = $guest['sections'];
   }
   
-  if ($user['status'] == 'manager')
-  {
-    if (!empty($user['manage_perms']))
-    {
-      $user['manage_perms'] = unserialize($user['manage_perms']);
-    }
-    else
-    {
-      $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
-    }
-  }
-  
   // explode languages and sections arrays
-  foreach (array('languages','sections','my_languages','manage_sections') as $mode)
+  foreach (array('languages','sections','my_languages','special_perms') as $mode)
   {
     if (!empty($user[$mode]))
     {
@@ -134,9 +122,23 @@ SELECT *
     }
   }
   
-  if ($user['status'] == 'translator')
+  // if the user is manager we must fill management permissions
+  if ($user['status'] == 'manager')
   {
-    $user['main_language'] = $user['manage_sections'];
+    if (!empty($user['manage_perms']))
+    {
+      $user['manage_perms'] = unserialize($user['manage_perms']);
+    }
+    else
+    {
+      $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+    }
+    $user['manage_sections'] = $user['special_perms'];
+  }
+  // is the user is translator
+  else if ($user['status'] == 'translator')
+  {
+    $user['main_language'] = @$user['special_perms'][0];
   }
 
   return $user;

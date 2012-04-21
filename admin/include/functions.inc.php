@@ -145,8 +145,10 @@ INSERT INTO '.CATEGORIES_TABLE.'
   }
 }
 
-function print_user_languages_tooltip($languages, $max=3)
+function print_user_languages_tooltip(&$user, $max=3)
 {
+  $languages = $user['languages'];
+  
   $out = null;
   if (count($languages) <= $max)
   {
@@ -171,15 +173,23 @@ function print_user_languages_tooltip($languages, $max=3)
   return $out;
 }
 
-function print_user_sections_tooltip($sections, $max=1)
+function print_user_sections_tooltip(&$user, $max=1)
 {
+  $sections = $user['sections'];
+  
+  if ( $user['status'] == 'translator' AND !empty($user['main_language']) )
+  {
+    $stats = get_cache_stats(null, $user['main_language'], 'section');
+  }
+  $use_stats = !empty($stats);
+  
   $out = null;
   if (count($sections) <= $max)
   {
     $out.= '<span style="display:none;">'.count($sections).'</span>';
     foreach ($sections as $section)
     {
-      $out.= get_section_name($section);
+      $out.= get_section_name($section).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section]).';">'.number_format($stats[$section]*100, 0).'%</b>' : null);
     }
   }
   else
@@ -188,7 +198,7 @@ function print_user_sections_tooltip($sections, $max=1)
     $i=1; $j=ceil(sqrt(count($sections)/2));
     foreach ($sections as $section)
     {
-      $out.= '<td>'.get_section_name($section).'</td>';
+      $out.= '<td>'.get_section_name($section).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section]).';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'</td>';
       if($i%$j==0)$out.= '</tr><tr>'; $i++;
     }
     $out.= '</tr></table>\'>

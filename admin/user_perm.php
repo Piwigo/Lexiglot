@@ -35,6 +35,7 @@ if (isset($_POST['save_perm']))
 {
   $sets = array();
   
+  // sections
   if (!empty($_POST['available_sections']))
   {
     ksort($_POST['available_sections']);
@@ -45,44 +46,55 @@ if (isset($_POST['save_perm']))
     array_push($sets, 'sections = ""');
   }
   
+  // only admin can change language and permissions
   if (is_admin())
   {
+    // languages
     if (!empty($_POST['available_languages']))
     {
-      ksort($_POST['available_languages']);
-      array_push($sets, 'languages = "'.implode(',', array_keys($_POST['available_languages'])).'"');
+      $_POST['available_languages'] = array_keys($_POST['available_languages']);
+      sort($_POST['available_languages']);
+      array_push($sets, 'languages = "'.implode(',', $_POST['available_languages']).'"');
     }
     else
     {
+      $_POST['available_languages'] = array();
       array_push($sets, 'languages = ""');
     }
 
+    // manager permissions
     if (get_user_status($_POST['user_id']) == 'manager')
     {
       if (!empty($_POST['can_manage']))
       {
         ksort($_POST['can_manage']);
-        array_push($sets, 'manage_sections = "'.implode(',', array_keys($_POST['can_manage'])).'"');
+        array_push($sets, 'special_perms = "'.implode(',', array_keys($_POST['can_manage'])).'"');
       }
       else
       {
-        array_push($sets, 'manage_sections = ""');
+        array_push($sets, 'special_perms = ""');
       }
+      
       foreach (array_keys(unserialize(DEFAULT_MANAGER_PERMS)) as $perm)
       {
         $manage_perms[$perm] = !empty($_POST['manage_perms'][$perm]);
       }
       array_push($sets, 'manage_perms = \''.serialize($manage_perms).'\'');
     }
+    // translator main language
     else if (get_user_status($_POST['user_id']) == 'translator')
     {
       if (!empty($_POST['main_language']))
       {
-        array_push($sets, 'manage_sections = "'.$_POST['main_language'].'"');
+        array_push($sets, 'special_perms = "'.$_POST['main_language'].'"');
+      }
+      else if (count($_POST['available_languages']) == 1)
+      {
+        array_push($sets, 'special_perms = "'.$_POST['available_languages'][0].'"');
       }
       else
       {
-        array_push($sets, 'manage_sections = ""');
+        array_push($sets, 'special_perms = ""');
       }
     }
   }
@@ -103,6 +115,11 @@ UPDATE '.USER_INFOS_TABLE.'
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
 $local_user = build_user($_GET['user_id']);
+if (!empty($local_user['main_language']))
+{
+  $stats = get_cache_stats(null, $local_user['main_language'], 'section');
+}
+$use_stats = !empty($stats);
 
 // manager permissions
 if ( is_manager() and !$user['manage_perms']['can_change_users_projects'] )
@@ -160,7 +177,7 @@ if (is_admin())
       {
         echo '
         <li id="'.$lang.'" class="lang">
-          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$lang.'" '.(in_array($lang,$local_user['main_language'])?'checked="checked"':null).'>' : null).'
+          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$lang.'" '.($lang==$local_user['main_language']?'checked="checked"':null).'>' : null).'
           '.get_language_flag($lang).' '.get_language_name($lang).'
           '.($use_lang_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
         </li>';
@@ -201,7 +218,8 @@ echo '
         echo '
         <li id="'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).'>
           '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="can_manage['.$section.']" value="1" '.(in_array($section,$local_user['manage_sections'])?'checked="checked"':null).'>' : null).'
-          '.get_section_name($section).' 
+          '.get_section_name($section).'
+          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section],'dark').';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.get_section_rank($section).'</i>' : null).'
         </li>';
       }
@@ -218,7 +236,8 @@ echo '
         echo '
         <li id="'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).'>
           '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="can_manage['.$row['id'].']" value="1" style="display:none;">' : null).'
-          '.$row['name'].' 
+          '.$row['name'].'
+          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.$row['rank'].'</i>' : null).'
         </li>';
       }

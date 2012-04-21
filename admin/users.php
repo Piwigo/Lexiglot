@@ -64,10 +64,20 @@ if ( isset($_POST['save_status']) and is_admin() )
   // adapt permissions
   switch ($local_user['status'].'->'.$new_status)
   {
-    // to translator (languages/sections depend on config)
+    // manager to translator (redefine special_perms)
+    case 'manager->translator' :
+      if (count($local_user['languages']) == 1)
+      {
+        array_push($sets, 'special_perms = "'.$local_user['languages'][0].'"');
+      }
+      else
+      {
+        array_push($sets, 'special_perms = ""');
+      }
+      break;
+    
+    // visitor to translator (languages/sections depend on config)
     case 'visitor->translator':
-    // case 'manager->translator':
-    // case 'admin->translator':
       if ($conf['user_default_language'] == 'all')
       {
         array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
@@ -82,7 +92,7 @@ if ( isset($_POST['save_status']) and is_admin() )
       }
       break;
       
-    // to manager (languages/sections depend on config)
+    // visitor to manager (languages/sections depend on config)
     case 'visitor->manager':
       if ($conf['user_default_language'] == 'all')
       {
@@ -96,12 +106,14 @@ if ( isset($_POST['save_status']) and is_admin() )
       {
         array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
       }
+    // * to manager (erase special_perms and check manage_perms)
     case 'translator->manager':
     case 'admin->manager':
       array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.DEFAULT_MANAGER_PERMS.'\')');
+      array_push($sets, 'special_perms = ""');
       break;
       
-    // to admin (all languages/sections)
+    // * to admin (all languages/sections)
     case 'visitor->admin':
     case 'translator->admin':
     case 'manager->admin':
@@ -109,7 +121,7 @@ if ( isset($_POST['save_status']) and is_admin() )
       array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
       break;
       
-    // to visitor (none languages/sections)
+    // * to visitor (none languages/sections)
     case 'translator->visitor':
     case 'manager->visitor':
     case 'admin->visitor':
@@ -287,7 +299,6 @@ SELECT u.*, i.*
 ;';
 $_USERS = hash_from_query($query, 'id');
 
-
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
@@ -431,9 +442,37 @@ echo '
     <tbody>';
     foreach ($_USERS as $row)
     {
-      $row['languages'] = !empty($row['languages']) ? explode(',', $row['languages']) : array();
-      $row['my_languages'] = !empty($row['my_languages']) ? explode(',', $row['my_languages']) : array();
-      $row['sections'] = !empty($row['sections']) ? explode(',', $row['sections']) : array();
+      // explode languages and sections arrays
+      foreach (array('languages','sections','my_languages','special_perms') as $mode)
+      {
+        if (!empty($row[$mode]))
+        {
+          $row[$mode] = explode(',', $row[$mode]);
+          sort($row[$mode]);
+        }
+        else
+        {
+          $row[$mode] = array();
+        }
+      }
+      // if the user is manager we must fill management permissions
+      if ($row['status'] == 'manager')
+      {
+        if (!empty($row['manage_perms']))
+        {
+          $row['manage_perms'] = unserialize($row['manage_perms']);
+        }
+        else
+        {
+          $row['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+        }
+        $row['manage_sections'] = $row['special_perms'];
+      }
+      // is the user is translator
+      else if ($row['status'] == 'translator')
+      {
+        $row['main_language'] = @$row['special_perms'][0];
+      }
       
       echo '
       <tr class="'.$row['status'].' '.($highlight_user==$row['id'] ? 'highlight' : null).'">
@@ -444,7 +483,7 @@ echo '
         <td class="lang">';
         if (count($row['my_languages']) > 0)
         {
-          echo print_user_languages_tooltip($row['my_languages']);
+          echo print_user_languages_tooltip($row);
         }
         echo '
         </td>
@@ -470,14 +509,14 @@ echo '
         <td class="lang">';
         if (count($row['languages']) > 0)
         {
-          echo print_user_languages_tooltip($row['languages']);
+          echo print_user_languages_tooltip($row);
         }
         echo '
         </td>
         <td class="section">';
         if (count($row['sections']) > 0)
         {
-          echo print_user_sections_tooltip($row['sections']);
+          echo print_user_sections_tooltip($row);
         }
         echo '
         </td>';
