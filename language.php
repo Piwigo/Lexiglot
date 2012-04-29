@@ -41,12 +41,12 @@ $page['title'] = 'Browse';
 $query = '
 SELECT 
     s.*,
-    IF(s.category_id = 0, "zzzzzzzzz", c.name) as category_name
+    IF(s.category_id = 0, "[999]zzz", c.name) as category_name
   FROM '.SECTIONS_TABLE.' AS s
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
     ON c.id = s.category_id
   ORDER BY
-    IF(s.category_id = 0, "zzzzzzzzz", c.name) ASC,
+    IF(s.category_id = 0, "[999]zzz", c.name) ASC,
     rank DESC,
     s.name ASC
 ;';
@@ -149,7 +149,7 @@ foreach ($section_translated as $row)
     if ( !empty($row['category_id']) and $category_id != $row['category_id'] )
     {
       $category_id = $row['category_id'];
-      echo '<h3>'.$row['category_name'].' :</h3>';
+      echo '<h3>'.preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']).' :</h3>';
     }
     else if ( empty($row['category_id']) and $category_id != 0 )
     {

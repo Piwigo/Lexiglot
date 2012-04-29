@@ -322,6 +322,7 @@ echo '
 // |                        SCRIPTS
 // +-----------------------------------------------------------------------+
 load_jquery('tablesorter');
+load_jquery('tiptip');
 
 $page['script'].= '
 $(".row_value").tipTip({ 
@@ -332,7 +333,7 @@ $(".row_value").tipTip({
 
 $("#last_modifs table").tablesorter({
   sortList: [[5,1]],
-  headers: { 0: {sorter: false}, 7: {sorter: false} },
+  headers: { 0: {sorter: false}, 6: {sorter: false}, 7: {sorter: false} },
   widgets: ["zebra"]
 });
 

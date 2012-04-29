@@ -290,7 +290,7 @@ function send_mail($to, $subject, $content, $args = array())
   // content
   if ($args['content_format'] == 'text/plain')
   {
-    $content = nl2br(htmlspecialchars($content));
+    $content = htmlspecialchars($content);
   }
 
   // send mail

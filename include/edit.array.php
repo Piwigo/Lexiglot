@@ -38,18 +38,23 @@ if ( isset($_POST['submit']) and $is_translator )
     $key = $row['row_name'];
     $text = $row['row_value'];
     
-    // test if the new value is really new (in file and in database)
-    if (  
+    /* what is done here ?
+      - first we check is the string is not empty
+      - then we compare the value to the file one
+      - and we compare the value to the database one
+      - finally it's allowed to "backup" a string to the value in the file
+    */
+    if (
       !empty($text) and 
-      ( 
+      (
         ( 
-          ( !isset($_LANG[$key]) or $text != $_LANG[$key]['row_value'] ) 
-          and ( !isset($_LANG_db[$key]) or $text != $_LANG_db[$key]['row_value'] ) 
+          ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] ) 
+          and ( !isset($_LANG_db[$key]) or $text!=$_LANG_db[$key]['row_value'] ) 
         )
-        or ( isset($_LANG_db[$key]) and $text != $_LANG_db[$key]['row_value'] )
+        or ( isset($_LANG_db[$key]) and $text!=$_LANG_db[$key]['row_value'] )
       )
     )
-    {
+    {        
       $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     lang,
@@ -69,7 +74,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     "'.mres($text).'",
     "'.$user['id'].'",
     NOW(),
-    "'.( isset($_LANG[$key]) ? 'edit' : 'new' ).'" 
+    "'.(isset($_LANG[$key]) ? 'edit' : 'new').'" 
   )
   ON DUPLICATE KEY UPDATE
     last_edit = NOW(),
@@ -80,7 +85,11 @@ INSERT INTO `'.ROWS_TABLE.'`(
     }
   }
   
-  make_stats($page['section'], $page['language']);
+  if ($conf['use_stats'])
+  {
+    make_stats($page['section'], $page['language']);
+  }
+  
   $_SESSION['page_infos'][] = 'Strings saved';
   redirect();   
 }
@@ -121,7 +130,6 @@ if (!empty($search['needle']))
 {
   $in_search = true;
   set_session_var('edit_search', serialize($search));
-  // $_DIFFS = search_fulltext($_DIFFS, $search['needle'], $search['where']);
   $search['words'] = get_fulltext_words($search['needle']);
   $page['display'] = 'search';
 }
@@ -135,28 +143,26 @@ $total = $translated = 0;
 
 foreach ($_LANG_default as $key => $row)
 {
-  if ( 
-    ( !isset($_LANG[$key]) and !isset($_LANG_db[$key]) )
-    or $page['display'] == 'all'
-    or $in_search
+  if (
+    $in_search                                                                                 // display search results
+    or $page['display']=='all'                                                                 // display all
+    or ( $page['display']=='missing'    and !isset($_LANG[$key]) and !isset($_LANG_db[$key]) ) // display missing
+    or ( $page['display']=='translated' and (isset($_LANG[$key])  or isset($_LANG_db[$key])) ) // display translated
   )
   {
-    // skip arrays (too complicated)
-    if (is_array($row['row_value'])) continue;
-    
-    // for row_value, database has priority
+    // databse has priority
     $_DIFFS[$key] = isset($_LANG_db[$key]) 
                     ? $_LANG_db[$key] 
                     : (
-                      isset($_LANG[$key]) 
-                      ? $_LANG[$key] 
-                      : array()
+                        isset($_LANG[$key]) 
+                        ? $_LANG[$key] 
+                        : array()
                       );
     // keep trace of source value
     $_DIFFS[$key]['original'] = is_source_language($page['language']) ? $row['row_name'] : $row['row_value'];
-    $_DIFFS[$key]['row_name'] = $row['row_name'];
   }
   
+  // stats
   if ( isset($_LANG[$key]) or isset($_LANG_db[$key]) )
   {
     $translated++;
@@ -234,7 +240,7 @@ echo '
   foreach ($_DIFFS as $key => $row)
   {
     // make sure to initialize the var
-    $text = isset($row['row_value']) ? $row['row_value'] :null;
+    $text = isset($row['row_value']) ? $row['row_value'] : null;
     
     // 'edit' status is displayed as 'new' on front-end
     $status = !isset($row['row_value'])
@@ -282,7 +288,7 @@ echo '
       echo '
       </td>
       <td class="details">
-        '.(!is_source_language($page['language']) ? '<a href="#" class="expand tiptip" title="Details" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
+        '.(!is_source_language($page['language']) ? '<a href="#" class="expand tiptip" title="Show etails" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
         '.($is_translator ? '<a href="#" class="save tiptip" title="Save this string" data="'.$i.'"><img src="template/images/disk.png" alt="save"></a>' : null).'
       </td>
     </tr>
@@ -338,12 +344,19 @@ if ($conf['use_stats'])
 
 
 // +-----------------------------------------------------------------------+
-// |                         SCRIPTS
+// |                         JAVASCRIPT
 // +-----------------------------------------------------------------------+
+load_jquery('tiptip');
+
 $page['header'].= '
 <script type="text/javascript" src="template/js/functions.js"></script>';
 
 $page['script'].= '
+$(".tiptip").tipTip({ 
+  delay:200,
+  defaultPosition:"right"
+});
+
 // linked table rows follow hover state
 $("tr.main").hover(
   function() { $(this).next("tr").addClass("hover"); },
@@ -458,7 +471,7 @@ if ( $in_search and $search['where'] == 'row_value' )
     resizable: true
   });';
   
-  $block_autoresize = true; // autoResize must be blocked, incompatibel with highlightTextarea
+  $block_autoresize = true; // autoResize must be blocked, incompatible with highlightTextarea
 }
 
 ?>

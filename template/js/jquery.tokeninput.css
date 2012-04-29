@@ -7,7 +7,9 @@ ul.token-input-list {
   border-radius:2px;
   cursor: text;
   z-index: 999;
-  margin: 0 auto;
+  margin: 0;
+  display:inline-block;
+  vertical-align:baseline;
   background-color: #fff;
   clear: left;
   text-align:left;

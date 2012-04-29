@@ -28,6 +28,23 @@ include_once(PATH.'include/functions_html.inc.php');
 include_once(PATH.'include/functions_mysql.inc.php');
 include_once(PATH.'include/functions_stats.inc.php');
 
+if (!function_exists('json_decode'))
+{
+  include_once(PATH.'include/json.class.php');
+  $json_service = new Services_JSON();
+  
+  function json_decode($value)
+  {
+    global $json_service;
+    return $json_service->decode($value);
+  }
+  function json_encode($value)
+  {
+    global $json_service;
+    return $json_service->encode($value);
+  }
+}
+
 
 /**
  * create an url from current url

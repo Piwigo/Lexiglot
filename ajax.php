@@ -63,15 +63,17 @@ switch ($_POST['action'])
     $key = utf8_decode($_POST['row_name']);
     $text = utf8_decode($_POST['row_value']);
     $_POST['directory'] = $conf['local_dir'].$_POST['section'].'/';
-    $_LANG =         load_language_file($_POST['directory'].$_POST['language'].'/'.$_POST['file']);
-    $_LANG_db =      load_language_db($_POST['language'], $_POST['file'], $_POST['section'], $key);
     
-    if (  
+    $_LANG =    load_language_file($_POST['directory'].$_POST['language'].'/'.$_POST['file']);
+    $_LANG_db = load_language_db($_POST['language'], $_POST['file'], $_POST['section'], $key);
+    
+    // see edit.array.php for explainations
+    if (
       ( 
-        ( !isset($_LANG[$key]) or $text != $_LANG[$key]['row_value'] ) 
-        and ( !isset($_LANG_db[$key]) or $text != $_LANG_db[$key]['row_value'] ) 
+        ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] ) 
+        and ( !isset($_LANG_db[$key]) or $text!=$_LANG_db[$key]['row_value'] ) 
       )
-      or ( isset($_LANG_db[$key]) and $text != $_LANG_db[$key]['row_value'] )
+      or ( isset($_LANG_db[$key]) and $text!=$_LANG_db[$key]['row_value'] )
     )
     {
       $query = '
@@ -93,19 +95,20 @@ INSERT INTO `'.ROWS_TABLE.'`(
     "'.mres($text).'",
     "'.$user['id'].'",
     NOW(),
-    "'.( isset($_LANG[$key]) ? 'edit' : 'new' ).'" 
+    "'.(isset($_LANG[$key]) ? 'edit' : 'new').'" 
   )
   ON DUPLICATE KEY UPDATE
     last_edit = NOW(),
     row_value = "'.$text.'",
     status = IF(status="done","edit",status)
 ;';
-      mysql_query($query);
-      
+      mysql_query($query);      
       close_ajax('success', 'Saved');
     }
-    
-    close_ajax('warning', 'Already up-to-date');
+    else
+    {
+      close_ajax('warning', 'Already up-to-date');
+    }
   }
   
   

@@ -29,7 +29,7 @@ $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 if (isset($_GET['delete_lang']))
 {
   // delete flag
-  $flag = $conf['all_languages'][$_GET['delete_lang']]['flag'];
+  $flag = $conf['all_languages'][ $_GET['delete_lang'] ]['flag'];
   @unlink($conf['flags_dir'].$flag);
   
   // delete lang form user infos (such a wonderfull query !)
@@ -80,6 +80,14 @@ DELETE FROM '.LANGUAGES_TABLE.'
   mysql_query($query);
   
   array_push($page['infos'], 'Language deleted.');
+}
+
+// +-----------------------------------------------------------------------+
+// |                         ACTIONS
+// +-----------------------------------------------------------------------+
+if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty($_POST['select']) )
+{
+  include(PATH.'admin/include/languages.actions.php');
 }
 
 // +-----------------------------------------------------------------------+
@@ -394,6 +402,7 @@ SELECT id, name
   WHERE type = "language"
 ;';
 $categories = hash_from_query($query, 'id');
+$categories_json = implode(',', array_map(create_function('$row', 'return \'{id: "\'.$row["id"].\'", name: "\'.$row["name"].\'"}\';'), $categories));
 
 
 // +-----------------------------------------------------------------------+
@@ -486,6 +495,7 @@ echo '
   <table class="common tablesorter">
     <thead>
       <tr>
+        <th class="chkb"></th>
         <th class="id">Id.</th>
         <th class="name">Name</th>
         <th class="flag">Flag</th>
@@ -500,6 +510,7 @@ echo '
     {
       echo '
       <tr class="'.($highlight_language==$row['id'] ? 'highlight' : null).'">
+        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
         <td class="id">'.$row['id'].'</td>
         <td class="name">
           <input type="text" name="langs['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
@@ -548,32 +559,121 @@ echo '
     echo '
     </tbody>
   </table>
+  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
   
   <div class="centered">
     <input type="hidden" name="MAX_FILE_SIZE" value="10240">
     <input type="submit" name="save_lang" class="blue big" value="Save">
   </div>
 </fieldset>
+
+<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
+  <legend>Global action <span class="unselectAll">[close]</span></legend>
+  
+  <select name="selectAction">
+    <option value="-1">Choose an action...</option>
+    <option disabled="disabled">------------------</option>
+    '.($conf['use_stats'] ? '<option value="make_stats">Refresh stats</option>' : null).'
+    <option value="delete_languages">Delete languages</option>
+    <option value="change_rank">Change priority</option>
+    <option value="change_category">Change category</option>
+  </select>
+  
+  <span id="action_delete_languages" class="action-container">
+    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
+  </span>
+  
+  <span id="action_change_rank" class="action-container">
+    <input type="text" name="batch_rank" size="2">
+  </span>
+  
+  <span id="action_change_category" class="action-container" style="position:relative;top:8px;"> <!-- manually correct the mispositionning of tokeninput block -->
+    <input type="text" name="batch_category_id" class="category">
+  </span>
+  
+  <span id="action_apply" class="action-container">
+    <input type="submit" name="apply_action" class="blue" value="Apply">
+  </span>
+</fieldset>
 </form>';
 }
 
+
+// +-----------------------------------------------------------------------+
+// |                        JAVASCRIPT
+// +-----------------------------------------------------------------------+
 load_jquery('tablesorter');
 load_jquery('tokeninput');
 
-$page['script'].= '  
-$("input.category").tokenInput([';
-  foreach ($categories as $row)
-    $page['script'].= '{id: "'.$row['id'].'", name: "'.$row['name'].'"},';
-$page['script'].= '], {
+$page['script'].= '
+/* token input for categories */
+$("input.category").tokenInput(['.$categories_json.'], {
   tokenLimit: 1,
   allowCreation: true,
   hintText: ""
 });
 
+/* tablesorter */
 $("#langs table").tablesorter({
-  sortList: [[3,1],[0,0]],
-  headers: { 2: {sorter: false}, 6: {sorter: false} },
+  sortList: [[4,1],[1,0]],
+  headers: { 0: {sorter: false}, 3: {sorter: false}, 7: {sorter: false} },
   widgets: ["zebra"]
+});
+
+/* actions */
+function checkPermitAction() {
+  var nbSelected = 0;
+
+  $("td.chkb input[type=checkbox]").each(function() {
+     if ($(this).is(":checked")) {
+       nbSelected++;
+     }
+  });
+
+  if (nbSelected == 0) {
+    $("#permitAction").hide();
+    $("#save_status").show();
+  } else {
+    $("#permitAction").show();
+    $("#save_status").hide();
+  }
+}
+
+$("[id^=action_]").hide();
+
+$("td.chkb input[type=checkbox]").change(function () {
+  checkPermitAction();
+});
+
+$(".selectAll").click(function() {
+  $("td.chkb input[type=checkbox]").each(function() {
+     $(this).attr("checked", true);
+  });
+  checkPermitAction();
+  return false;
+});
+$(".unselectAll").click(function() {
+  $("td.chkb input[type=checkbox]").each(function() {
+     $(this).attr("checked", false);
+  });
+  checkPermitAction();
+  return false;
+});
+
+$("select[name=selectAction]").change(function() {
+  $("[id^=action_]").hide();
+  $("#action_"+$(this).attr("value")).show();
+
+  if ($(this).val() != -1) {
+    $("#action_apply").show();
+  } else {
+    $("#action_apply").hide();
+  }
+});
+
+$("td.id").click(function() {
+  $checkbox = $(this).prev("td.chkb").children("input");
+  $checkbox.attr("checked", !$checkbox.attr("checked"));
 });';
 
 ?>

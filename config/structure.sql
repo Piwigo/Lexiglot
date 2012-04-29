@@ -1,8 +1,8 @@
 --
--- Structure of the table `langedit_config`
+-- Structure of the table `lexiglot_config`
 --
 
-CREATE TABLE `langedit_config` (
+CREATE TABLE `lexiglot_config` (
   `param` varchar(32) NOT NULL,
   `value` text,
   PRIMARY KEY (`param`)
@@ -11,10 +11,10 @@ CREATE TABLE `langedit_config` (
 -- --------------------------------------------------------
 
 --
--- Content of the table `langedit_config`
+-- Content of the table `lexiglot_config`
 --
 
-INSERT INTO `langedit_config` (`param`, `value`) VALUES
+INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 ('install_name', 'Lexiglot'),
 ('default_language', 'en_UK'),
 ('var_name', 'lang'),
@@ -43,10 +43,10 @@ INSERT INTO `langedit_config` (`param`, `value`) VALUES
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_categories`
+-- Structure of the table `lexiglot_categories`
 --
 
-CREATE TABLE `langedit_categories` (
+CREATE TABLE `lexiglot_categories` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT,
   `name` varchar(32) NOT NULL,
   `type` enum('section','language') NOT NULL,
@@ -56,10 +56,10 @@ CREATE TABLE `langedit_categories` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_languages`
+-- Structure of the table `lexiglot_languages`
 --
 
-CREATE TABLE `langedit_languages` (
+CREATE TABLE `lexiglot_languages` (
   `id` varchar(32) NOT NULL,
   `name` varchar(64) NOT NULL,
   `flag` varchar(64),
@@ -71,10 +71,10 @@ CREATE TABLE `langedit_languages` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_rows`
+-- Structure of the table `lexiglot_rows`
 --
 
-CREATE TABLE `langedit_rows` (
+CREATE TABLE `lexiglot_rows` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `lang` varchar(32) NOT NULL,
   `section` varchar(32) NOT NULL,
@@ -91,10 +91,10 @@ CREATE TABLE `langedit_rows` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_sections`
+-- Structure of the table `lexiglot_sections`
 --
 
-CREATE TABLE `langedit_sections` (
+CREATE TABLE `lexiglot_sections` (
   `id` varchar(32) NOT NULL,
   `name` varchar(64) NOT NULL,
   `directory` varchar(256),
@@ -107,10 +107,10 @@ CREATE TABLE `langedit_sections` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_stats`
+-- Structure of the table `lexiglot_stats`
 --
 
-CREATE TABLE `langedit_stats` (
+CREATE TABLE `lexiglot_stats` (
   `section` varchar(32) NOT NULL,
   `language` varchar(32) NOT NULL,
   `date` datetime NOT NULL,
@@ -121,10 +121,10 @@ CREATE TABLE `langedit_stats` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_users`
+-- Structure of the table `lexiglot_users`
 --
 
-CREATE TABLE `langedit_users` (
+CREATE TABLE `lexiglot_users` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT,
   `username` varchar(32) NOT NULL,
   `password` varchar(32) DEFAULT NULL,
@@ -135,10 +135,10 @@ CREATE TABLE `langedit_users` (
 -- --------------------------------------------------------
 
 --
--- Structure of the table `langedit_user_infos`
+-- Structure of the table `lexiglot_user_infos`
 --
 
-CREATE TABLE `langedit_user_infos` (
+CREATE TABLE `lexiglot_user_infos` (
   `user_id` smallint(5) NOT NULL,
   `registration_date` datetime NOT NULL,
   `status` varchar(16) NOT NULL,
@@ -146,7 +146,7 @@ CREATE TABLE `langedit_user_infos` (
   `sections` text DEFAULT '',
   `my_languages` text DEFAULT '',
   `special_perms` text DEFAULT '',
-  `manage_perms` varchar(256) DEFAULT '',
+  `manage_perms` text DEFAULT '',
   `nb_rows` smallint(5) NOT NULL DEFAULT '15',
   `email_privacy` enum('public','hidden','private') NOT NULL DEFAULT 'hidden',
   PRIMARY KEY (`user_id`)

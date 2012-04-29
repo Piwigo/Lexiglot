@@ -79,6 +79,14 @@ DELETE FROM '.SECTIONS_TABLE.'
 }
 
 // +-----------------------------------------------------------------------+
+// |                         ACTIONS
+// +-----------------------------------------------------------------------+
+if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty($_POST['select']) )
+{
+  include(PATH.'admin/include/projects.actions.php');
+}
+
+// +-----------------------------------------------------------------------+
 // |                         MAKE STATS
 // +-----------------------------------------------------------------------+
 if (isset($_GET['make_stats']))
@@ -421,6 +429,7 @@ SELECT id, name
   WHERE type = "section"
 ;';
 $categories = hash_from_query($query, 'id');
+$categories_json = implode(',', array_map(create_function('$row', 'return \'{id: "\'.$row["id"].\'", name: "\'.$row["name"].\'"}\';'), $categories));
 
 
 // +-----------------------------------------------------------------------+
@@ -505,6 +514,7 @@ echo '
   <table class="common tablesorter">
     <thead>
       <tr>
+        <th class="chkb"></th>
         <th class="id">Id.</th>
         <th class="name">Name</th>
         <th class="dir">Directory</th>
@@ -520,6 +530,7 @@ echo '
     {
       echo '
       <tr class="'.($highlight_section==$row['id'] ? 'highlight' : null).'">
+        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
         <td class="id">
           '.$row['id'].'
         </td>
@@ -549,7 +560,7 @@ echo '
         </td>
         <td class="actions">
           '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
-          '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this section" onclick="return confirm(\'Are you sure?\');">
+          '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');">
             <img src="template/images/cross.png" alt="[x]"></a>' : null).'
         </td>
       </tr>';
@@ -564,33 +575,67 @@ echo '
     echo '
     </tbody>
   </table>
+  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
   
   <div class="centered">
     <input type="submit" name="save_section" class="blue big" value="Save">
   </div>
 </fieldset>
+
+<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
+  <legend>Global action <span class="unselectAll">[close]</span></legend>
+  
+  <select name="selectAction">
+    <option value="-1">Choose an action...</option>
+    <option disabled="disabled">------------------</option>
+    '.($conf['use_stats'] ? '<option value="make_stats">Refresh stats</option>' : null).'
+    '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<option value="delete_projects">Delete projects</option>' : null).'
+    <option value="change_rank">Change priority</option>
+    <option value="change_category">Change category</option>
+  </select>
+  
+  <span id="action_delete_projects" class="action-container">
+    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
+  </span>
+  
+  <span id="action_change_rank" class="action-container">
+    <input type="text" name="batch_rank" size="2">
+  </span>
+  
+  <span id="action_change_category" class="action-container" style="position:relative;top:8px;"> <!-- manually correct the mispositionning of tokeninput block -->
+    <input type="text" name="batch_category_id" class="category">
+  </span>
+  
+  <span id="action_apply" class="action-container">
+    <input type="submit" name="apply_action" class="blue" value="Apply">
+  </span>
+</fieldset>
 </form>';
 }
 
+
+// +-----------------------------------------------------------------------+
+// |                        JAVASCRIPT
+// +-----------------------------------------------------------------------+
 load_jquery('tablesorter');
 load_jquery('tokeninput');
 
-$page['script'].= '  
-$("input.category").tokenInput([';
-  foreach ($categories as $row)
-    $page['script'].= '{id: "'.$row['id'].'", name: "'.$row['name'].'"},';
-$page['script'].= '], {
+$page['script'].= '
+/* token input for categories */
+$("input.category").tokenInput(['.$categories_json.'], {
   tokenLimit: 1,
   allowCreation: true,
   hintText: ""
 });
 
+/* tablesorter */
 $("#sections table").tablesorter({
-  sortList: [[4,1],[0,0]],
-  headers: { 3: {sorter: false}, 7: {sorter: false} },
+  sortList: [[5,1],[1,0]],
+  headers: { 0: {sorter:false}, 4: {sorter: false}, 8: {sorter: false} },
   widgets: ["zebra"]
 });
 
+/* files dialog */
 $("div[id^=\'textarea\']").dialog({
   autoOpen: false, resizable: false,
   show: "clip", hide: "clip",
@@ -607,6 +652,61 @@ $("a.show-files").click(function() {
   $("div#textarea-"+ $(this).attr("data")).dialog("open");
   return false;
 });
-';
+
+/* actions */
+function checkPermitAction() {
+  var nbSelected = 0;
+
+  $("td.chkb input[type=checkbox]").each(function() {
+     if ($(this).is(":checked")) {
+       nbSelected++;
+     }
+  });
+
+  if (nbSelected == 0) {
+    $("#permitAction").hide();
+    $("#save_status").show();
+  } else {
+    $("#permitAction").show();
+    $("#save_status").hide();
+  }
+}
+
+$("[id^=action_]").hide();
+
+$("td.chkb input[type=checkbox]").change(function () {
+  checkPermitAction();
+});
+
+$(".selectAll").click(function() {
+  $("td.chkb input[type=checkbox]").each(function() {
+     $(this).attr("checked", true);
+  });
+  checkPermitAction();
+  return false;
+});
+$(".unselectAll").click(function() {
+  $("td.chkb input[type=checkbox]").each(function() {
+     $(this).attr("checked", false);
+  });
+  checkPermitAction();
+  return false;
+});
+
+$("select[name=selectAction]").change(function() {
+  $("[id^=action_]").hide();
+  $("#action_"+$(this).attr("value")).show();
+
+  if ($(this).val() != -1) {
+    $("#action_apply").show();
+  } else {
+    $("#action_apply").hide();
+  }
+});
+
+$("td.id").click(function() {
+  $checkbox = $(this).prev("td.chkb").children("input");
+  $checkbox.attr("checked", !$checkbox.attr("checked"));
+});';
 
 ?>

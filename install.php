@@ -194,11 +194,7 @@ if ($install_step == 'config')
 // +-----------------------------------------------------------------------+
 else if ($install_step == 'save_config') 
 {
-  $_POST['dbhost'] =   trim($_POST['dbhost']);
-  $_POST['dbname'] =   trim($_POST['dbname']);
-  $_POST['dbuser'] =   trim($_POST['dbuser']);
-  $_POST['dbpwd']  =   trim($_POST['dbpwd']);
-  $_POST['dbprefix'] = trim($_POST['dbprefix']);
+  $_POST = array_map('trim', $_POST);
   $_POST['salt_key'] = md5( microtime(true).mt_rand(10000,100000) );
   
   // connection test
@@ -251,7 +247,7 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   @copy(PATH.'config/config_default.inc.php', PATH.'config/config_local.inc.php');
   
   // create tables
-  execute_sqlfile(PATH.'config/structure.sql', 'langedit_', $_POST['dbprefix']);
+  execute_sqlfile(PATH.'config/structure.sql', 'lexiglot_', $_POST['dbprefix']);
   
   // load config
   include(PATH.'/config/config_default.inc.php');
@@ -260,7 +256,7 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   // register guest and admin
   mysql_query('INSERT INTO '.USERS_TABLE.'                                          VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
   mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.$conf['guest_id'].', NOW(), "guest");'); 
-  mysql_query('INSERT INTO '.USERS_TABLE.'                                          VALUES(NULL, "'.trim($_POST['username']).'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
+  mysql_query('INSERT INTO '.USERS_TABLE.'                                          VALUES(NULL, "'.$_POST['username'].'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
   mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.mysql_insert_id().', NOW(), "admin");');
   mysql_query('INSERT INTO '.CONFIG_TABLE.'(param, value)                           VALUES("version", "'.VERSION.'");');
   

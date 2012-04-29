@@ -200,10 +200,9 @@ SELECT
   FROM '.ROWS_TABLE.'
   WHERE 
     user_id = '.$local_user['id'].'
-    AND status != "done"
   GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
   ORDER BY last_edit DESC
-  LIMIT 0,20
+  LIMIT 0,10
 ;';
     $recent = hash_from_query($query, null);
     
@@ -277,19 +276,24 @@ SELECT
       
       <fieldset class="common">
         <legend>Activity</legend>
-        <ul>';
+        <table class="common">';
           foreach ($recent as $row)
           {
             echo '
-            <li>'.format_date($row['date'],0,0).' : translate <b>'.$row['count'].'</b> string(s) of <i>'.get_section_name($row['section']).'</i> in <i>'.get_language_name($row['lang']).'</i></li>';
+            <tr>
+              <td>'.format_date($row['date'],0,0).'</td>
+              <td><b>'.$row['count'].'</b> string(s)</td>
+              <td><i>'.get_section_name($row['section']).'</i></td>
+              <td><i>'.get_language_name($row['lang']).'</i></td>
+            </tr>';
           }
           if (!count($recent))
           {
             echo '
-            <li>No recent activity</li>';
+            <tr><td>No recent activity</td></tr>';
           }
         echo '
-        </ul>
+        </table>
       </fieldset>';
     
     if ( is_admin() or ( !is_guest() and $local_user['email_privacy'] != 'private' ) )
@@ -355,10 +359,9 @@ SELECT
   FROM '.ROWS_TABLE.'
   WHERE 
     user_id = '.$user['id'].'
-    AND status != "done"
   GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
   ORDER BY last_edit DESC
-  LIMIT 0,20
+  LIMIT 0,10
 ;';
   $recent = hash_from_query($query, null);
   
@@ -488,19 +491,24 @@ SELECT
     
     <fieldset class="common">
       <legend>Activity</legend>
-      <ul>';
+      <table class="common">';
         foreach ($recent as $row)
         {
           echo '
-          <li>'.format_date($row['date'],0,0).' : translate <b>'.$row['count'].'</b> string(s) of <i>'.get_section_name($row['section']).'</i> in <i>'.get_language_name($row['lang']).'</i></li>';
+          <tr>
+            <td>'.format_date($row['date'],0,0).'</td>
+            <td><b>'.$row['count'].'</b> string(s)</td>
+            <td><i>'.get_section_name($row['section']).'</i></td>
+            <td><i>'.get_language_name($row['lang']).'</i></td>
+          </tr>';
         }
         if (!count($recent))
         {
           echo '
-          <li>No recent activity</li>';
+          <tr><td>No recent activity</td></tr>';
         }
       echo '
-      </ul>
+      </table>
     </fieldset>
   </form>';
   
@@ -512,6 +520,8 @@ else
 {
   redirect('index.php');
 }
+
+load_jquery('tiptip');
 
 $page['script'].= '
   $(".flag").parent("a").css("cursor", "help").tipTip({ 

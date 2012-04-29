@@ -265,6 +265,12 @@ echo '
     <input type="reset" onClick="location.href=\''.get_url_string(array('page'=>'users','from_id'=>$local_user['id']), true).'\';" class="red" value="Cancel">
   </div>
 </form>';
+
+
+// +-----------------------------------------------------------------------+
+// |                        JAVASCRIPT
+// +-----------------------------------------------------------------------+
+load_jquery('tiptip');
     
 $page['script'].= '
 $("li i").tipTip({

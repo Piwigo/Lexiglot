@@ -66,7 +66,7 @@ else
   $page['mode'] = 'array';
 }
 // display
-if ( isset($_GET['display']) and in_array($_GET['display'], array('all','missing')) )
+if ( isset($_GET['display']) and in_array($_GET['display'], array('all','missing','translated')) )
 {
   $page['display'] = $_GET['display'];
 }

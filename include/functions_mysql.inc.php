@@ -22,7 +22,7 @@
 defined('PATH') or die('Hacking attempt!'); 
 
 /**
- * alias of the function mysql_real_escape_string(
+ * alias of the function mysql_real_escape_string
  */
 function mres($v)
 {

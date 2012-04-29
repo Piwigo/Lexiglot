@@ -89,10 +89,31 @@ foreach ($_ROWS as $props => $files)
       // rows from database (new/edit) we skip/remove obsolete
       foreach ($file_content as $key => $row)
       {
+        $sub_string = is_sub_string($key);
+        
+        // supposing how the file line should looks like
+        switch ($conf['quote'])
+        {
+          case "'":
+            if ($sub_string !== false)
+              $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+            else
+              $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+            $row['content'] = $row['search']." = '".str_replace("'","\'",$row['row_value'])."';";
+            break;
+          case '"':
+            if ($sub_string !== false)
+              $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+            else
+              $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+            $row['content'] = $row['search'].' = "'.str_replace('"','\"',$row['row_value']).'";';
+            break;
+        }
+        
         // remove obsolete row, and continue to the next
         if (!isset($_LANG_default[$key]))
         {
-          if ( !$file_infos['is_new'] and isset($_POST['delete_obsolete']) and ($i = array_pos($key, $_FILE)) !== false )
+          if ( !$file_infos['is_new'] and isset($_POST['delete_obsolete']) and ($i = array_pos($row['search'], $_FILE)) !== false )
           {
             // if the end of the line is not the end of the row, we search the end into lines bellow
             if ( !preg_match('#(\'|");( *)$#', $_FILE[$i]) )
@@ -104,18 +125,6 @@ foreach ($_ROWS as $props => $files)
           continue;
         }
         
-        switch ($conf['quote'])
-        {
-          case "'":
-            $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
-            $row['content'] = $row['search']." = '".str_replace("'","\'",$row['row_value'])."';";
-            break;
-          case '"':
-            $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
-            $row['content'] = $row['search'].' = "'.str_replace('"','\"',$row['row_value']).'";';
-            break;
-        }
-          
         // update existing line
         if ( !$file_infos['is_new'] and ($i = array_pos($row['search'], $_FILE)) !== false )
         {
@@ -135,15 +144,33 @@ foreach ($_ROWS as $props => $files)
         array_push($file_infos['users'], $row['user_id']);
         array_push($file_infos['done_rows'], $row['id']);
       }
+      
       // obsolete rows from file
       if ( isset($_POST['delete_obsolete']) and !$file_infos['is_new'] )
       {
         foreach ($_LANG as $key => $row)
         {
+          // supposing how the file line should looks like
+          switch ($conf['quote'])
+          {
+            case "'":
+              if ($sub_string !== false)
+                $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+              else
+                $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+              break;
+            case '"':
+              if ($sub_string !== false)
+                $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+              else
+                $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+              break;
+          }
+        
           // here we skip rows that were in the database, already deleted
           if ( !isset($_LANG_default[$key]) and !isset($file_content[$key]) )
           {
-            $i = array_pos($key, $_FILE);
+            $i = array_pos($row['search'], $_FILE);
             // if the end of the line is not the end of the row, we search the end into lines bellow
             if ( !preg_match('#(\'|");( *)$#', $_FILE[$i]) )
             {

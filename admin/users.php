@@ -57,90 +57,23 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 // +-----------------------------------------------------------------------+
 if ( isset($_POST['save_status']) and is_admin() )
 {
-  $local_user = build_user($_POST['save_status']);
-  $new_status = $_POST['status'][ $local_user['id'] ];
+  $old_status = get_user_status($_POST['save_status']);
+  $new_status = $_POST['status'][ $_POST['save_status'] ];
   $sets = array('status = "'.$new_status.'"');
   
   // adapt permissions
-  switch ($local_user['status'].'->'.$new_status)
-  {
-    // manager to translator (redefine special_perms)
-    case 'manager->translator' :
-      if (count($local_user['languages']) == 1)
-      {
-        array_push($sets, 'special_perms = "'.$local_user['languages'][0].'"');
-      }
-      else
-      {
-        array_push($sets, 'special_perms = ""');
-      }
-      break;
-    
-    // visitor to translator (languages/sections depend on config)
-    case 'visitor->translator':
-      if ($conf['user_default_language'] == 'all')
-      {
-        array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
-      }
-      else if ($conf['user_default_language'] == 'own')
-      {
-        array_push($sets, 'languages = "'.implode(',', $local_user['my_languages']).'"');
-      }
-      if ($conf['user_default_section'] == 'all')
-      {
-        array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-      }
-      break;
-      
-    // visitor to manager (languages/sections depend on config)
-    case 'visitor->manager':
-      if ($conf['user_default_language'] == 'all')
-      {
-        array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
-      }
-      else if ($conf['user_default_language'] == 'own')
-      {
-        array_push($sets, 'languages = "'.implode(',', $local_user['my_languages']).'"');
-      }
-      if ($conf['user_default_section'] == 'all')
-      {
-        array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-      }
-    // * to manager (erase special_perms and check manage_perms)
-    case 'translator->manager':
-    case 'admin->manager':
-      array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.DEFAULT_MANAGER_PERMS.'\')');
-      array_push($sets, 'special_perms = ""');
-      break;
-      
-    // * to admin (all languages/sections)
-    case 'visitor->admin':
-    case 'translator->admin':
-    case 'manager->admin':
-      array_push($sets, 'languages = "'.implode(',', array_keys($conf['all_languages'])).'"');
-      array_push($sets, 'sections = "'.implode(',', array_keys($conf['all_sections'])).'"');
-      break;
-      
-    // * to visitor (none languages/sections)
-    case 'translator->visitor':
-    case 'manager->visitor':
-    case 'admin->visitor':
-      array_push($sets, 'languages = ""');
-      array_push($sets, 'sections = ""');
-      break;
-  }
+  include(PATH.'admin/include/users.change_status.php');
 
   $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET 
     '.implode(",    \n", $sets).'
-  WHERE user_id = '.$local_user['id'].'
+  WHERE user_id = '.$_POST['save_status'].'
 ;';
-  echo $query;
   mysql_query($query);
   
   array_push($page['infos'], 'Status saved.');
-  $highlight_user = $local_user['id'];
+  $highlight_user = $_POST['save_status'];
 }
 
 // +-----------------------------------------------------------------------+
@@ -483,7 +416,7 @@ echo '
         <td class="lang">';
         if (count($row['my_languages']) > 0)
         {
-          echo print_user_languages_tooltip($row);
+          echo print_user_languages_tooltip($row, 3, true);
         }
         echo '
         </td>
@@ -563,7 +496,7 @@ if ($has_admin_rights)
       <option value="-1">Choose an action...</option>
       <option disabled="disabled">------------------</option>
       '.(is_admin() ? '<option value="delete_users">Delete users</option>
-      <option value="change_status">Change Status</option>
+      <option value="change_status">Change status</option>
       <option value="add_lang">Assign a language</option>
       <option value="remove_lang">Unassign a language</option>' : null).'
       <option value="add_section">Assign a project</option>
@@ -634,9 +567,12 @@ if ($has_admin_rights)
     <span id="action_apply" class="action-container">
       <input type="submit" name="apply_action" class="blue" value="Apply">
     </span>
-  </fieldset>
-  </form>';
+  </fieldset>';
 }
+
+echo '
+</form>';
+
 
 $global_mail = 'mailto:'; $f = 1;
 foreach ($_USERS as $row)
@@ -652,7 +588,12 @@ echo '
 
 }
 
+
+// +-----------------------------------------------------------------------+
+// |                        JAVASCRIPT
+// +-----------------------------------------------------------------------+
 load_jquery('tablesorter');
+load_jquery('tiptip');
 
 if (is_admin())
 {
@@ -676,7 +617,7 @@ $(".lang-tip").css("cursor", "help").tipTip({
 
 $("#users table").tablesorter({
   sortList: [[1,0]],
-  headers: { 0: {sorter: false}, 8: {sorter: false} },
+  headers: { 0: {sorter: false}, 4: {sorter: false}, 6: {sorter: false}, 7: {sorter: false}, 8: {sorter: false} },
   widgets: ["zebra"]
 });';
 
@@ -732,6 +673,11 @@ $("select[name=selectAction]").change(function() {
   } else {
     $("#action_apply").hide();
   }
+});
+
+$("td.user").click(function() {
+  $checkbox = $(this).prev("td.chkb").children("input");
+  $checkbox.attr("checked", !$checkbox.attr("checked"));
 });';
 }
 

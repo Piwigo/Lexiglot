@@ -50,10 +50,17 @@ function load_language_file($filename)
   
   foreach (${$conf['var_name']} as $row_name => $row_value)
   {
-    $out[$row_name] = array(
-      'row_name' => $row_name,
-      'row_value' => $row_value,
-      );
+    if (is_array($row_value))
+    {
+      $out = array_merge($out, pop_sub_array($row_value, $row_name));
+    }
+    else
+    {
+      $out[$row_name] = array(
+        'row_name' => $row_name,
+        'row_value' => $row_value,
+        );
+    }
   }
   
   return $out;
@@ -105,6 +112,52 @@ SELECT * FROM (
 
   return hash_from_query($query, 'row_name');
 }
+
+/**
+ * extract language strings from sub-arrays, one level only
+ * @param language sub-array
+ * @param string language string name
+ * @return array
+ */
+function pop_sub_array($array, $array_name)
+{
+  $new = array();
+  
+  foreach ($array as $sub_key => $sub_row)
+  {
+    if (is_array($sub_row))
+    {
+      continue;
+    }
+    
+    $new[$array_name.'['.$sub_key.']'] = array(
+      'row_name' => $array_name.'['.$sub_key.']',
+      'row_value' => $sub_row,
+      //'sub_key' => $sub_key,
+      //'main_key' => $array_name,
+      );
+  }
+  
+  return $new;
+}
+
+/**
+ * determine if a key is for a sub-array and returns it's components
+ * @param string
+ * @return mixed false or array
+ */
+function is_sub_string($string)
+{
+  if (0 === preg_match('#(.+)\[(.+)\]$#', $string, $matches))
+  {
+    return false;
+  }
+  else
+  {
+    return array($matches[1], $matches[2]);
+  }
+}
+
 
 /**
  * determine if the language is the reference one
@@ -258,10 +311,7 @@ function search_fulltext($haystack, $needle, $where='row_value')
     $search_in = strtolower($row[$where]);
     
     // complete string
-    $haystack[$id]['search_rank']+= substr_count($search_in, ' '.$needle.' ')*$needle_lenght;
-    
-    // complete string with partial word
-    $haystack[$id]['search_rank']+= substr_count($search_in, $needle)*$needle_lenght*3/4;
+    $haystack[$id]['search_rank']+= substr_count($search_in, $needle)*$needle_lenght;
     
     foreach ($words as $word => $lenght)
     {

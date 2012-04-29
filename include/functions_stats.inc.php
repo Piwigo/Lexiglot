@@ -48,48 +48,30 @@ function make_stats($section, $language, $save=true)
     
     foreach ($files as $file)
     {
+      $_LANG_default = load_language_file($directory.$conf['default_language'].'/'.$file);
+      $_LANG =         load_language_file($directory.$language.'/'.$file);
+      $_LANG_db =      load_language_db($language, $file, $section);
+        
       // for plain texts
       if (is_plain_file($file))
       {
-        // this version count the files
-        $_LANG_db = load_language_db($language, $file, $section);
-        if ( !empty($_LANG_db) or file_exists($directory.$language.'/'.$file) )
+        $src_lenght = substr_count($_LANG_default['row_value'], $conf['eol'])+1;
+        $total+= $src_lenght;
+        if ( ($_LANG_db and $_LANG_db[$file]['status'] != 'done') or $_LANG )
         {
-          $translated++;
+          $translated+= $src_lenght;
         }
-        $total++;
-        
-        /* 
-        // this version count the lines, not efficient, generate stats over 100%
-        $_LANG_default = load_language_file_plain($directory.$conf['default_language'].'/'.$file);
-        $_LANG =         load_language_file_plain($directory.$language.'/'.$file);
-        $_LANG_db =      load_language_db($language, $file, $section);
-      
-        $total+= substr_count($_LANG_default['row_value'], $conf['eol']);
-        if ($_LANG_db and $_LANG_db[$file]['status'] != 'done')
-        {
-          $translated+= substr_count($_LANG_db[$file]['row_value'], $conf['eol']);
-        }
-        else if ($_LANG)
-        {
-          $translated+= substr_count($_LANG['row_value'], $conf['eol']);
-        }
-        */
       }
       // for arrays
       else
       {
-        $_LANG_default = load_language_file($directory.$conf['default_language'].'/'.$file);
-        $_LANG =         load_language_file($directory.$language.'/'.$file);
-        $_LANG_db =      load_language_db($language, $file, $section);
-        
-        $total+= count($_LANG_default);
         foreach ($_LANG_default as $key => $row)
         {
           if ( isset($_LANG[$key]) or isset($_LANG_db[$key]) )
           {
             $translated++;
           }
+          $total++;
         }
       }
     }
@@ -121,7 +103,6 @@ INSERT INTO '.STATS_TABLE.'(
     '.$stat.'
   )
 ;';
-  
     mysql_query($query);
   }
   
@@ -177,10 +158,6 @@ function make_full_stats($save=true)
   {
     $stats[$section] = make_section_stats($section, $save);
   }
-  /*foreach (array_keys($conf['all_languages']) as $language)
-  {
-    $stats[$language] = make_language_stats($language, $save);
-  }*/
   
   return $stats;
 }

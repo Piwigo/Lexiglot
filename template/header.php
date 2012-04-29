@@ -29,10 +29,8 @@ echo '<!DOCTYPE html>
   <link type="text/css" rel="stylesheet" media="screen" href="template/style.css">
   <link type="text/css" rel="stylesheet" media="screen" href="template/'.(defined('IN_ADMIN') ? 'admin' : 'public').'.css">
   <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.ui/jquery.ui.custom.css">
-  <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.tiptip.css">
   <script type="text/javascript" src="template/js/jquery.min.js"></script>
   <script type="text/javascript" src="template/js/jquery.ui.custom.min.js"></script>
-  <script type="text/javascript" src="template/js/jquery.tiptip.min.js"></script>
   
   <!-- special css & js -->
   '.$page['header'].'

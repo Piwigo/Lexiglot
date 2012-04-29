@@ -59,7 +59,10 @@ tr.highlight td {
   #users .date {
     width: 130px;
   }
-  #users .section, #users .lang {
+  #users .section {
+    width: 80px;
+  }
+  #users .lang {
     width: 70px;
   }
   #users .status {

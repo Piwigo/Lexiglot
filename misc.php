@@ -55,22 +55,23 @@ SELECT
     $subject = '['.strip_tags($conf['install_name']).'] New language request';
 
     $content = 
-$user['username'].' from '.strip_tags($conf['install_name']).' has just sent a request for the creation of a new language : '.strip_tags($_POST['language']).'.';
+$user['username'].' from '.strip_tags($conf['install_name']).' has just sent a request for the creation of a new language : <b>'.strip_tags($_POST['language']).'</b>.';
 
     if (!empty($_POST['message']))
     {
-      $content .='
-
-Here is his mssage :
------------------------------------------------------------------------
-
-'.$_POST['message'].'
-
------------------------------------------------------------------------';
+      $content .='<br>
+<br>
+Here is his mssage :<br>
+-----------------------------------------------------------------------<br>
+<br>
+'.$_POST['message'].'<br>
+<br>
+-----------------------------------------------------------------------<br>';
     }
 
     $args = array(
       'from' => format_email($user['email'], $user['username']),
+      'content_format' => 'text/html',
     );
 
     if (send_mail(implode(',',$to), $subject, $content, $args))
