@@ -26,7 +26,7 @@ $selection = $_POST['select'];
 // to prevent some queries to modify admins and current user properties
 $query = 'SELECT user_id FROM '.USER_INFOS_TABLE.' WHERE status = "admin"';
 $forbid_ids = array_from_query($query, 'user_id');
-array_push($forbid_ids, $conf['guest_id'], $user['id']);
+array_push($forbid_ids, $user['id']);
 
 switch ($_POST['selectAction'])
 {
@@ -39,18 +39,24 @@ switch ($_POST['selectAction'])
     }
     else
     {
-      $query = '
+      if (USERS_TABLE == DB_PREFIX.'users')
+      {
+        $query = '
 DELETE FROM '.USERS_TABLE.' 
   WHERE 
     '.$conf['user_fields']['id'].' IN('.implode(',', $selection).') 
     AND '.$conf['user_fields']['id'].' NOT IN ('.implode(',', $forbid_ids).')
+    AND '.$conf['user_fields']['id'].' != '.$conf['guest_id'].'
 ;';
-      mysql_query($query);
+        mysql_query($query);
+      }
+      
       $query = '
 DELETE FROM '.USER_INFOS_TABLE.' 
   WHERE 
     user_id IN('.implode(',', $selection).')
     AND user_id NOT IN ('.implode(',', $forbid_ids).')
+    AND user_id != '.$conf['guest_id'].'
 ;';
       mysql_query($query);
       
@@ -99,15 +105,16 @@ UPDATE '.USER_INFOS_TABLE.'
   SET 
     languages = IF( 
       languages="", 
-      "'.$l.'", 
+      "'.$l.',0", 
       IF( 
         languages LIKE("%'.$l.'%"), 
         languages, 
-        CONCAT(languages, ",'.$l.'")
+        CONCAT(languages, ";'.$l.',0")
       )
     )
   WHERE 
     user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $forbid_ids).')
     AND status != "visitor"
 ;';
       mysql_query($query);
@@ -127,26 +134,37 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     else
     {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET languages = 
-    IF(languages = "'.$l.'", 
-      "",
-      IF(languages LIKE "'.$l.',%",
-        REPLACE(languages, "'.$l.',", ""),
-        IF(languages LIKE "%,'.$l.'", 
-          REPLACE(languages, ",'.$l.'", ""),
-          IF(languages LIKE "%,'.$l.',%", 
-            REPLACE(languages, ",'.$l.',", ","),
-            languages
-      ) ) ) )
-  WHERE 
-    user_id IN('.implode(',', $selection).')
-    AND status != "visitor"
-;';
-      mysql_query($query);
+      $users = get_users_list(
+        array(
+          'languages LIKE "%'.$l.'%"',
+          'user_id IN('.implode(',', $selection).')',
+          'user_id NOT IN ('.implode(',', $forbid_ids).')',
+          'status != "visitor"'
+          ), 
+        'languages'
+        );
       
-      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
+      $i = 0;
+      foreach ($users as $u)
+      {
+        unset($u['languages'][ array_search($l, $u['languages']) ]);
+        $u['languages'] = create_permissions_array($u['languages']);
+        
+        if      ($u['main_language'] == $l)   $u['main_language'] = null;
+        else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
+        
+        $u['languages'] = implode_array($u['languages']);
+        
+        $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+        mysql_query($query);
+        $i++;
+      }
+      
+      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.$i.'</b> users.');
     }
     break;
   }
@@ -166,15 +184,16 @@ UPDATE '.USER_INFOS_TABLE.'
   SET 
     sections = IF( 
       sections="", 
-      "'.$s.'", 
+      "'.$s.',0", 
       IF( 
         sections LIKE("%'.$s.'%"), 
         sections, 
-        CONCAT(sections, ",'.$s.'")
+        CONCAT(sections, ";'.$s.',0")
       )
     )
   WHERE 
     user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $forbid_ids).')
     AND status != "visitor"
 ;';
       mysql_query($query);
@@ -194,26 +213,35 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     else
     {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET sections = 
-    IF(sections = "'.$s.'", 
-      "",
-      IF(sections LIKE "'.$s.',%",
-        REPLACE(sections, "'.$s.',", ""),
-        IF(sections LIKE "%,'.$s.'", 
-          REPLACE(sections, ",'.$s.'", ""),
-          IF(sections LIKE "%,'.$s.',%", 
-            REPLACE(sections, ",'.$s.',", ","),
-            sections
-      ) ) ) )
-  WHERE 
-    user_id IN('.implode(',', $selection).')
-    AND status != "visitor"
-;';
-      mysql_query($query);
+      $users = get_users_list(
+        array(
+          'sections LIKE "%'.$s.'%"',
+          'user_id IN('.implode(',', $selection).')',
+          'user_id NOT IN ('.implode(',', $forbid_ids).')',
+          'status != "visitor"'
+          ), 
+        'sections'
+        );
       
-      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
+      $i = 0;
+      foreach ($users as $u)
+      {
+        unset($u['sections'][ array_search($s, $u['sections']) ]);
+        unset($u['manage_sections'][ array_search($s, $u['manage_sections']) ]);
+        $u['sections'] = create_permissions_array($u['sections']);
+        $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
+        $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+        
+        $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+        mysql_query($query);
+        $i++;
+      }
+      
+      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; unassigned from <b>'.$i.'</b> users.');
     }
     break;
   }

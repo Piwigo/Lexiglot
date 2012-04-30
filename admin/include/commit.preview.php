@@ -122,7 +122,7 @@ echo '
       </table>
     </td>
     </tr>
-    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' language '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
+    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' language '.get_language_name($commit['language']).', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
     
     unset($commit);
   }

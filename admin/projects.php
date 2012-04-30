@@ -28,39 +28,32 @@ $highlight_section = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['delete_section']) and ( is_admin() or (is_manager($_GET['delete_section']) and $user['manage_perms']['can_delete_projects']) ) )
 {
+  // delete sections from user infos
+  $users = get_users_list(
+    array('sections LIKE "%'.$_GET['delete_section'].'%"'), 
+    'sections'
+    );
+  
+  foreach ($users as $u)
+  {
+    unset($u['sections'][ array_search($_GET['delete_section'], $u['sections']) ]);
+    unset($u['manage_sections'][ array_search($_GET['delete_section'], $u['manage_sections']) ]);
+    $u['sections'] = create_permissions_array($u['sections']);
+    $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
+    $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+    
+    $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+    mysql_query($query);
+  }
+  
   // delete directory
   $dir = $conf['local_dir'].$_GET['delete_section'];
   @rrmdir($dir);  
-  
-  // delete section form user infos (such a wonderfull query !)
-  $i = $_GET['delete_section'];
-  $query = '
-UPDATE '.USER_INFOS_TABLE.' SET 
-  sections = 
-    IF(sections = "'.$i.'", 
-      "",
-      IF(sections LIKE "'.$i.',%",
-        REPLACE(sections, "'.$i.',", ""),
-        IF(sections LIKE "%,'.$i.'", 
-          REPLACE(sections, ",'.$i.'", ""),
-          IF(sections LIKE "%,'.$i.',%", 
-            REPLACE(sections, ",'.$i.',", ","),
-            sections
-      ) ) ) ),
-  manage_sections = 
-    IF(manage_sections = "'.$i.'", 
-      "",
-      IF(manage_sections LIKE "'.$i.',%",
-        REPLACE(manage_sections, "'.$i.',", ""),
-        IF(manage_sections LIKE "%,'.$i.'", 
-          REPLACE(manage_sections, ",'.$i.'", ""),
-          IF(manage_sections LIKE "%,'.$i.',%", 
-            REPLACE(manage_sections, ",'.$i.',", ","),
-            manage_sections
-      ) ) ) )
-;';
-  mysql_query($query);
-  
+    
   // delete from stats table
   $query = '
 DELETE FROM '.STATS_TABLE.'
@@ -306,20 +299,14 @@ INSERT INTO '.SECTIONS_TABLE.'(
     // add section on user infos
     $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET sections = IF( sections="", "'.$_POST['id'].'", CONCAT(sections, ",'.$_POST['id'].'") )
+  SET sections = IF(
+    sections="",
+    "'.$_POST['id'].','.(is_manager()?'1':'0').'",
+    CONCAT(sections, ";'.$_POST['id'].','.(is_manager()?'1':'0').'")
+    )
   WHERE '.($conf['section_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
 ;';
     mysql_query($query);
-    
-    if (is_manager())
-    {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET manage_sections = IF( manage_sections="", "'.$_POST['id'].'", CONCAT(manage_sections, ",'.$_POST['id'].'") )
-  WHERE user_id = '.$user['id'].'
-;';
-      mysql_query($query);
-    }
     
     // generate stats
     if ($conf['use_stats'])

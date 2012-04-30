@@ -39,7 +39,7 @@ if (isset($_POST['save_perm']))
   if (!empty($_POST['available_sections']))
   {
     ksort($_POST['available_sections']);
-    $sections = array_combine(array_keys($_POST['available_sections']), array_fill(0, count($_POST['available_sections']), 0));
+    $sections = create_permissions_array(array_keys($_POST['available_sections']));
   }
   else
   {
@@ -53,7 +53,7 @@ if (isset($_POST['save_perm']))
     if (!empty($_POST['available_languages']))
     {
       ksort($_POST['available_languages']);
-      $languages = array_combine(array_keys($_POST['available_languages']), array_fill(0, count($_POST['available_languages']), 0));
+      $languages = create_permissions_array(array_keys($_POST['available_languages']));
     }
     else
     {
@@ -65,10 +65,8 @@ if (isset($_POST['save_perm']))
     {
       if (!empty($_POST['manage_sections']))
       {
-        foreach (array_keys($_POST['manage_sections']) as $key)
-        {
-          $sections[$key] = 1;
-        }
+        $manage_sections = create_permissions_array(array_keys($_POST['manage_sections']), 1);
+        $sections = array_merge($sections, $manage_sections);
       }
       
       foreach (array_keys(unserialize(DEFAULT_MANAGER_PERMS)) as $perm)
@@ -91,10 +89,12 @@ if (isset($_POST['save_perm']))
       }
     }
     
-    array_push($sets, 'languages = \''.implode_array($languages).'\'');
+    $languages = implode_array($languages);
+    array_push($sets, 'languages = '.(!empty($languages) ? '"'.$languages.'"' : 'NULL').'');
   }
   
-  array_push($sets, 'sections = \''.implode_array($sections).'\'');
+  $sections = implode_array($sections);
+  array_push($sets, 'sections = '.(!empty($sections) ? '"'.$sections.'"' : 'NULL').'');
   
   $query = '
 UPDATE '.USER_INFOS_TABLE.'
@@ -192,7 +192,7 @@ if (is_admin())
       {
         echo '
         <li id="list_'.$row['id'].'" class="lang">
-          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
+          '.($local_user['status']!='guest' && is_admin() ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
           '.get_language_flag($row['id']).' '.$row['name'].'
           '.($use_lang_rank ? '<i>'.$row['rank'].'</i>' : null).'
         </li>';

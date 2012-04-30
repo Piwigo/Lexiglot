@@ -454,6 +454,7 @@ if ($has_admin_rights)
     <select name="selectAction">
       <option value="-1">Choose an action...</option>
       <option disabled="disabled">------------------</option>
+      <option value="send_email">Send email</option>
       '.(is_admin() ? '<option value="delete_users">Delete users</option>
       <option value="change_status">Change status</option>
       <option value="add_lang">Assign a language</option>
@@ -461,6 +462,10 @@ if ($has_admin_rights)
       <option value="add_section">Assign a project</option>
       <option value="remove_section">Unassign a project</option>
     </select>
+    
+    <span id="action_send_email" class="action-container">
+      <a href="mailto:">Send</a>
+    </span>
     
     <span id="action_delete_users" class="action-container">
       <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
@@ -531,20 +536,6 @@ if ($has_admin_rights)
 
 echo '
 </form>';
-
-
-$global_mail = 'mailto:'; $f = 1;
-foreach ($_USERS as $row)
-{
-  if (!empty($row['email']) and $row['id']!=$conf['guest_id'])
-  {
-    if(!$f) $global_mail.= ';'; else $f = 0;
-    $global_mail.= $row['email'];
-  }
-}
-echo '
-<a href="'.$global_mail.'">Send a mail to all users displayed</a>';
-
 }
 
 
@@ -592,6 +583,10 @@ function checkPermitAction() {
        nbSelected++;
      }
   });
+  
+  if ($("select[name=selectAction]").attr("value") == "send_email") {
+    updateEmailLink();
+  }
 
   if (nbSelected == 0) {
     $("#permitAction").hide();
@@ -600,6 +595,15 @@ function checkPermitAction() {
     $("#permitAction").show();
     $("#save_status").hide();
   }
+}
+
+function updateEmailLink() {
+  var link = "mailto:";
+  $("td.chkb input[type=checkbox]:checked").each(function() {
+    mail = $(this).parent("td.chkb").nextAll("td.email").children("a").html();
+    if (mail) link+= mail+";";
+  });
+  $("#action_send_email").children("a").attr("href", link);
 }
 
 $("[id^=action_]").hide();
@@ -626,8 +630,12 @@ $(".unselectAll").click(function() {
 $("select[name=selectAction]").change(function() {
   $("[id^=action_]").hide();
   $("#action_"+$(this).attr("value")).show();
+  
+  if ($(this).attr("value") == "send_email") {
+    updateEmailLink();
+  }
 
-  if ($(this).val() != -1) {
+  if ($(this).val() != -1 && $(this).val() != "send_email") {
     $("#action_apply").show();
   } else {
     $("#action_apply").hide();

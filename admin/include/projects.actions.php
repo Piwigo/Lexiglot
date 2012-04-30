@@ -34,37 +34,43 @@ switch ($_POST['selectAction'])
     }
     else
     {
+      // delete sections from user infos
+      $where_clauses = array('1=1');
+      foreach ($selection as $s)
+      {
+        array_push($where_clauses, 'sections LIKE "%'.$s.'%"');
+      }
+      $users = get_users_list(
+        $where_clauses, 
+        'sections',
+        'OR'
+        );
+      
+      foreach ($users as $u)
+      {
+        foreach ($selection as $s)
+        {
+          unset($u['sections'][ array_search($s, $u['sections']) ]);
+          unset($u['manage_sections'][ array_search($s, $u['manage_sections']) ]);
+        }
+        
+        $u['sections'] = create_permissions_array($u['sections']);
+        $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
+        $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+        
+        $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+        mysql_query($query);
+      }
+      
       // delete directories
       foreach ($selection as $section)
       {
         @rrmdir($conf['local_dir'].$section);
       }
-      
-      // delete section form user infos
-      $query = '
-SELECT
-    user_id,
-    status,
-    sections,
-    special_perms
-  FROM '.USER_INFOS_TABLE.'
-;';
-      $users = hash_from_query($query, 'user_id');
-      
-      $update_query = null;
-      foreach ($users as &$row)
-      {
-        $row['sections'] = explode(',', $row['sections']);
-        $row['special_perms'] = explode(',', $row['special_perms']);
-        foreach ($selection as $section)
-        {
-          unset($row['sections'][ array_search($section, $row['sections']) ]);
-          if ($row['status'] == 'manager') unset($row['special_perms'][ array_search($section, $row['special_perms']) ]);
-        }
-        $update_query.= '
-UPDATE '.USER_INFOS_TABLE.' SET sections = "'.implode(',', $row['sections']).'", special_perms = "'.implode(',', $row['special_perms']).'" WHERE user_id = '.$row['user_id'].';';
-      }
-      mysql_query($update_query);
       
       // delete from stats table
       $query = '

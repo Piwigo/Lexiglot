@@ -205,4 +205,14 @@ function print_user_sections_tooltip(&$user, $max=1)
   return $out;
 }
 
+function create_permissions_array($array, $fill=0)
+{
+  if (!count($array)) return array();
+  
+  return array_combine(
+    $array, 
+    array_fill(0, count($array), $fill)
+    );
+}
+
 ?>

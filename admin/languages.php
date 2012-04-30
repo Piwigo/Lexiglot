@@ -28,42 +28,37 @@ $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 // +-----------------------------------------------------------------------+
 if (isset($_GET['delete_lang']))
 {
+  // delete lang from user infos
+  $users = get_users_list(
+    array('languages LIKE "%'.$_GET['delete_lang'].'%" OR my_languages LIKE "%'.$_GET['delete_lang'].'%"'), 
+    'languages, my_languages'
+    );
+  
+  foreach ($users as $u)
+  {
+    unset($u['languages'][ array_search($_GET['delete_lang'], $u['languages']) ]);
+    unset($u['my_languages'][ array_search($_GET['delete_lang'], $u['my_languages']) ]);
+    $u['languages'] = create_permissions_array($u['languages']);
+    
+    if      ($u['main_language'] == $_GET['delete_lang'])   $u['main_language'] = null;
+    else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
+    
+    $u['languages'] = implode_array($u['languages']);
+    $u['my_languages'] = implode(',', $u['my_languages']);
+    
+    $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET
+    languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').',
+    my_languages = '.(!empty($u['my_languages']) ? '"'.$u['my_languages'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+    mysql_query($query);
+  }
+  
   // delete flag
   $flag = $conf['all_languages'][ $_GET['delete_lang'] ]['flag'];
   @unlink($conf['flags_dir'].$flag);
-  
-  // delete lang form user infos (such a wonderfull query !)
-  $i = $_GET['delete_lang'];
-  $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET languages = 
-    IF(languages = "'.$i.'", 
-      "",
-      IF(languages LIKE "'.$i.',%",
-        REPLACE(languages, "'.$i.',", ""),
-        IF(languages LIKE "%,'.$i.'", 
-          REPLACE(languages, ",'.$i.'", ""),
-          IF(languages LIKE "%,'.$i.',%", 
-            REPLACE(languages, ",'.$i.',", ","),
-            languages
-      ) ) ) )
-;';
-  mysql_query($query);
-  $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET my_languages = 
-    IF(my_languages = "'.$i.'", 
-      "",
-      IF(my_languages LIKE "'.$i.',%",
-        REPLACE(my_languages, "'.$i.',", ""),
-        IF(my_languages LIKE "%,'.$i.'", 
-          REPLACE(my_languages, ",'.$i.'", ""),
-          IF(my_languages LIKE "%,'.$i.',%", 
-            REPLACE(my_languages, ",'.$i.',", ","),
-            my_languages
-      ) ) ) )
-;';
-  mysql_query($query);
   
   // delete from stats table
   $query = '
@@ -286,7 +281,11 @@ INSERT INTO '.LANGUAGES_TABLE.'(
     // add lang on user infos
     $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET languages = IF( languages="", "'.$_POST['id'].'", CONCAT(languages, ",'.$_POST['id'].'") )
+  SET languages = IF(
+    languages="",
+    "'.$_POST['id'].',0",
+    CONCAT(languages, ";'.$_POST['id'].',0")
+    )
   WHERE '.($conf['language_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
 ;';
     mysql_query($query);

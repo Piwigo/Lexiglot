@@ -109,26 +109,43 @@ SELECT *
   }
   
   // explode languages array
-  $languages = explode(';', $user['languages']);
-  $user['languages'] = array();
-  $user['main_language'] = null;
-  foreach ($languages as $v)
+  if (!empty($user['languages']))
   {
-    list($lang, $rank) = explode(',', $v);
-    if ($rank == 1) $user['main_language'] = $lang;
-    array_push($user['languages'], $lang);
+    $languages = explode(';', $user['languages']);
+    $user['languages'] = array();
+    $user['main_language'] = null;
+    foreach ($languages as $v)
+    {
+      list($lang, $rank) = explode(',', $v);
+      if ($rank == 1) $user['main_language'] = $lang;
+      array_push($user['languages'], $lang);
+    }
   }
-  
-  $user['my_languages'] = explode(',', $user['my_languages']);
+  else
+  {
+    $user['languages'] = array();
+    $user['main_language'] = null;
+  }
+
+  $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
   
   // explode sections array
-  $sections = explode(';', $user['sections']);
-  $user['sections'] = $user['manage_sections'] = array();
-  foreach ($sections as $v)
+  if (!empty($user['sections']))
   {
-    list($section, $rank) = explode(',', $v);
-    if ($rank == 1) array_push($user['manage_sections'], $section);
-    array_push($user['sections'], $section);
+    $sections = explode(';', $user['sections']);
+    $user['sections'] = array();
+    $user['manage_sections'] = array();
+    foreach ($sections as $v)
+    {
+      list($section, $rank) = explode(',', $v);
+      if ($rank == 1) array_push($user['manage_sections'], $section);
+      array_push($user['sections'], $section);
+    }
+  }
+  else
+  {
+    $user['sections'] = array();
+    $user['manage_sections'] = array();
   }
   
   // if the user is manager we must fill management permissions
@@ -167,14 +184,16 @@ VALUES(
 /**
  * get all users infos, same as build_user but for all users
  * @param array where_clauses
+ * @param string fields to select into USER_INFOS_TABLE
+ * @param string where_clauses mode
  * @return array
  */
-function get_users_list($where_clauses=array('1=1'))
+function get_users_list($where_clauses=array('1=1'), $select='i.*', $mode='AND')
 {
   global $conf;
   
   $query = '
-SELECT i.*';
+SELECT i.status, '.$select;
   foreach ($conf['user_fields'] as $localfield => $dbfield)
   {
     $query.= ', u.'.$dbfield.' AS '.$localfield;
@@ -184,7 +203,7 @@ SELECT i.*';
     INNER JOIN '.USER_INFOS_TABLE.' AS i
       ON u.'.$conf['user_fields']['id'].'  = i.user_id
   WHERE 
-    '.implode("\n    AND ", $where_clauses).'
+    '.implode("\n    ".$mode." ", $where_clauses).'
   ORDER BY u.'.$conf['user_fields']['username'].' ASC
 ;';
   $users = hash_from_query($query, 'id');
@@ -202,37 +221,54 @@ SELECT i.*';
     }
   
     // if the user is visitor we must get guest permissions
-    if ($user['status'] == 'visitor')
+    if ( $user['status'] == 'visitor' and isset($users[ $conf['guest_id'] ]) )
     {
       $user['languages'] = $users[ $conf['guest_id'] ]['languages'];
-      $user['sections'] = $users[ $conf['guest_id'] ]['sections'];
+      $user['sections'] =  $users[ $conf['guest_id'] ]['sections'];
     }
   
     // explode languages array
-    $languages = explode(';', $user['languages']);
-    $user['languages'] = array();
-    $user['main_language'] = null;
-    foreach ($languages as $v)
+    if (!empty($user['languages']))
     {
-      list($lang, $rank) = explode(',', $v);
-      if ($rank == 1) $user['main_language'] = $lang;
-      array_push($user['languages'], $lang);
+      $languages = explode(';', $user['languages']);
+      $user['languages'] = array();
+      $user['main_language'] = null;
+      foreach ($languages as $v)
+      {
+        list($lang, $rank) = explode(',', $v);
+        if ($rank == 1) $user['main_language'] = $lang;
+        array_push($user['languages'], $lang);
+      }
     }
-    
-    $user['my_languages'] = explode(',', $user['my_languages']);
+    else
+    {
+      $user['languages'] = array();
+      $user['main_language'] = null;
+    }
+
+    $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
     
     // explode sections array
-    $sections = explode(';', $user['sections']);
-    $user['sections'] = $user['manage_sections'] = array();
-    foreach ($sections as $v)
+    if (!empty($user['sections']))
     {
-      list($section, $rank) = explode(',', $v);
-      if ($rank == 1) array_push($user['manage_sections'], $section);
-      array_push($user['sections'], $section);
+      $sections = explode(';', $user['sections']);
+      $user['sections'] = array();
+      $user['manage_sections'] = array();
+      foreach ($sections as $v)
+      {
+        list($section, $rank) = explode(',', $v);
+        if ($rank == 1) array_push($user['manage_sections'], $section);
+        array_push($user['sections'], $section);
+      }
+    }
+    else
+    {
+      $user['sections'] = array();
+      $user['manage_sections'] = array();
     }
     
     // if the user is manager we must fill management permissions
-    if ($user['status'] == 'manager')
+    if ($user['status'] == 'manager' and isset($user['manage_perms']))
     {
       if (!empty($user['manage_perms']))
       {

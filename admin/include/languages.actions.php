@@ -34,41 +34,49 @@ switch ($_POST['selectAction'])
     }
     else
     {
+      // delete lang from user infos
+      $where_clauses = array('1=1');
+      foreach ($selection as $l)
+      {
+        array_push($where_clauses, 'languages LIKE "%'.$l.'%" OR my_languages LIKE "%'.$l.'%"');
+      }
+      $users = get_users_list(
+        $where_clauses, 
+        'languages, my_languages',
+        'OR'
+        );
+      
+      foreach ($users as $u)
+      {
+        foreach ($selection as $l)
+        {
+          unset($u['languages'][ array_search($l, $u['languages']) ]);
+          unset($u['my_languages'][ array_search($l, $u['my_languages']) ]);
+          if ($u['main_language'] == $l) $u['main_language'] = null;
+        }
+        
+        $u['languages'] = create_permissions_array($u['languages']);
+        if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
+        
+        $u['languages'] = implode_array($u['languages']);
+        $u['my_languages'] = implode(',', $u['my_languages']);
+        
+        $query = '
+UPDATE '.USER_INFOS_TABLE.'
+  SET
+    languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').',
+    my_languages = '.(!empty($u['my_languages']) ? '"'.$u['my_languages'].'"' : 'NULL').'
+  WHERE user_id = '.$u['id'].'
+;';
+        mysql_query($query);
+      }
+  
       // delete flags
       foreach ($selection as $language)
       {
         @unlink($conf['flags_dir'].$conf['all_languages'][$language]['flag']);
       }
-      
-      // delete language form user infos
-      $query = '
-SELECT
-    user_id,
-    status,
-    languages,
-    my_languages,
-    spacial_perms
-  FROM '.USER_INFOS_TABLE.'
-;';
-      $users = hash_from_query($query, 'user_id');
-      
-      $update_query = null;
-      foreach ($users as &$row)
-      {
-        $row['languages'] = explode(',', $row['languages']);
-        $row['my_languages'] = explode(',', $row['my_languages']);
-        $row['special_perms'] = explode(',', $row['special_perms']);
-        foreach ($selection as $language)
-        {
-          unset($row['languages'][ array_search($language, $row['languages']) ]);
-          unset($row['my_languages'][ array_search($language, $row['my_languages']) ]);
-          if ($row['status'] == 'translator') unset($row['special_perms'][ array_search($language, $row['special_perms']) ]);
-        }
-        $update_query.= '
-UPDATE '.USER_INFOS_TABLE.' SET languages = "'.implode(',', $row['languages']).'", my_languages = "'.implode(',', $row['my_languages']).'", special_perms = "'.implode(',', $row['special_perms']).'" WHERE user_id = '.$row['user_id'].';';
-      }
-      mysql_query($update_query);
-      
+    
       // delete from stats table
       $query = '
 DELETE FROM '.STATS_TABLE.'
