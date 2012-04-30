@@ -18,6 +18,7 @@ INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 ('install_name', 'Lexiglot'),
 ('default_language', 'en_UK'),
 ('var_name', 'lang'),
+('allow_edit_default', 'false'),
 ('delete_done_rows', 'false'),
 ('use_stats', 'true'),
 

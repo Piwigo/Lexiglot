@@ -166,6 +166,7 @@ if (is_admin())
   echo '
   <fieldset class="common">
     <legend>Languages</legend>
+    '.($local_user['status']!='guest' ? '<p class="caption">Check the main language of this user</p>' : null).'
     <ul id="available_languages" class="lang-container">
       <h5>Authorized languages <span id="authorizeAllLang" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
     foreach ($local_user['languages'] as $lang)

@@ -209,7 +209,7 @@ You receive this mail because you are registered as translator on <a href="'.get
 // +-----------------------------------------------------------------------+
 // only translators and admin can modify files, no one is translator for source language
 $is_translator = true;
-if (is_source_language($page['language']))
+if ( is_source_language($page['language']) and !$conf['allow_edit_default'] )
 {
   $is_translator = false;
   array_push($page['warnings'], 'The source language can\'t be modified.');
@@ -217,13 +217,16 @@ if (is_source_language($page['language']))
 else if (!is_translator($page['language'], $page['section']))
 {
   $is_translator = false;
-  if (is_visitor())
+  if ( !is_source_language($page['language']) or $conf['allow_edit_default'] )
   {
-    array_push($page['errors'], 'You don\'t have the necessary rights to edit this file.');
-  }
-  else
-  {
-    array_push($page['warnings'], 'You <a href="user.php?login">have to login</a> to edit this translation.');
+    if (is_guest())
+    {
+      array_push($page['warnings'], 'You <a href="user.php?login">have to login</a> to edit this translation.');
+    }
+    else
+    {
+      array_push($page['errors'], 'You don\'t have the necessary rights to edit this file.');
+    }
   }
 }
 

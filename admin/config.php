@@ -30,6 +30,7 @@ if (isset($_POST['save_config']))
     'var_name' =>               $_POST['var_name'],
     'delete_done_rows' =>       set_boolean(isset($_POST['delete_done_rows'])),
     'use_stats' =>              set_boolean(isset($_POST['use_stats'])),
+    'allow_edit_default' =>     set_boolean(isset($_POST['allow_edit_default'])),
     
     'access_to_guest' =>        set_boolean(isset($_POST['access_to_guest'])),
     'allow_registration' =>     set_boolean(isset($_POST['allow_registration'])),
@@ -98,6 +99,10 @@ echo '
       <tr>
         <td>Var name :</td>
         <td><input type="text" name="var_name" value="'.$conf['var_name'].'"></td>
+      </tr>
+      <tr>
+        <td>Allow modification of default_language :</td>
+        <td><input type="checkbox" name="allow_edit_default" value="1" '.($conf['allow_edit_default']?'checked="checked"':'').'></td>
       </tr>
       <tr>
         <td>Delete strings after commit :</td>

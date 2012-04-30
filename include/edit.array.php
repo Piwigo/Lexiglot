@@ -288,7 +288,7 @@ echo '
       echo '
       </td>
       <td class="details">
-        '.(!is_source_language($page['language']) ? '<a href="#" class="expand tiptip" title="Show etails" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
+        '.(!is_source_language($page['language']) || $conf['allow_edit_default'] ? '<a href="#" class="expand tiptip" title="Show etails" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
         '.($is_translator ? '<a href="#" class="save tiptip" title="Save this string" data="'.$i.'"><img src="template/images/disk.png" alt="save"></a>' : null).'
       </td>
     </tr>
