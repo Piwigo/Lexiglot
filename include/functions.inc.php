@@ -365,6 +365,50 @@ function array_merge_recursive_distinct($Arr1, $Arr2)
 }
 
 /**
+ * explode a string like name1,value1;name2,value2 into an associative array
+ * @param string
+ * @param char couple seperator
+ * @param char name-value separator
+ * @return array
+ */
+function explode_string($string, $sep1=';', $sep2=',')
+{
+  $string = preg_replace('#[;]$#', '', $string);
+  $result = array();
+  
+  $a = explode($sep1, $string);
+  foreach ($a as $s)
+  {
+     $v = explode($sep2, $s);
+     $result[ $v[0] ] = $v[1];
+  }
+  
+  return $result;
+}
+
+/**
+ * implode an associative array into a string like name1,value1;name2,value2
+ * @param array
+ * @param char couple seperator
+ * @param char name-value separator
+ * @return string
+ */
+function implode_array($array, $sep1=';', $sep2=',') {
+  $result = null;
+  $first = true;
+  
+  foreach ($array as $key => $value)
+  {
+    if (is_array($key)) continue;
+    if (!$first) $result.= $sep1;
+    $result.= $key.$sep2.$value;
+    $first = false;
+  }
+  
+  return $result;
+}
+
+/**
  * fully delete a directory
  * @param string path
  * @return bool

@@ -176,7 +176,7 @@ function print_user_sections_tooltip(&$user, $max=1)
 {
   $sections = $user['sections'];
   
-  if ( $user['status'] == 'translator' AND !empty($user['main_language']) )
+  if ( in_array($user['status'], array('translator','manager')) AND !empty($user['main_language']) )
   {
     $stats = get_cache_stats(null, $user['main_language'], 'section');
   }

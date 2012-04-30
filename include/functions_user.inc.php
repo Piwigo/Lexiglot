@@ -71,11 +71,11 @@ SELECT *
   {
     create_user_infos($user_id);
     
-    $query = '
+    /*$query = '
 SELECT *
   FROM '.USER_INFOS_TABLE.'
   WHERE user_id = '.$user_id.'
-;';
+;';*/
     $result = mysql_query($query);
     
     $user['is_new'] = true;
@@ -108,18 +108,27 @@ SELECT *
     $user['sections'] = $guest['sections'];
   }
   
-  // explode languages and sections arrays
-  foreach (array('languages','sections','my_languages','special_perms') as $mode)
+  // explode languages array
+  $languages = explode(';', $user['languages']);
+  $user['languages'] = array();
+  $user['main_language'] = null;
+  foreach ($languages as $v)
   {
-    if (!empty($user[$mode]))
-    {
-      $user[$mode] = explode(',', $user[$mode]);
-      sort($user[$mode]);
-    }
-    else
-    {
-      $user[$mode] = array();
-    }
+    list($lang, $rank) = explode(',', $v);
+    if ($rank == 1) $user['main_language'] = $lang;
+    array_push($user['languages'], $lang);
+  }
+  
+  $user['my_languages'] = explode(',', $user['my_languages']);
+  
+  // explode sections array
+  $sections = explode(';', $user['sections']);
+  $user['sections'] = $user['manage_sections'] = array();
+  foreach ($sections as $v)
+  {
+    list($section, $rank) = explode(',', $v);
+    if ($rank == 1) array_push($user['manage_sections'], $section);
+    array_push($user['sections'], $section);
   }
   
   // if the user is manager we must fill management permissions
@@ -133,12 +142,6 @@ SELECT *
     {
       $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
     }
-    $user['manage_sections'] = $user['special_perms'];
-  }
-  // is the user is translator
-  else if ($user['status'] == 'translator')
-  {
-    $user['main_language'] = @$user['special_perms'][0];
   }
 
   return $user;
@@ -159,6 +162,90 @@ VALUES(
   )
 ;';
   mysql_query($query);
+}
+
+/**
+ * get all users infos, same as build_user but for all users
+ * @param array where_clauses
+ * @return array
+ */
+function get_users_list($where_clauses=array('1=1'))
+{
+  global $conf;
+  
+  $query = '
+SELECT i.*';
+  foreach ($conf['user_fields'] as $localfield => $dbfield)
+  {
+    $query.= ', u.'.$dbfield.' AS '.$localfield;
+  }
+  $query.= '
+  FROM '.USERS_TABLE.' AS u
+    INNER JOIN '.USER_INFOS_TABLE.' AS i
+      ON u.'.$conf['user_fields']['id'].'  = i.user_id
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+  ORDER BY u.'.$conf['user_fields']['username'].' ASC
+;';
+  $users = hash_from_query($query, 'id');
+  
+  foreach ($users as &$user)
+  {
+    // beautify booleans
+    foreach ($user as $key => $value)
+    {
+      if (!is_numeric($key))
+      {
+        if ($value == 'true' or $value == 'false')
+          $user[$key] = get_boolean($value);
+      }
+    }
+  
+    // if the user is visitor we must get guest permissions
+    if ($user['status'] == 'visitor')
+    {
+      $user['languages'] = $users[ $conf['guest_id'] ]['languages'];
+      $user['sections'] = $users[ $conf['guest_id'] ]['sections'];
+    }
+  
+    // explode languages array
+    $languages = explode(';', $user['languages']);
+    $user['languages'] = array();
+    $user['main_language'] = null;
+    foreach ($languages as $v)
+    {
+      list($lang, $rank) = explode(',', $v);
+      if ($rank == 1) $user['main_language'] = $lang;
+      array_push($user['languages'], $lang);
+    }
+    
+    $user['my_languages'] = explode(',', $user['my_languages']);
+    
+    // explode sections array
+    $sections = explode(';', $user['sections']);
+    $user['sections'] = $user['manage_sections'] = array();
+    foreach ($sections as $v)
+    {
+      list($section, $rank) = explode(',', $v);
+      if ($rank == 1) array_push($user['manage_sections'], $section);
+      array_push($user['sections'], $section);
+    }
+    
+    // if the user is manager we must fill management permissions
+    if ($user['status'] == 'manager')
+    {
+      if (!empty($user['manage_perms']))
+      {
+        $user['manage_perms'] = unserialize($user['manage_perms']);
+      }
+      else
+      {
+        $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+      }
+    }
+  }
+
+  return $users;
 }
 
 /**

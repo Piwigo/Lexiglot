@@ -39,11 +39,11 @@ if (isset($_POST['save_perm']))
   if (!empty($_POST['available_sections']))
   {
     ksort($_POST['available_sections']);
-    array_push($sets, 'sections = "'.implode(',', array_keys($_POST['available_sections'])).'"');
+    $sections = array_combine(array_keys($_POST['available_sections']), array_fill(0, count($_POST['available_sections']), 0));
   }
   else
   {
-    array_push($sets, 'sections = ""');
+    $sections = array();
   }
   
   // only admin can change language and permissions
@@ -52,27 +52,23 @@ if (isset($_POST['save_perm']))
     // languages
     if (!empty($_POST['available_languages']))
     {
-      $_POST['available_languages'] = array_keys($_POST['available_languages']);
-      sort($_POST['available_languages']);
-      array_push($sets, 'languages = "'.implode(',', $_POST['available_languages']).'"');
+      ksort($_POST['available_languages']);
+      $languages = array_combine(array_keys($_POST['available_languages']), array_fill(0, count($_POST['available_languages']), 0));
     }
     else
     {
-      $_POST['available_languages'] = array();
-      array_push($sets, 'languages = ""');
+      $languages = array();
     }
 
     // manager permissions
     if (get_user_status($_POST['user_id']) == 'manager')
     {
-      if (!empty($_POST['can_manage']))
+      if (!empty($_POST['manage_sections']))
       {
-        ksort($_POST['can_manage']);
-        array_push($sets, 'special_perms = "'.implode(',', array_keys($_POST['can_manage'])).'"');
-      }
-      else
-      {
-        array_push($sets, 'special_perms = ""');
+        foreach (array_keys($_POST['manage_sections']) as $key)
+        {
+          $sections[$key] = 1;
+        }
       }
       
       foreach (array_keys(unserialize(DEFAULT_MANAGER_PERMS)) as $perm)
@@ -82,22 +78,23 @@ if (isset($_POST['save_perm']))
       array_push($sets, 'manage_perms = \''.serialize($manage_perms).'\'');
     }
     // translator main language
-    else if (get_user_status($_POST['user_id']) == 'translator')
+    if (get_user_status($_POST['user_id']) != 'guest')
     {
       if (!empty($_POST['main_language']))
       {
-        array_push($sets, 'special_perms = "'.$_POST['main_language'].'"');
+        $languages[ $_POST['main_language'] ] = 1;
       }
-      else if (count($_POST['available_languages']) == 1)
+      else if (count($languages) == 1)
       {
-        array_push($sets, 'special_perms = "'.$_POST['available_languages'][0].'"');
-      }
-      else
-      {
-        array_push($sets, 'special_perms = ""');
+        $temp_lang = array_keys($languages);
+        $languages[ $temp_lang[0] ] = 1;
       }
     }
+    
+    array_push($sets, 'languages = \''.implode_array($languages).'\'');
   }
+  
+  array_push($sets, 'sections = \''.implode_array($sections).'\'');
   
   $query = '
 UPDATE '.USER_INFOS_TABLE.'
@@ -138,7 +135,7 @@ $movable_sections = is_admin() ? array_keys($conf['all_sections']) : $user['mana
 function cmp1($a, $b)
 {
   if ($a['rank'] == $b['rank']) return strcmp($a['id'], $b['id']);
-  return $a['rank'] < $b['rank'] ? 1 : -1;
+  return $a['rank'] > $b['rank'] ? -1 : 1;
 }
 function cmp2_lang($a, $b)
 {
@@ -156,7 +153,7 @@ uasort($conf['all_languages'], 'cmp1');
 uasort($local_user['sections'], 'cmp2_sect');
 uasort($conf['all_sections'], 'cmp1');
 
-// count number of different rnaks, if 1, we consider that we don't use ranks
+// count number of different ranks, if 1, we consider that we don't use ranks
 $use_lang_rank = count(array_unique_deep($conf['all_languages'], 'rank')) > 1;
 $use_section_rank = count(array_unique_deep($conf['all_sections'], 'rank')) > 1;
 
@@ -176,8 +173,8 @@ if (is_admin())
       if (array_key_exists($lang, $conf['all_languages']))
       {
         echo '
-        <li id="'.$lang.'" class="lang">
-          '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$lang.'" '.($lang==$local_user['main_language']?'checked="checked"':null).'>' : null).'
+        <li id="list_'.$lang.'" class="lang">
+          '.($local_user['status']!='guest' && is_admin() ? '<input type="radio" name="main_language" value="'.$lang.'" '.($lang==$local_user['main_language']?'checked="checked"':null).'>' : null).'
           '.get_language_flag($lang).' '.get_language_name($lang).'
           '.($use_lang_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
         </li>';
@@ -193,7 +190,7 @@ if (is_admin())
       if (!in_array($row['id'], $local_user['languages']))
       {
         echo '
-        <li id="'.$row['id'].'" class="lang">
+        <li id="list_'.$row['id'].'" class="lang">
           '.($local_user['status']=='translator' && is_admin() ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
           '.get_language_flag($row['id']).' '.$row['name'].'
           '.($use_lang_rank ? '<i>'.$row['rank'].'</i>' : null).'
@@ -216,8 +213,8 @@ echo '
       if (array_key_exists($section, $conf['all_sections']))
       {
         echo '
-        <li id="'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).'>
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="can_manage['.$section.']" value="1" '.(in_array($section,$local_user['manage_sections'])?'checked="checked"':null).'>' : null).'
+        <li id="list_'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).'>
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$section.']" value="1" '.(in_array($section,$local_user['manage_sections'])?'checked="checked"':null).'>' : null).'
           '.get_section_name($section).'
           '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section],'dark').';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.get_section_rank($section).'</i>' : null).'
@@ -234,8 +231,8 @@ echo '
       if (!in_array($row['id'], $local_user['sections']))
       {
         echo '
-        <li id="'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).'>
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="can_manage['.$row['id'].']" value="1" style="display:none;">' : null).'
+        <li id="list_'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).'>
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$row['id'].']" value="1" style="display:none;">' : null).'
           '.$row['name'].'
           '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.$row['rank'].'</i>' : null).'
@@ -373,10 +370,10 @@ $page['header'].= '
 <script type="text/javascript">
   function save_datas(form) {    
     $("#available_languages > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_languages["+ $(this).attr("id") +"]\" value=\"1\">");
+      $(form).append("<input type=\"hidden\" name=\"available_languages["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
     });
     $("#available_sections > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_sections["+ $(this).attr("id") +"]\" value=\"1\">");
+      $(form).append("<input type=\"hidden\" name=\"available_sections["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
     });
   }
   function update_height(row) {

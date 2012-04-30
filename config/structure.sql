@@ -145,7 +145,6 @@ CREATE TABLE `lexiglot_user_infos` (
   `languages` text DEFAULT '',
   `sections` text DEFAULT '',
   `my_languages` text DEFAULT '',
-  `special_perms` text DEFAULT '',
   `manage_perms` text DEFAULT '',
   `nb_rows` smallint(5) NOT NULL DEFAULT '15',
   `email_privacy` enum('public','hidden','private') NOT NULL DEFAULT 'hidden',

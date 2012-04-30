@@ -220,17 +220,8 @@ if ( !isset($_GET['user_id']) and $where_clauses != array('1=1') )
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-// get users infos
-$query = '
-SELECT u.*, i.*
-  FROM '.USERS_TABLE.' as u
-    INNER JOIN '.USER_INFOS_TABLE.' as i
-    ON u.'.$conf['user_fields']['id'].'  = i.user_id
-  WHERE 
-    '.implode("\n    AND ", $where_clauses).'
-  ORDER BY u.'.$conf['user_fields']['username'].' ASC
-;';
-$_USERS = hash_from_query($query, 'id');
+$_USERS = get_users_list($where_clauses);
+
 
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
@@ -374,39 +365,7 @@ echo '
     </thead>
     <tbody>';
     foreach ($_USERS as $row)
-    {
-      // explode languages and sections arrays
-      foreach (array('languages','sections','my_languages','special_perms') as $mode)
-      {
-        if (!empty($row[$mode]))
-        {
-          $row[$mode] = explode(',', $row[$mode]);
-          sort($row[$mode]);
-        }
-        else
-        {
-          $row[$mode] = array();
-        }
-      }
-      // if the user is manager we must fill management permissions
-      if ($row['status'] == 'manager')
-      {
-        if (!empty($row['manage_perms']))
-        {
-          $row['manage_perms'] = unserialize($row['manage_perms']);
-        }
-        else
-        {
-          $row['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
-        }
-        $row['manage_sections'] = $row['special_perms'];
-      }
-      // is the user is translator
-      else if ($row['status'] == 'translator')
-      {
-        $row['main_language'] = @$row['special_perms'][0];
-      }
-      
+    {      
       echo '
       <tr class="'.$row['status'].' '.($highlight_user==$row['id'] ? 'highlight' : null).'">
         '.($has_admin_rights ? '<td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>' :null).'
