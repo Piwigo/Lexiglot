@@ -99,7 +99,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   )
   ON DUPLICATE KEY UPDATE
     last_edit = NOW(),
-    row_value = "'.$text.'",
+    row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
       mysql_query($query);      

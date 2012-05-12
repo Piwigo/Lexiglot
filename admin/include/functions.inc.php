@@ -95,17 +95,9 @@ function deep_file_put_contents($filename, $data, $flags=0)
   
   $path = str_replace(basename($filename), null, $filename);
   
-  if ( !empty($path) and !file_exists($path) )
+  if ( !empty($path) and !file_exists($path) and !create_directory($path) )
   {
-    if ($conf['svn_activated'])
-    {
-      $svn_result = svn_mkdir($path, true);
-      if ($svn_result['level'] != 'success') return false;
-    }
-    else
-    {
-      if (!mkdir($path, 0777, true)) return false;
-    }
+    return false;
   }
   
   $out = file_put_contents($filename, $data, $flags);
@@ -145,6 +137,13 @@ INSERT INTO '.CATEGORIES_TABLE.'
   }
 }
 
+/**
+ * generate the content of the languages tooltip
+ * @param: &array user
+ * @param: int max languages to display before generate a tooltip
+ * @param: bool display 'my_languages' instead of 'languages'
+ * @return: string
+ */
 function print_user_languages_tooltip(&$user, $max=3, $my=false)
 {
   $languages = $my ? $user['my_languages'] : $user['languages'];
@@ -169,9 +168,16 @@ function print_user_languages_tooltip(&$user, $max=3, $my=false)
     $out.= '</tr></table>\'>
       '.count($languages).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
   }
+  
   return $out;
 }
 
+/**
+ * generate the content of the sections tooltip
+ * @param: &array user
+ * @param: int max sections to display before generate a tooltip
+ * @return: string
+ */
 function print_user_sections_tooltip(&$user, $max=1)
 {
   $sections = $user['sections'];
@@ -202,9 +208,16 @@ function print_user_sections_tooltip(&$user, $max=1)
     $out.= '</tr></table>\'>
       '.count($sections).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
   }
+  
   return $out;
 }
 
+/**
+ * a little helper for permissions arrays
+ * @param: original array
+ * @param: default perm (0 or 1)
+ * @return: array
+ */
 function create_permissions_array($array, $fill=0)
 {
   if (!count($array)) return array();

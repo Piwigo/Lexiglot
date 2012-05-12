@@ -55,7 +55,6 @@ if (!function_exists('json_decode'))
  */
 function get_url_string($add=array(), $reject=array(), $file=null)
 {
-  global $conf, $page;
   $query_string = '';
   
   if ($file == null) $file = script_basename();

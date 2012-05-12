@@ -44,6 +44,7 @@ if (!empty($_GET['action']))
     
     case 'make_stats' :
     {
+      set_time_limit(3600);
       make_full_stats();
       array_push($page['infos'], 'Statistics updated');
       break;

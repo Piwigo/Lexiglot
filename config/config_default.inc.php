@@ -42,7 +42,10 @@ $conf['remember_me_length'] = 864000;
 $conf['pass_convert'] = create_function('$s', 'return md5($s);');
 
 // a php snippet to execute before include language files
-$conf['exec_before_file'] = '';
+$conf['exec_before_file'] = null;
+
+// a file copied in all new folders created by Lexiglot
+$conf['copy_file_to_repo'] = null;
 
 // how to navigate : sections, languages, both
 $conf['navigation_type'] = 'both';

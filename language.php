@@ -72,25 +72,13 @@ if (isset($_POST['add_section']))
   {
     array_push($page['errors'], 'You have no rights to add this project.');
   }
-  else 
+  else if ( create_directory($conf['local_dir'].$_POST['section'].'/'.$page['language']) )
   {
-    if ($conf['svn_activated'])
-    {
-      $svn_result = svn_mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], true);
-      $svn_result = $svn_result['level'] == 'success';
-    }
-    else
-    {
-      $svn_result = mkdir($conf['local_dir'].$_POST['section'].'/'.$page['language'], 0777, true);
-    }
-    if ($svn_result)
-    {
-      redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
-    }
-    else
-    {
-      array_push($page['errors'], 'Can\t create forder. Please contact administrators.');
-    }
+    redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
+  }
+  else
+  {
+    array_push($page['errors'], 'Can\'t create the folder. Please contact administrators.');
   }
 }
 

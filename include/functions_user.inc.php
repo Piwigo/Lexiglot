@@ -221,11 +221,11 @@ SELECT i.status, '.$select;
     }
   
     // if the user is visitor we must get guest permissions
-    if ( $user['status'] == 'visitor' and isset($users[ $conf['guest_id'] ]) )
+    /*if ( $user['status'] == 'visitor' and isset($users[ $conf['guest_id'] ]) )
     {
       $user['languages'] = $users[ $conf['guest_id'] ]['languages'];
       $user['sections'] =  $users[ $conf['guest_id'] ]['sections'];
-    }
+    }*/
   
     // explode languages array
     if (!empty($user['languages']))

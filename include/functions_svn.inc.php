@@ -337,9 +337,9 @@ function svn_mkdir($path, $recursive=true)
   {
     $level = 'error';
     $msg = 'An unknown error occured';
-    
+    var_dump($out);
   }
-var_dump($out);
+  
   return array('level'=>$level, 'msg'=>$msg);
 }
 

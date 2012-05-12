@@ -556,7 +556,7 @@ echo '
     {
       echo '
       <tr>
-        <td colspan="6"><i>No results</i></td>
+        <td colspan="9"><i>No results</i></td>
       </tr>';
     }
     echo '
