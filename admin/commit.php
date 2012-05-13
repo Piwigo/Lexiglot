@@ -77,6 +77,11 @@ if (isset($_POST['init_commit']))
     array_push($where_clauses, 'section IN("'.implode('","', array_keys($displayed_sections)).'")');
   }
   
+  if (!empty($_POST['exclude']))
+  {
+    array_push($where_clauses, 'CONCAT(section, lang) NOT IN ("'.implode('", "', $_POST['exclude']).'")');
+  }
+  
   // must use imbricated query to order before group
   $query = '
 SELECT * FROM (

@@ -152,4 +152,20 @@ if (count_lines($text, 126) > 40)
     );';
 }
 
+if ($is_translator)
+{
+  $page['script'].= '
+  // check saves before close page
+  var handler = false;
+  $("textarea[name=\'row_value\']").change(function() {
+    handler = true;
+  });
+  $("input[name=\'submit\']").click(function() {
+    handler = false;
+  });
+  $(window).bind("beforeunload", function() {
+    if (handler == true) return false;
+  });';
+}
+
 ?>

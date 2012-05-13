@@ -42,7 +42,10 @@ echo '
     $commit['is_new'] = dir_is_empty($commit['path']);
     
     echo '
-    <tr><td class="title commit" colspan="2"><b>Section :</b> '.$commit['section'].' — <b>Language :</b> '.$commit['language'].'</td></tr>
+    <tr><td class="title commit" colspan="2">
+      <b>Section :</b> '.$commit['section'].' — <b>Language :</b> '.$commit['language'].'
+      <span style="float:right;"><label><input type="checkbox" name="exclude[]" value="'.$commit['section'].$commit['language'].'"> Exlude</label></span>
+    </td></tr>
     <tr>
       <td class="marge"></td>
       <td>

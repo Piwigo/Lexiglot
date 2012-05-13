@@ -352,6 +352,7 @@ $page['header'].= '
 <script type="text/javascript" src="template/js/functions.js"></script>';
 
 $page['script'].= '
+// tiptip
 $(".tiptip").tipTip({ 
   delay:200,
   defaultPosition:"right"
@@ -436,6 +437,18 @@ $("a.expand").click(function() {
 if ($is_translator)
 {
   $page['script'].= '
+  // check saves before close page
+  var handlers = new Array();
+  $("textarea[name$=\'[row_value]\']").change(function() {
+    handlers.push( $(this).prev("textarea[name$=\'[row_name]\']").val() );
+  });
+  $("input[name=\'submit\']").click(function() {
+    handlers.length = 0;
+  });
+  $(window).bind("beforeunload", function() {
+    if (handlers.length > 0) return false;
+  });
+  
   // perform ajax request to save string value
   $("a.save").click(function() {
     $trigger = $(this);
@@ -454,6 +467,8 @@ if ($is_translator)
       }  else {
         overlayMessage(msg.data, msg.errcode, $trigger);
       }
+      
+      handlers = unset(handlers, row_name);
     });
     
     return false;

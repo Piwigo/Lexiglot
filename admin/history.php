@@ -41,13 +41,20 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
     // DELETE ROWS
     case 'delete_rows':
     {
-      $query = '
+      if (!isset($_POST['confirm_deletion']))
+      {
+        array_push($page['errors'], 'For security reasons you must confirm the deletion.');
+      }
+      else
+      {
+        $query = '
 DELETE FROM '.ROWS_TABLE.' 
   WHERE id IN('.implode(',', $_POST['select']).') 
 ;';
-      mysql_query($query);
+        mysql_query($query);
 
-      array_push($page['infos'], mysql_affected_rows().' translations deleted.');
+        array_push($page['infos'], mysql_affected_rows().' translations deleted.');
+      }
       break;
     }
     
@@ -302,6 +309,10 @@ echo '
     <option value="mark_as_done">Mark as commited</option>
   </select>
   
+  <span id="action_delete_rows" class="action-container">
+    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
+  </span>
+  
   <span id="action_apply" class="action-container">
     <input type="submit" name="apply_action" class="blue" value="Apply">
   </span>
@@ -377,6 +388,7 @@ $(".unselectAll").click(function() {
 
 $("select[name=selectAction]").change(function() {
   $("[id^=action_]").hide();
+  $("#action_"+$(this).attr("value")).show();
 
   if ($(this).val() != -1) {
     $("#action_apply").show();

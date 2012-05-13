@@ -225,7 +225,7 @@ foreach ($_ROWS as $props => $files)
   if ( count($commit['done_rows']) > 0 and $conf['svn_activated'] )
   {
     $svn_result = svn_commit($commit['path'], 
-      '['.$commit['section'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']))
+      '['.$commit['section'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
       );
     
     // error while commit
