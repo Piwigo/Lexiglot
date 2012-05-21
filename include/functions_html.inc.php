@@ -117,11 +117,37 @@ function count_lines($string, $chars_per_line)
 }
 
 /**
+ * generate needed parameters for pagination system
+ * @param int total entries
+ * @param int entries a page
+ * @param string page get param name
+ * @return array
+ */
+function compute_pagination($total, $entries, $param)
+{
+  $paging['TotalEntries'] = $total;
+  $paging['Entries'] = $entries;
+  
+  $paging['TotalPages'] = ceil($paging['TotalEntries']/$paging['Entries']);
+  $paging['Page'] = 
+    isset($_GET[$param]) 
+      ? (
+        intval($_GET[$param]) > $paging['TotalPages']
+          ? max($paging['TotalPages'], 1)
+          : max(intval($_GET[$param]), 1)
+      )
+      : 1;
+      
+  $paging['Start'] = ($paging['Page']-1) * $paging['Entries'];
+  return $paging;
+}
+
+/**
  * write paging system
- * @param array paging parameters (Page, TotalPages)
+ * @param array paging from compute_pagination function
  * @return string
  */
-function pagination($paging)
+function display_pagination($paging, $param='page')
 {
   if ($paging['TotalPages'] <= 1) return null;
   $content = null;
@@ -132,13 +158,13 @@ function pagination($paging)
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']-1,'ks'=>null)).'">&laquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']-1,'ks'=>null)).'">&laquo;</a>';
   }
   
   if ($paging['TotalPages'] <= 9) // less than 10 page
   {
     for ($i=1; $i<=$paging['TotalPages']; $i++)
-      $content .= paging_link($i, $paging['Page']);
+      $content .= paging_link($i, $paging['Page'], $param);
       
   } 
   else // more than 10 pages
@@ -146,29 +172,29 @@ function pagination($paging)
     if ($paging['Page'] <= 5) // 5 first elements : [1 2 3 4 5 6 ... n-1 n]
     {
       for ($i=1; $i<=6; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
       $content .= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-1; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
     }
     else if ($paging['Page'] >= $paging['TotalPages']-4) // 5 lasts elements : [1 2 ... n-5 n-4 n-3 n-2 n-1 n]
     {
       for ($i=1; $i<=2; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
       $content .= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-5; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
     }
     else // common case : [1 2 ... x-1 x x+1 ... n-1 n]
     {
       for ($i=1; $i<=2; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
       $content .= '<span class="dot">...</span>';
       for ($i=$paging['Page']-1; $i<=$paging['Page']+1; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
       $content .= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-1; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page']);
+        $content .= paging_link($i, $paging['Page'], $param);
     }
   }
   
@@ -178,15 +204,15 @@ function pagination($paging)
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array('page'=>$paging['Page']+1,'ks'=>null)).'">&raquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']+1,'ks'=>null)).'">&raquo;</a>';
   }
   
   return $content;
 }    
 
-function paging_link($i, $page)
+function paging_link($i, $page, $param='page')
 {
-  return '<a class="page '.($i == $page ? 'active' : null).'" href="'.get_url_string(array('page'=>$i,'ks'=>null)).'">'.$i.'</a>'; 
+  return '<a class="page '.($i == $page ? 'active' : null).'" href="'.get_url_string(array($param=>$i,'ks'=>null)).'">'.$i.'</a>'; 
 }
 
 /**
@@ -243,10 +269,13 @@ function html_special_chars($string)
  *       o cc [default empty]
  *       o bcc [default empty]
  *       o content_format [default value 'text/plain']
+ *   - save in database
  * @return boolean
  */
-function send_mail($to, $subject, $content, $args = array())
+function send_mail($to, $subject, $content, $args = array(), $save=false, $additional_infos=null)
 {
+  global $conf;
+  
   // check inputs
   if (empty($to) and empty($args['cc']) and empty($args['bcc']))
   {
@@ -260,7 +289,7 @@ function send_mail($to, $subject, $content, $args = array())
 
   if (empty($args['from']))
   {
-    $args['from'] = 'Lexiglot <noreply@'.$_SERVER['HTTP_HOST'].'>';
+    $args['from'] = $conf['system_email'];
   }
 
   if (empty($args['content_format']))
@@ -292,9 +321,30 @@ function send_mail($to, $subject, $content, $args = array())
   {
     $content = htmlspecialchars($content);
   }
-
+  
   // send mail
-  return @mail($to, $subject, $content, $headers);
+  $result = @mail($to, $subject, $content, $headers);
+  
+  if ($result and $save)
+  {
+    $query = '
+INSERT INTO '.MAIL_HISTORY_TABLE.' (
+    send_date,
+    from_mail,
+    to_mail,
+    subject
+  )
+  VALUES (
+    NOW(),
+    "'.$args['from'].'",
+    "'.$to.'",
+    "'.mres($additional_infos).'"
+  )
+;';
+    mysql_query($query);
+  }
+  
+  return $result;
 }
 
 function format_email($mail, $name=null)

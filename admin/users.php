@@ -132,95 +132,77 @@ if ( isset($_POST['add_external_user']) and is_admin() )
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
 // default search
-$where_clauses = array('1=1');
 $search = array(
-  'username' => null,
-  'status' => '-1',
-  'language' => '-1',
-  'section' => '-1',
+  'username' =>  array('%', null),
+  'languages' => array('%', -1),
+  'sections' =>  array('%', -1),
+  'status' =>    array('=', -1),
+  'limit' =>     array('=', 20),
   );
 
 // url input
 if (isset($_GET['user_id']))
 {
   $_POST['erase_search'] = true;
-  array_push($where_clauses, 'u.id = '.$_GET['user_id']);
+  $search['username'][1] = get_username($_GET['lang_id']);
+  unset($_GET['user_id']);
 }
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
-  $search['language'] = $_GET['lang_id'];
+  $search['languages'][1] = $_GET['lang_id'];
+  unset($_GET['lang_id']);
 }
 if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
-  $search['section'] = $_GET['section_id'];
+  $search['sections'][1] = $_GET['section_id'];
+  unset($_GET['section_id']);
 }
 if (isset($_GET['status']))
 {
   $_POST['erase_search'] = true;
-  $search['status'] = $_GET['status'];
+  $search['status'][1] = $_GET['status'];
+  unset($_GET['status']);
 }
 
-// erase search
-if (isset($_POST['erase_search']))
-{
-  unset_session_var('user_search');
-  unset($_POST);
-}
-// get saved search
-else if (get_session_var('user_search') != null)
-{
-  $search = unserialize(get_session_var('user_search'));
-}
+$where_clauses = session_search($search, 'user_search', array('limit','sections'));
 
-// get form search
-if (isset($_POST['search']))
+// special for 'section'
+if ($search['sections'][1] != -1) 
 {
-  unset_session_var('user_search');
-  if (isset($_GET['user_id']))    unset($_GET['user_id']);
-  if (!empty($_POST['username'])) $search['username'] = str_replace('*', '%', $_POST['username']);
-  if (!empty($_POST['status']))   $search['status'] =   $_POST['status'];
-  if (!empty($_POST['language'])) $search['language'] = $_POST['language'];
-  if (!empty($_POST['section']))  $search['section'] =  $_POST['section'];
-}
-
-// build query
-if (!empty($search['username']))
-{
-  array_push($where_clauses, 'LOWER(u.'.$conf['user_fields']['username'].') LIKE LOWER("%'.$search['username'].'%")');
-}
-if ($search['status'] != '-1') 
-{
-  array_push($where_clauses, 'i.status = "'.$search['status'].'"');
-}
-if ($search['language'] != '-1') 
-{
-  array_push($where_clauses, 'i.languages LIKE "%'.$search['language'].'%"');
-}
-if ($search['section'] != '-1') 
-{
-  if ($search['section'] == 'none') 
+  if ($search['sections'][1] == 'none') 
   {
     foreach ($user['manage_sections'] as $section)
-      array_push($where_clauses, 'i.sections NOT LIKE "%'.$section.'%"');
+      array_push($where_clauses, 'sections NOT LIKE "%'.$section.'%"');
   }
   else
   {
-    array_push($where_clauses, 'i.sections LIKE "%'.$search['section'].'%"');
+    array_push($where_clauses, 'sections LIKE "%'.$search['sections'][1].'%"');
   }
 }
 
-// save search
-if ( !isset($_GET['user_id']) and $where_clauses != array('1=1') )
-{
-  set_session_var('user_search', serialize($search));
-}
+set_session_var('user_search', serialize($search));
+
+// +-----------------------------------------------------------------------+
+// |                         PAGINATION
+// +-----------------------------------------------------------------------+
+$query = '
+SELECT COUNT(1)
+  FROM '.USER_INFOS_TABLE.' AS i
+    INNER JOIN '.USERS_TABLE.' AS u
+      ON u.'.$conf['user_fields']['id'].' = i.user_id
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+;';
+list($total) = mysql_fetch_row(mysql_query($query));
+
+$paging = compute_pagination($total, $search['limit'][1], 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-$_USERS = get_users_list($where_clauses);
+$_USERS = get_users_list($where_clauses, 'i.*', 'AND', $paging['Start'], $paging['Entries']);
 
 
 // +-----------------------------------------------------------------------+
@@ -298,43 +280,45 @@ echo '
       <th>Status</th>
       <th>Language</th>
       <th>Project</th>
+      <th>Entries</th>
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="username" value="'.$search['username'].'"></td>
+      <td><input type="text" name="username" value="'.$search['username'][1].'"></td>
       <td>
         <select name="status">
-          <option value="-1" '.('-1'==$search['status']?'selected="selected"':null).'>-------</option>
-          <option value="guest" '.('guest'==$search['status']?'selected="selected"':null).'>Guest</option>
-          <option value="visitor" '.('visitor'==$search['status']?'selected="selected"':null).'>Visitor</option>
-          <option value="translator" '.('translator'==$search['status']?'selected="selected"':null).'>Translator</option>
-          <option value="manager" '.('manager'==$search['status']?'selected="selected"':null).'>Manager</option>
-          <option value="admin" '.('admin'==$search['status']?'selected="selected"':null).'>Admin</option>
+          <option value="-1" '.('-1'==$search['status'][1]?'selected="selected"':null).'>-------</option>
+          <option value="guest" '.('guest'==$search['status'][1]?'selected="selected"':null).'>Guest</option>
+          <option value="visitor" '.('visitor'==$search['status'][1]?'selected="selected"':null).'>Visitor</option>
+          <option value="translator" '.('translator'==$search['status'][1]?'selected="selected"':null).'>Translator</option>
+          <option value="manager" '.('manager'==$search['status'][1]?'selected="selected"':null).'>Manager</option>
+          <option value="admin" '.('admin'==$search['status'][1]?'selected="selected"':null).'>Admin</option>
         </select>
       </td>
       <td>
-        <select name="language">
-          <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
+        <select name="languages">
+          <option value="-1" '.(-1==$search['languages'][1]?'selected="selected"':null).'>-------</option>';
         foreach ($conf['all_languages'] as $row)
         {
           echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['languages'][1]?'selected="selected"':null).'>'.$row['name'].'</option>';
         }
         echo '
         </select>
       </td>
       <td>
-        <select name="section">
-          <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>
-          '.(is_manager() ? '<option value="none" '.('none'==$search['section']?'selected="selected"':null).'>-- none of mine --</option>' : null);
+        <select name="sections">
+          <option value="-1" '.(-1==$search['sections'][1]?'selected="selected"':null).'>-------</option>
+          '.(is_manager() ? '<option value="none" '.('none'==$search['sections'][1]?'selected="selected"':null).'>-- none of mine --</option>' : null);
         foreach ($displayed_sections as $row)
         {
           echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['sections'][1]?'selected="selected"':null).'>'.$row['name'].'</option>';
         }
         echo '
         </select>
       </td>
+      <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Erase">
@@ -443,6 +427,7 @@ echo '
     </tbody>
   </table>
   '.($has_admin_rights ? '<a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>' : null).'
+  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
 </fieldset>';
 
 if ($has_admin_rights)
@@ -482,11 +467,11 @@ if ($has_admin_rights)
     
     <span id="action_add_lang" class="action-container">
       <select name="language_add">
-        <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
+        <option value="-1">-------</option>';
       foreach ($conf['all_languages'] as $row)
       {
         echo '
-        <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
+        <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>
@@ -494,11 +479,11 @@ if ($has_admin_rights)
     
     <span id="action_remove_lang" class="action-container">
       <select name="language_remove">
-        <option value="-1" '.('-1'==$search['language']?'selected="selected"':null).'>-------</option>';
+        <option value="-1">-------</option>';
       foreach ($conf['all_languages'] as $row)
       {
         echo '
-        <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':null).'>'.$row['name'].'</option>';
+        <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>
@@ -506,11 +491,11 @@ if ($has_admin_rights)
     
     <span id="action_add_section" class="action-container">
       <select name="section_add">
-        <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
+        <option value="-1">-------</option>';
       foreach ($conf['all_sections'] as $row)
       {
         echo '
-        <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
+        <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>
@@ -518,11 +503,11 @@ if ($has_admin_rights)
     
     <span id="action_remove_section" class="action-container">
       <select name="section_remove">
-        <option value="-1" '.('-1'==$search['section']?'selected="selected"':null).'>-------</option>';
+        <option value="-1">-------</option>';
       foreach ($conf['all_sections'] as $row)
       {
         echo '
-        <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':null).'>'.$row['name'].'</option>';
+        <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>

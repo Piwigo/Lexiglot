@@ -133,9 +133,9 @@ SELECT id, directory, files
       $generate_stats = true;
     }
     // check rank
-    if (!is_numeric($row['rank']))
+    if (!is_numeric($row['rank']) or $row['rank'] < 1)
     {
-      array_push($errors, 'Rank must be an integer for project &laquo;'.$section_id.'&raquo;.');
+      array_push($errors, 'Rank must be an non null integer for project &laquo;'.$section_id.'&raquo;.');
     }
     // check category
     if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
@@ -259,9 +259,9 @@ SELECT id
     array_push($page['errors'], 'Seperate each file with a comma.');
   }
   // check rank
-  if (!is_numeric($_POST['rank']))
+  if (!is_numeric($_POST['rank']) or $row['rank'] < 1)
   {
-    array_push($page['errors'], 'Rank must be an integer.');
+    array_push($page['errors'], 'Rank must be an non null integer.');
   }
   // check category
   if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
@@ -328,67 +328,36 @@ UPDATE '.USER_INFOS_TABLE.'
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
 // default search
-$where_clauses = array('1=1');
 $search = array(
-  'id' => null,
-  'name' => null,
-  'rank' => null,
-  'category' => '-1',
+  'id' =>          array('%', null),
+  'name' =>        array('%', null),
+  'rank' =>        array('=', null),
+  'category_id' => array('=', -1),
+  'limit' =>       array('=', 20),
   );
 
 // url input
 if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'] = $_GET['section_id'];
+  $search['id'][1] = $_GET['section_id'];
+  unset($_GET['section_id']);
 }
 
-// erase search
-if (isset($_POST['erase_search']))
-{
-  unset_session_var('section_search');
-  unset($_POST);
-}
-// get saved search
-else if (get_session_var('section_search') != null)
-{
-  $search = unserialize(get_session_var('section_search'));
-}
+$where_clauses = session_search($search, 'section_search', array('limit'));
 
-// get form search
-if (isset($_POST['search']))
-{
-  unset_session_var('section_search');
-  if (isset($_GET['section_id']))  unset($_GET['section_id']);
-  if (!empty($_POST['id']))        $search['id'] =        str_replace('*', '%', $_POST['id']);
-  if (!empty($_POST['name']))      $search['name'] =      str_replace('*', '%', $_POST['name']);
-  if (!empty($_POST['rank']))      $search['rank'] =      $_POST['rank'];
-  if (!empty($_POST['category']))  $search['category'] =  $_POST['category'];
-}
+// +-----------------------------------------------------------------------+
+// |                         PAGINATION
+// +-----------------------------------------------------------------------+
+$query = '
+SELECT COUNT(1)
+  FROM '.SECTIONS_TABLE.'
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+;';
+list($total) = mysql_fetch_row(mysql_query($query));
 
-// build query
-if (!empty($search['id']))
-{
-  array_push($where_clauses, 'LOWER(id) LIKE LOWER("%'.$search['id'].'%")');
-}
-if (!empty($search['name']))
-{
-  array_push($where_clauses, 'LOWER(name) LIKE LOWER("%'.$search['name'].'%")');
-}
-if (!empty($search['rank']))
-{
-  array_push($where_clauses, 'rank = '.$search['rank']);
-}
-if ($search['category'] != '-1')
-{
-  array_push($where_clauses, 'category_id = '.$search['category']);
-}
-
-// save search
-if (!isset($_GET['section_id']) and $where_clauses != array('1=1') )
-{
-  set_session_var('section_search', serialize($search));
-}
+$paging = compute_pagination($total, $search['limit'][1], 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -406,8 +375,10 @@ SELECT
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY s.id
-  ORDER BY s.id ASC
-;';
+  ORDER BY s.rank DESC, s.id ASC
+  LIMIT '.$paging['Entries'].'
+  OFFSET '.$paging['Start'].'
+;'; 
 $_DIRS = hash_from_query($query, 'id');
 
 $query = '
@@ -467,23 +438,25 @@ echo '
       <th>Name</th>
       <th>Priority</th>
       <th>Category</th>
+      <th>Entries</th>
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.$search['id'].'"></td>
-      <td><input type="text" name="name" size="20" value="'.$search['name'].'"></td>
-      <td><input type="text" name="rank" size="2" value="'.$search['rank'].'"></td>
+      <td><input type="text" name="id" size="15" value="'.$search['id'][1].'"></td>
+      <td><input type="text" name="name" size="20" value="'.$search['name'][1].'"></td>
+      <td><input type="text" name="rank" size="2" value="'.$search['rank'][1].'"></td>
       <td>
-        <select name="category">
-          <option value="-1" '.('-1'==$search['category']?'selected="selected"':'').'>-------</option>';
+        <select name="category_id">
+          <option value="-1" '.('-1'==$search['category_id'][1]?'selected="selected"':'').'>-------</option>';
           foreach ($categories as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['category']?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['category_id'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
+      <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Erase">
@@ -563,6 +536,7 @@ echo '
     </tbody>
   </table>
   <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
+  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
   
   <div class="centered">
     <input type="submit" name="save_section" class="blue big" value="Save">

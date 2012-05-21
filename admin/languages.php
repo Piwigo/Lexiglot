@@ -100,7 +100,7 @@ SELECT flag FROM '.LANGUAGES_TABLE.'
   $query = '
 UPDATE '.LANGUAGES_TABLE.'
   SET flag = NULL
-  WHERE "'.$_GET['delete_flag'].'"
+  WHERE id = "'.$_GET['delete_flag'].'"
 ;';
   mysql_query($query);
   
@@ -157,9 +157,9 @@ SELECT flag FROM '.LANGUAGES_TABLE.'
       }
     }
     // check rank
-    if (!is_numeric($row['rank']))
+    if (!is_numeric($row['rank']) or $row['rank'] < 1)
     {
-      array_push($errors, 'Rank must be an integer for language &laquo;'.$id.'&raquo;.');
+      array_push($errors, 'Rank must be an non null integer for language &laquo;'.$id.'&raquo;.');
     }
     // check category
     if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
@@ -243,9 +243,9 @@ SELECT id
     $_POST['flag'] = null;
   }
   // check rank
-  if (!is_numeric($_POST['rank']))
+  if (!is_numeric($_POST['rank']) or $row['rank'] < 1)
   {
-    array_push($page['errors'], 'Rank must be an integer.');
+    array_push($page['errors'], 'Rank must be an non null integer.');
   }
   // check category
   if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
@@ -309,74 +309,46 @@ UPDATE '.USER_INFOS_TABLE.'
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
 // default search
-$where_clauses = array('1=1');
 $search = array(
-  'id' => null,
-  'name' => null,
-  'flag' => '-1',
-  'rank' => null,
-  'category' => '-1',
+  'id' =>       array('%', null),
+  'name' =>     array('%', null),
+  'rank' =>     array('%', null),
+  'flag' =>     array('=', -1),
+  'category' => array('=', -1),
+  'limit' =>    array('=', 20),
   );
 
 // url input
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'] = $_GET['lang_id'];
+  $search['id'][1] = $_GET['lang_id'];
+  unset($_GET['lang_id']);
 }
 
-// erase search
-if (isset($_POST['erase_search']))
+$where_clauses = session_search($search, 'language_search', array('limit','flag'));
+
+// special for 'flag'
+if ($search['flag'][1] != -1)
 {
-  unset_session_var('lang_search');
-  unset($_POST);
-}
-// get saved search
-else if (get_session_var('lang_search') != null)
-{
-  $search = unserialize(get_session_var('lang_search'));
+  if ($search['flag'][1] == 'with') array_push($where_clauses, 'flag != ""');
+  if ($search['flag'][1] == 'without') array_push($where_clauses, 'flag = ""');
 }
 
-// get form search
-if (isset($_POST['search']))
-{
-  unset_session_var('lang_search');
-  if (isset($_GET['lang_id']))    unset($_GET['lang_id']);
-  if (!empty($_POST['id']))       $search['id'] =       str_replace('*', '%', $_POST['id']);
-  if (!empty($_POST['name']))     $search['name'] =     str_replace('*', '%', $_POST['name']);
-  if (!empty($_POST['flag']))     $search['flag'] =     $_POST['flag'];
-  if (!empty($_POST['rank']))     $search['rank'] =     $_POST['rank'];
-  if (!empty($_POST['category'])) $search['category'] = $_POST['category'];
-}
+set_session_var('language_search', serialize($search));
 
-// build query
-if (!empty($search['id']))
-{
-  array_push($where_clauses, 'LOWER(id) LIKE LOWER("%'.$search['id'].'%")');
-}
-if (!empty($search['name']))
-{
-  array_push($where_clauses, 'LOWER(name) LIKE LOWER("%'.$search['name'].'%")');
-}
-if ($search['flag'] != '-1')
-{
-  if ($search['flag'] == 'with') array_push($where_clauses, 'flag != ""');
-  if ($search['flag'] == 'without') array_push($where_clauses, 'flag = ""');
-}
-if (!empty($search['rank']))
-{
-  array_push($where_clauses, 'rank = '.$search['rank']);
-}
-if ($search['category'] != '-1')
-{
-  array_push($where_clauses, 'category_id = '.$search['category']);
-}
+// +-----------------------------------------------------------------------+
+// |                         PAGINATION
+// +-----------------------------------------------------------------------+
+$query = '
+SELECT COUNT(1)
+  FROM '.LANGUAGES_TABLE.'
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+;';
+list($total) = mysql_fetch_row(mysql_query($query));
 
-// save search
-if ( !isset($_GET['lang_id']) and $where_clauses != array('1=1') )
-{
-  set_session_var('lang_search', serialize($search));
-}
+$paging = compute_pagination($total, $search['limit'][1], 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -391,7 +363,9 @@ SELECT
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY l.id
-  ORDER BY l.id ASC
+  ORDER BY l.rank DESC, l.id ASC
+  LIMIT '.$paging['Entries'].'
+  OFFSET '.$paging['Start'].'
 ;';
 $_LANGS = hash_from_query($query, 'id');
 
@@ -453,30 +427,32 @@ echo '
       <th>Flag</th>
       <th>Priority</th>
       <th>Category</th>
+      <th>Entries</th>
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.$search['id'].'"></td>
-      <td><input type="text" name="name" size="20" value="'.$search['name'].'"></td>
+      <td><input type="text" name="id" size="15" value="'.$search['id'][1].'"></td>
+      <td><input type="text" name="name" size="20" value="'.$search['name'][1].'"></td>
       <td>
         <select name="flag">
-          <option value="-1" '.('-1'==$search['flag']?'selected="selected"':'').'>-------</option>
-          <option value="with" '.('with'==$search['flag']?'selected="selected"':'').'>With flag</option>
-          <option value="without" '.('without'==$search['flag']?'selected="selected"':'').'>Without flag</option>
+          <option value="-1" '.('-1'==$search['flag'][1]?'selected="selected"':'').'>-------</option>
+          <option value="with" '.('with'==$search['flag'][1]?'selected="selected"':'').'>With flag</option>
+          <option value="without" '.('without'==$search['flag'][1]?'selected="selected"':'').'>Without flag</option>
         </select>
       </td>
-      <td><input type="text" name="rank" size="2" value="'.$search['rank'].'"></td>
+      <td><input type="text" name="rank" size="2" value="'.$search['rank'][1].'"></td>
       <td>
         <select name="category">
-          <option value="-1" '.('-1'==$search['category']?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.('-1'==$search['category'][1]?'selected="selected"':'').'>-------</option>';
           foreach ($categories as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['category']?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['category'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
+      <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Erase">
@@ -559,6 +535,7 @@ echo '
     </tbody>
   </table>
   <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
+  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
   
   <div class="centered">
     <input type="hidden" name="MAX_FILE_SIZE" value="10240">

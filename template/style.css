@@ -124,7 +124,7 @@ table.common {
   table.common tr.odd:hover td, 
   table.common tr.even:hover td,
   table.common tr.hover td  {
-    background: #E0F6FF !important;/*#81CCE8*/
+    background: #E0F6FF !important;
   }
   table.common pre {
     white-space: pre-wrap;
@@ -312,6 +312,9 @@ input.tiny {
     #tabsheet li:last-child {
       border-radius: 0 10px 0 0;
     }
+    #tabsheet li.alone {
+      border-radius: 10px 10px 0 0;
+    }
 
 
 /* PAGINATION */
@@ -399,6 +402,9 @@ input.tiny {
   }
   .legend span.edit {
     background: #ccf;
+  }
+  .legend span.highlight {
+    background:#BFEEFF;
   }
 
 

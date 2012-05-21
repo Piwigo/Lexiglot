@@ -36,16 +36,7 @@ function build_user($user_id)
   
   // retrieve user data
   $query = '
-SELECT ';
-  $is_first = true;
-  foreach ($conf['user_fields'] as $localfield => $dbfield)
-  {
-    if ($is_first) $is_first = false;
-    else           $query.= ', ';
-    
-    $query.= $dbfield.' AS '.$localfield;
-  }
-  $query.= '
+SELECT '.get_db_user_fields().'
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['id'].' = '.$user_id.'
 ;';
@@ -186,25 +177,27 @@ VALUES(
  * @param array where_clauses
  * @param string fields to select into USER_INFOS_TABLE
  * @param string where_clauses mode
+ * @param int offset
+ * @param int limit
  * @return array
  */
-function get_users_list($where_clauses=array('1=1'), $select='i.*', $mode='AND')
+function get_users_list($where_clauses=array('1=1'), $select='i.*', $mode='AND', $offset=0, $limit=9999999999999)
 {
   global $conf;
   
   $query = '
-SELECT i.status, '.$select;
-  foreach ($conf['user_fields'] as $localfield => $dbfield)
-  {
-    $query.= ', u.'.$dbfield.' AS '.$localfield;
-  }
-  $query.= '
+SELECT 
+    i.status, 
+    '.(!empty($select)?$select.',':null).'
+    '.get_db_user_fields().'
   FROM '.USERS_TABLE.' AS u
     INNER JOIN '.USER_INFOS_TABLE.' AS i
       ON u.'.$conf['user_fields']['id'].'  = i.user_id
   WHERE 
     '.implode("\n    ".$mode." ", $where_clauses).'
   ORDER BY u.'.$conf['user_fields']['username'].' ASC
+  LIMIT '.$limit.'
+  OFFSET '.$offset.'
 ;';
   $users = hash_from_query($query, 'id');
   
@@ -282,6 +275,26 @@ SELECT i.status, '.$select;
   }
 
   return $users;
+}
+
+/**
+ * generates SELECT for user fields
+ */
+function get_db_user_fields()
+{
+  global $conf;
+  
+  $is_first = true;
+  $query = null;
+  
+  foreach ($conf['user_fields'] as $localfield => $dbfield)
+  {
+    if ($is_first) $is_first = false;
+    else $query.= ', ';
+    $query.= $dbfield.' AS '.$localfield;
+  }
+  
+  return $query;
 }
 
 /**
@@ -593,6 +606,30 @@ INSERT INTO '.USER_INFOS_TABLE.'(
   }
 
   return $errors;
+}
+
+/**
+ * Returns admins email
+ * @return string
+ */
+function get_admin_email()
+{
+  global $conf;
+  
+  $query = '
+SELECT
+  '.$conf['user_fields']['email'].' as email,
+  '.$conf['user_fields']['username'].' as username
+  FROM '.USERS_TABLE.' as u
+    INNER JOIN '.USER_INFOS_TABLE.' as i
+     ON u.'.$conf['user_fields']['id'].' = i.user_id
+  WHERE i.status = "admin"
+;';
+  $to = hash_from_query($query);
+  
+  array_walk($to, create_function('&$k,$v', '$k=format_email($k["email"],$k["username"]);'));
+
+  return implode(',', $to);
 }
 
 /**

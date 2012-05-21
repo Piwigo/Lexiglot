@@ -31,15 +31,13 @@ $page['header'].= '
 // language
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
-  array_push($page['errors'], 'Undefined or unknown language.');
-  echo '<a href="'.get_url_string(array('section'=>$_GET['section']), true, 'section').'">Go Back</a>';
+  array_push($page['errors'], 'Undefined or unknown language. <a class="floating_link" href="javascript:window.close();">Close</a>');
   print_page();
 }
 // section
 if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_sections']) )
 {
-  array_push($page['errors'], 'Undefined or unknown section.');
-  echo '<a href="'.get_url_string(array('language'=>$_GET['language']), true, 'language').'">Go Back</a>';
+  array_push($page['errors'], 'Undefined or unknown section. <a class="floating_link" href="javascript:window.close();">Close</a>');
   print_page();
 }
 

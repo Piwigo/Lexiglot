@@ -55,6 +55,7 @@ if (is_admin())
 {
   $pages = array_merge($pages, array(
     'languages' => 'Languages', 
+    'mail' => 'Mail archive',
     'config' => 'Configuration',
     'maintenance' => 'Maintenance',
     ));

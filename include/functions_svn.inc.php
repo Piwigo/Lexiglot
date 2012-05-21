@@ -146,6 +146,11 @@ function svn_switch($server, $local, $relocate=false)
     $level = 'success';
     $msg = $out[$i];
   }
+  else if (($i = array_pos('At revision', $out)) !== false)
+  {
+    $level = 'success';
+    $msg = $out[i];
+  }
   else if (empty($out))
   {
     $level = 'success';

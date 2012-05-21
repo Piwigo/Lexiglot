@@ -30,7 +30,7 @@ echo '
     $row[1] = !empty($row[1]) ? str_replace('"', "'", $row[1]) : $row[0];
     $row[2] = !empty($row[2]) ? $row[2] : array(); 
     
-    echo '<li class="'.($tabsheet['selected']==$url?'selected':null).'">
+    echo '<li class="'.($tabsheet['selected']==$url?'selected':null).' '.(count($tabsheet['tabs'])==1?'alone':null).'">
       <a href="'.get_url_string(array($tabsheet['param']=>$url), $row[2]).'" title="'.$row[1].'">'.$row[0].'</a>
     </li>';
   }

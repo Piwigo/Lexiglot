@@ -47,6 +47,9 @@ $conf['exec_before_file'] = null;
 // a file copied in all new folders created by Lexiglot
 $conf['copy_file_to_repo'] = null;
 
+// email used for send automated mails, can be a dummy email
+$conf['system_email'] = 'Lexiglot <noreply@'.$_SERVER['HTTP_HOST'].'>';
+
 // how to navigate : sections, languages, both
 $conf['navigation_type'] = 'both';
 

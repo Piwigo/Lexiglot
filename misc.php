@@ -37,20 +37,7 @@ if (isset($_POST['request_language']))
   if (strlen(@$_POST['message']) > 2000) array_push($page['errors'], 'Message is too long. max: 2000 chars');
   
   if (empty($page['errors']))
-  {
-    // get admin emails
-    $query = '
-SELECT
-  '.$conf['user_fields']['email'].' as email,
-  '.$conf['user_fields']['username'].' as username
-  FROM '.USERS_TABLE.' as u
-    INNER JOIN '.USER_INFOS_TABLE.' as i
-     ON u.'.$conf['user_fields']['id'].' = i.user_id
-  WHERE i.status = "admin"
-;';
-    $to = hash_from_query($query);
-    array_walk($to, create_function('&$k,$v', '$k=format_email($k["email"],$k["username"]);'));
-    
+  {    
     // send mail
     $subject = '['.strip_tags($conf['install_name']).'] New language request';
 
@@ -61,7 +48,7 @@ $user['username'].' from '.strip_tags($conf['install_name']).' has just sent a r
     {
       $content .='<br>
 <br>
-Here is his mssage :<br>
+Here is his message :<br>
 -----------------------------------------------------------------------<br>
 <br>
 '.$_POST['message'].'<br>
@@ -73,8 +60,14 @@ Here is his mssage :<br>
       'from' => format_email($user['email'], $user['username']),
       'content_format' => 'text/html',
     );
+    
+    $result = send_mail(
+      get_admin_email(), 
+      $subject, $content, $args,
+      true, 'Language request for '.strip_tags($_POST['language'])
+      );
 
-    if (send_mail(implode(',',$to), $subject, $content, $args))
+    if ($result)
     {
       array_push($page['infos'], 'Request sended');
       unset($_POST);

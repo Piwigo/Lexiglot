@@ -72,6 +72,21 @@ CREATE TABLE `lexiglot_languages` (
 -- --------------------------------------------------------
 
 --
+-- Structure of the table `lexiglot_mail_history`
+--
+
+CREATE TABLE `lexiglot_mail_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `send_date` datetime NOT NULL,
+  `from_mail` varchar(255) NOT NULL,
+  `to_mail` varchar(255) NOT NULL,
+  `subject` text,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Structure of the table `lexiglot_rows`
 --
 

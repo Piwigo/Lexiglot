@@ -18,8 +18,78 @@
 // | Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, |
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
- 
+
 defined('PATH') or die('Hacking attempt!'); 
+
+/**
+ * create where clauses from session and POST search
+ * @param &array search configuration
+ * @param string search name
+ * @param array fields to exclude from query
+ * @return array where clauses
+ */
+function session_search(&$search, $name, $exclude_from_query=array())
+{
+  $where_clauses = array('1=1');
+  
+  // erase search
+  if (isset($_POST['erase_search']))
+  {
+    unset_session_var($name);
+    unset($_POST);
+  }
+  // get saved search
+  else if (get_session_var($name) != null)
+  {
+    $search = unserialize(get_session_var($name));
+  }
+  
+  foreach ($search as &$data)
+  {    
+    if (!isset($data[2])) $data[2] = $data[1];
+  }
+  unset($data);
+  
+  // get form search
+  if (isset($_POST['search']))
+  {
+    unset_session_var($name);
+    unset($_GET['nav']);
+    
+    foreach ($search as $field => $data)
+    {
+      if ($data[0] == '%')
+      {
+        if (!empty($_POST[$field])) $search[$field][1] = str_replace('*', '%', $_POST[$field]);
+      }
+      else if ($data[0] == '=')
+      {
+        if (!empty($_POST[$field])) $search[$field][1] = $_POST[$field];
+      }
+    }
+  }
+
+  // build clauses
+  foreach ($search as $field => $data)
+  {
+    if (in_array($field, $exclude_from_query)) continue;
+    if ($data[1] == $data[2]) continue;
+    
+    if ($data[0] == '%')
+    {
+      array_push($where_clauses, 'LOWER('.$field.') LIKE LOWER("%'.$data[1].'%")');
+    }
+    else if ($data[0] == '=')
+    {
+      array_push($where_clauses, $field.' = "'.$data[1].'"');
+    }
+  }
+
+  // save search
+  set_session_var($name, serialize($search));
+  
+  return $where_clauses;
+}
 
 /**
  * upload a flag

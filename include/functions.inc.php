@@ -186,6 +186,7 @@ function set_session_var($var, $value)
 function get_session_var($var)
 {
   global $conf;
+  if ( !isset($_SESSION) ) return null;
   
   if ( isset($_SESSION[ $conf['session_prefix'].$var ]) )
   {
@@ -276,8 +277,7 @@ function print_page($login_box=true)
   global $page, $conf, $user, $tabsheet;
   
   // get and close buffer
-  $page['content'].= ob_get_contents();
-  ob_end_clean();
+  $page['content'].= ob_get_clean();
 
   // messages transmitted throught the session
   foreach (array('infos','warnings','errors') as $state)

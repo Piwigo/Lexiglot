@@ -78,62 +78,28 @@ UPDATE '.ROWS_TABLE.'
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
 // default search
-$where_clauses = array('1=1');
 $search = array(
-  'user_id' => '-1',
-  'language' => '-1',
-  'section' => '-1',
-  'status' => '-1',
-  'limit' => 50,
+  'user_id' =>  array('=', -1),
+  'lang' =>     array('=', -1),
+  'section' =>  array('=', -1),
+  'status' =>   array('=', -1),
+  'limit' =>    array('=', 50),
   );
 
-// erase search
-if (isset($_POST['erase_search']))
-{
-  unset_session_var('log_search');
-  unset($_POST);
-}
-// get saved search
-else if (get_session_var('log_search') != null)
-{
-  $search = unserialize(get_session_var('log_search'));
-}
+$where_clauses = session_search($search, 'history_search', array('limit','sections'));
 
-// get form search
-if (isset($_POST['search']))
-{
-  unset_session_var('log_search');
-  if (!empty($_POST['user_id']))  $search['user_id'] = $_POST['user_id'];
-  if (!empty($_POST['language'])) $search['language'] = $_POST['language'];
-  if (!empty($_POST['section']))  $search['section'] = $_POST['section'];
-  if (!empty($_POST['status']))   $search['status'] = $_POST['status'];
-  if (!empty($_POST['limit']))    $search['limit'] = $_POST['limit'];
-}
+// +-----------------------------------------------------------------------+
+// |                         PAGINATION
+// +-----------------------------------------------------------------------+
+$query = '
+SELECT COUNT(1)
+  FROM '.ROWS_TABLE.'
+  WHERE 
+    '.implode("\n    AND ", $where_clauses).'
+;';
+list($total) = mysql_fetch_row(mysql_query($query));
 
-// build query
-if ($search['user_id'] != '-1') 
-{
-  array_push($where_clauses, 'l.user_id = '.$search['user_id']);
-}
-if ($search['language'] != '-1') 
-{
-  array_push($where_clauses, 'l.lang = "'.$search['language'].'"');
-}
-if ($search['section'] != '-1') 
-{
-  array_push($where_clauses, 'l.section = "'.$search['section'].'"');
-}
-if ($search['status'] != '-1') 
-{
-  array_push($where_clauses, 'l.status = "'.$search['status'].'"');
-}
-
-// save search
-if ($where_clauses != array('1=1'))
-{
-  set_session_var('log_search', serialize($search));
-}
-
+$paging = compute_pagination($total, $search['limit'][1], 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
@@ -151,23 +117,15 @@ SELECT
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   ORDER BY last_edit DESC
-  LIMIT 0,'.$search['limit'].'
+  LIMIT '.$paging['Entries'].'
+  OFFSET '.$paging['Start'].'
 ;';
 $_ROWS = hash_from_query($query, null);
 
 // get users infos
-$query = '
-SELECT 
-    u.'.$conf['user_fields']['id'].' as id,
-    u.'.$conf['user_fields']['username'].' as username
-  FROM '.USERS_TABLE.' as u
-    INNER JOIN '.USER_INFOS_TABLE.' as i
-    ON u.'.$conf['user_fields']['id'].'  = i.user_id
-  WHERE i.status = "translator" OR i.status = "admin"
-  ORDER BY u.'.$conf['user_fields']['username'].' ASC
-;';
-$_USERS = hash_from_query($query, 'id');
-
+$_USERS = get_users_list(
+  array('i.status = "translator" OR i.status = "admin"'), null
+  );
 
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
@@ -184,53 +142,53 @@ echo '
       <th>Language</th>
       <th>Project</th>
       <th>Status</th>
-      <th>Limit</th>
+      <th>Entries</th>
       <th></th>
     </tr>
     <tr>
       <td>
         <select name="user_id">
-          <option value="-1" '.('-1'==$search['user_id']?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.('-1'==$search['user_id'][1]?'selected="selected"':'').'>-------</option>';
           foreach ($_USERS as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['user_id']?'selected="selected"':'').'>'.$row['username'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['user_id'][1]?'selected="selected"':'').'>'.$row['username'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
-        <select name="language">
-          <option value="-1" '.('-1'==$search['language']?'selected="selected"':'').'>-------</option>';
+        <select name="lang">
+          <option value="-1" '.('-1'==$search['lang'][1]?'selected="selected"':'').'>-------</option>';
           foreach ($conf['all_languages'] as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['language']?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['lang'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
         <select name="section">
-          <option value="-1" '.('-1'==$search['section']?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.('-1'==$search['section'][1]?'selected="selected"':'').'>-------</option>';
           foreach ($displayed_sections as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['section']?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==$search['section'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
         <select name="status">
-          <option value="-1" '.('-1'==$search['status']?'selected="selected"':'').'>-------</option>
-          <option value="new" '.('new'==$search['status']?'selected="selected"':'').'>Added</option>
-          <option value="edit" '.('edit'==$search['status']?'selected="selected"':'').'>Modified</option>
-          <option value="done" '.('done'==$search['status']?'selected="selected"':'').'>Commited</option>
+          <option value="-1" '.('-1'==$search['status'][1]?'selected="selected"':'').'>-------</option>
+          <option value="new" '.('new'==$search['status'][1]?'selected="selected"':'').'>Added</option>
+          <option value="edit" '.('edit'==$search['status'][1]?'selected="selected"':'').'>Modified</option>
+          <option value="done" '.('done'==$search['status'][1]?'selected="selected"':'').'>Commited</option>
         </select>
       </td>
       <td>
-        <input type="text" size="3" name="limit" value="'.$search['limit'].'">
+        <input type="text" size="3" name="limit" value="'.$search['limit'][1].'">
       </td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
@@ -297,6 +255,7 @@ echo '
     </tbody>
   </table>
   <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
+  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
 </fieldset>
 
 <fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">

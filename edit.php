@@ -28,13 +28,13 @@ include(PATH.'include/common.inc.php');
 // language
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
-  array_push($page['errors'], 'Undefined or unknown language. <a href="'.get_url_string(array('section'=>$_GET['section']), true, 'section').'">Go Back</a>');
+  array_push($page['errors'], 'Undefined or unknown language. <a href="javascript:history.back();">Go Back</a>');
   print_page();
 }
 // section
 if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_sections']) )
 {
-  array_push($page['errors'], 'Undefined or unknown project. <a href="'.get_url_string(array('language'=>$_GET['language']), true, 'language').'">Go Back</a>');
+  array_push($page['errors'], 'Undefined or unknown project. <a href="javascript:history.back();">Go Back</a>');
   print_page();
 }
 
@@ -95,6 +95,18 @@ if (!file_exists($page['directory'].$conf['default_language'].'/'.$page['file'])
   print_page();
 }
 
+// for php files we check the validity of the file
+if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['directory'].$page['language'].'/'.$page['file'])) !== true )
+{
+  notify_language_file_error($page['directory'].$page['language'].'/'.$page['file'], $fileinfos);
+  
+  if ($fileinfos[1] == 'Parse error')
+  {
+    array_push($page['errors'], 'The language file is corrupted. Administrators have been notified. <a href="javascript:history.back();">Go back</a>.');
+    print_page();
+  }
+}
+
 $_LANG_default = load_language_file($page['directory'].$conf['default_language'].'/'.$page['file']);
 $_LANG =         load_language_file($page['directory'].$page['language'].'/'.$page['file']);
 $_LANG_db =      load_language_db($page['language'], $page['file'], $page['section']);
@@ -132,7 +144,7 @@ SELECT
     // mail contents
     $current_url = get_absolute_home_url().get_url_string(array('file'=>$page['file']));
 
-    $subject = '['.strip_tags($conf['install_name']).'] '.$user['username'].' notifies you about the translation of '.get_section_name($page['section']).' in '.$page['language'];
+    $subject = '['.strip_tags($conf['install_name']).'] '.$user['username'].' notifies you about the translation of '.get_section_name($page['section']).' in '.get_language_name($page['language']);
 
     $content = '
 Hi '.$to['username'].',<br>
@@ -191,8 +203,14 @@ You receive this mail because you are registered as translator on <a href="'.get
       'from' => $user['username'].' <'.$user['email'].'>',
       'content_format' => 'text/html',
       );
+      
+    $result = send_mail(
+      format_email($to['email'], $to['username']),
+      $subject, $content, $args, 
+      true, 'Notification on '.get_section_name($page['section']).' in '.get_language_name($page['language'])
+      );
 
-    if (send_mail($to['email'], $subject, $content, $args))
+    if ($result)
     {
       array_push($page['infos'], 'Mail sended to <i>'.$to['username'].'</i>');
     }
@@ -308,7 +326,7 @@ SELECT
         $page['begin'].= '
         </select>
       </td></tr>
-      <tr><td>';
+      <!--<tr><td>';
       if ($page['mode'] == 'array')
       {
         $page['begin'].= '
@@ -320,7 +338,7 @@ SELECT
         <label><input type="checkbox" name="send_rows" value="1"> include the contents of current file in the mail</label>';
       }
       $page['begin'].= '
-      </td></tr>
+      </td></tr>-->
       <tr><td>
         <textarea name="message" rows="6" cols="50"></textarea>
         <input type="hidden" name="key" value="'.get_ephemeral_key(3).'">

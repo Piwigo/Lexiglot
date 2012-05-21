@@ -22,6 +22,92 @@
 defined('PATH') or die('Hacking attempt!');
 
 /**
+ * catch eval() errors while parsing a language file
+ * @param: string filename
+ * @return: bool true or array(file state, message, details)
+ */
+function verify_language_file($filename)
+{
+  global $conf;
+  
+  if (($file = @file_get_contents($filename)) !== false)
+  {
+    if ( strpos($file, '<?php')===false or strpos($file, '?>')===false )
+    {
+      return array(false, 'Warning', 'Missing PHP open and/or close tags');
+    }
+     
+    eval($conf['exec_before_file']);
+    $file = preg_replace('#<\?php#', null, $file, 1);
+    
+    ob_start();
+    eval($file);
+    $out = ob_get_clean();
+    
+    if (preg_match('#( *)Parse error#mi', $out))
+    {
+      return array(false, 'Parse error', $out);
+    }
+    else if (preg_match('#( *)Warning#mi', $out))
+    {
+      return array(false, 'Warning', $out);
+    }
+    else if (preg_match('#( *)Notice#mi', $out))
+    {
+      return array(false, 'Notice', $out);
+    }
+    else 
+    {
+      return true;
+    }
+  }
+  else
+  {
+    return true;
+  }
+}
+
+/**
+ * send a mail to admins to notify a language file PHP error
+ * @param: string filename
+ * @param: array returned by verify_language_file()
+ * @return: void
+ */
+function notify_language_file_error($filename, $infos)
+{
+  global $conf;
+  
+  // don't notify 'Notice' errors
+  if ($infos[1] == 'Notice') return;
+  
+  // check if the notification was already send
+  if (get_session_var('notify_language_file_error.'.$filename) !== null) return;
+  
+  $query = '
+SELECT COUNT(1)
+  FROM '.MAIL_HISTORY_TABLE.'
+  WHERE subject = "PHP '.$infos[1].' on '.$filename.'"
+;';
+  if (mysql_num_rows(mysql_query($query))) return;
+  
+  
+  $subject = '['.strip_tags($conf['install_name']).'] PHP '.$infos[1].' on a language file';
+  $content = '
+Language file : '.$filename.'<br>
+Error level : '.$infos[1].'<br>
+Full error :<br>
+'.nl2br($infos[2]).'
+';
+  $args = array(
+    'content_format' => 'text/html',
+  );
+
+  set_session_var('notify_language_file_error.'.$filename, true);
+  send_mail(get_admin_email(), $subject, $content, $args, true, 'PHP '.$infos[1].' on '.$filename);
+}
+
+
+/**
  * load language rows from file
  * @param string file
  * @return array
@@ -41,11 +127,9 @@ function load_language_file($filename)
   if (($file = @file_get_contents($filename)) !== false)
   {
     eval($conf['exec_before_file']);
-    $file = str_replace(
-      array('<?php', '?>'), // eval fails with php tags
-      null, $file
-      );
-    eval($file); 
+    $file = preg_replace('#<\?php#', null, $file, 1);
+    
+    @eval($file); 
   }
   
   foreach (${$conf['var_name']} as $row_name => $row_value)

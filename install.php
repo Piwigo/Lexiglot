@@ -218,11 +218,11 @@ else if ($install_step == 'save_config')
 
 defined('PATH') or die('Hacking attempt!');
 
-define('DB_HOST', '".$_POST['dbhost']."');
-define('DB_NAME', '".$_POST['dbname']."');
-define('DB_USER', '".$_POST['dbuser']."');
-define('DB_PWD',  '".$_POST['dbpwd']."');
-define('DB_PREFIX', '".$_POST['dbprefix']."');
+define('DB_HOST',  '".$_POST['dbhost']."');
+define('DB_NAME',  '".$_POST['dbname']."');
+define('DB_USER',  '".$_POST['dbuser']."');
+define('DB_PWD',   '".$_POST['dbpwd']."');
+define('DB_PREFIX','".$_POST['dbprefix']."');
 
 define('ROWS_TABLE',        DB_PREFIX.'rows');
 define('USERS_TABLE',       DB_PREFIX.'users');
@@ -232,6 +232,7 @@ define('STATS_TABLE',       DB_PREFIX.'stats');
 define('LANGUAGES_TABLE',   DB_PREFIX.'languages');
 define('CONFIG_TABLE',      DB_PREFIX.'config');
 define('CATEGORIES_TABLE',  DB_PREFIX.'categories');
+define('MAIL_HISTORY_TABLE',DB_PREFIX.'mail_history');
 
 define('SALT_KEY', '".$_POST['salt_key']."');
 

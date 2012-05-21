@@ -182,24 +182,7 @@ if ($in_search)
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
-$paging['TotalEntries'] = count($_DIFFS);
-$paging['Entries'] = isset($_GET['entries']) ? intval($_GET['entries']) : $user['nb_rows'];
-$paging['TotalPages'] = ceil($paging['TotalEntries']/$paging['Entries']);
-$paging['Page'] = 
-   isset($_GET['page']) ? 
-    (
-      $_GET['page'] > $paging['TotalPages'] ? 
-        (
-          $paging['TotalPages'] == 0 ? 
-            1 : $paging['TotalPages']
-        ) :
-        (
-          intval($_GET['page']) == 0 ? 
-            1 : intval($_GET['page'])
-        )
-    ) : 1;
-$paging['Start'] = ($paging['Page']-1) * $paging['Entries'];
-
+$paging = compute_pagination(count($_DIFFS), isset($_GET['entries'])?intval($_GET['entries']):$user['nb_rows'], 'page');
 $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 
 
@@ -208,7 +191,7 @@ $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 // +-----------------------------------------------------------------------+  
 // legend
 echo '
-<div class="pagination">'.pagination($paging).'</div>
+<div class="pagination">'.display_pagination($paging).'</div>
 <div id="display_buttons">
   <a href="'.get_url_string(array('display'=>'all'), array('page','ks')).'" class="all '.($page['display']=='all'?'active display':null).'">All</a>
   <a href="'.get_url_string(array('display'=>'missing'), array('page','ks')).'" class="missing '.($page['display']=='missing'?'active display':null).'">Untranslated</a>
@@ -314,7 +297,7 @@ echo '
   echo '
   </table>
   
-  '.(count($_DIFFS) >= 20 ? '<div class="pagination">'.pagination($paging).'</div>' : null).'
+  '.(count($_DIFFS) >= 20 ? '<div class="pagination">'.display_pagination($paging).'</div>' : null).'
   <div class="centered">
     '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'">
     <input type="submit" name="submit" class="blue big" value="Save all" tabindex="'.($i+1).'">' : null).'

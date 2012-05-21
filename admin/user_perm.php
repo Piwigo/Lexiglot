@@ -267,15 +267,41 @@ echo '
 
 // +-----------------------------------------------------------------------+
 // |                        JAVASCRIPT
-// +-----------------------------------------------------------------------+
-load_jquery('tiptip');
-    
+// +-----------------------------------------------------------------------+    
 $page['script'].= '
-$("li i").tipTip({
-  content: "Priority"
+$("li.lang input").bind("click", function (e) {
+  e.stopPropagation();
+});
+$("#available_languages").delegate("li.lang", "click", function() {
+  $(this).fadeOut("fast", function() {
+    $(this).children("input").hide();
+    $(this).appendTo("#unavailable_languages").fadeIn("fast");
+  });
+});
+$("#unavailable_languages").delegate("li.lang", "click", function() {
+  $(this).fadeOut("fast", function() {
+    $(this).children("input").show();
+    $(this).appendTo("#available_languages").fadeIn("fast");
+  });
 });
 
-$("li.lang").draggable({
+$("li.section input").bind("click", function (e) {
+  e.stopPropagation();
+});
+$("#available_sections").delegate("li.section", "click", function() {
+  $(this).fadeOut("fast", function() {
+    $(this).children("input").hide();
+    $(this).appendTo("#unavailable_sections").fadeIn("fast");
+  });
+});
+$("#unavailable_sections").delegate("li.section", "click", function() {
+  $(this).fadeOut("fast", function() {
+    $(this).children("input").show();
+    $(this).appendTo("#available_sections").fadeIn("fast");
+  });
+});
+
+/*$("li.lang").draggable({
   revert: "invalid",
   helper: "clone",
   cursor: "move"
@@ -295,13 +321,12 @@ $(".lang-container").droppable({
       update_height("languages");
     });      
   }
-});
+});*/
 $("#authorizeAllLang").click(function() {
   $("#unavailable_languages li").each(function() {
     $(this).fadeOut("fast", function() {
       $(this).children("input").show();
       $(this).appendTo($("#available_languages")).fadeIn("fast");
-      
     });
   }).promise().done(function() { 
     update_height("languages");
@@ -318,7 +343,7 @@ $("#forbidAllLang").click(function() {
   });
 });
 
-$("li.section").draggable({
+/*$("li.section").draggable({
   revert: "invalid",
   helper: "clone",
   cursor: "move"
@@ -338,7 +363,7 @@ $(".section-container").droppable({
       update_height("sections");
     });      
   }
-});
+});*/
 $("#authorizeAllSection").click(function() {
   $("#unavailable_sections li").each(function() {
     if ($(this).css("display") != "none") {

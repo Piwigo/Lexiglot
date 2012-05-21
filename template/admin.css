@@ -1,5 +1,5 @@
 tr.highlight td {
-  background:#81CCE8 !important;
+  background:#BFEEFF !important;
 }
   
 /* HISTORY PAGE */
@@ -146,11 +146,11 @@ tr.highlight td {
       padding: 2px 8px;
       margin: 3px;
       height:15px;
-      min-width:136px;
+      min-width:135px;
       background-color: #fff;
       box-shadow: 1px 1px 0px #888;
       border-radius: 5px;
-      cursor: move;
+      cursor: w-resize;
     }
       #permissions li input {
         vertical-align:middle;
