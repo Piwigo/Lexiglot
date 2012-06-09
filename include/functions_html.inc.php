@@ -123,7 +123,7 @@ function count_lines($string, $chars_per_line)
  * @param string page get param name
  * @return array
  */
-function compute_pagination($total, $entries, $param)
+function compute_pagination($total, $entries, $param, $needed_pos=null)
 {
   $paging['TotalEntries'] = $total;
   $paging['Entries'] = $entries;
@@ -132,12 +132,21 @@ function compute_pagination($total, $entries, $param)
   $paging['Page'] = 
     isset($_GET[$param]) 
       ? (
-        intval($_GET[$param]) > $paging['TotalPages']
-          ? max($paging['TotalPages'], 1)
-          : max(intval($_GET[$param]), 1)
+        intval($_GET[$param]) < $paging['TotalPages']
+          ? max(intval($_GET[$param]), 1)
+          : max($paging['TotalPages'], 1)
       )
-      : 1;
-      
+      : (
+        !empty($needed_pos)
+          ? (
+            $needed_pos%$paging['Entries'] != 0
+              ? floor($needed_pos/$paging['Entries']) + 1
+              : floor($needed_pos/$paging['Entries'])
+          )
+          : 1
+      )
+    ;
+  
   $paging['Start'] = ($paging['Page']-1) * $paging['Entries'];
   return $paging;
 }
@@ -158,7 +167,7 @@ function display_pagination($paging, $param='page')
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']-1,'ks'=>null)).'">&laquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']-1)).'">&laquo;</a>';
   }
   
   if ($paging['TotalPages'] <= 9) // less than 10 page
@@ -204,7 +213,7 @@ function display_pagination($paging, $param='page')
   }
   else
   {
-    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']+1,'ks'=>null)).'">&raquo;</a>';
+    $content.= '<a class="page" href="'.get_url_string(array($param=>$paging['Page']+1)).'">&raquo;</a>';
   }
   
   return $content;
@@ -212,7 +221,7 @@ function display_pagination($paging, $param='page')
 
 function paging_link($i, $page, $param='page')
 {
-  return '<a class="page '.($i == $page ? 'active' : null).'" href="'.get_url_string(array($param=>$i,'ks'=>null)).'">'.$i.'</a>'; 
+  return '<a class="page '.($i == $page ? 'active' : null).'" href="'.get_url_string(array($param=>$i)).'">'.$i.'</a>'; 
 }
 
 /**

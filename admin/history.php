@@ -192,7 +192,7 @@ echo '
       </td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+        <input type="submit" name="erase_search" class="red tiny" value="Reset">
       </td>
     </tr>
   </table>

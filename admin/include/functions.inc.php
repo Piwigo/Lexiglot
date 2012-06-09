@@ -23,7 +23,7 @@ defined('PATH') or die('Hacking attempt!');
 
 /**
  * create where clauses from session and POST search
- * @param &array search configuration
+ * @param &array search configuration (type, value, default_value)
  * @param string search name
  * @param array fields to exclude from query
  * @return array where clauses
@@ -44,8 +44,9 @@ function session_search(&$search, $name, $exclude_from_query=array())
     $search = unserialize(get_session_var($name));
   }
   
+  // set default_value
   foreach ($search as &$data)
-  {    
+  {
     if (!isset($data[2])) $data[2] = $data[1];
   }
   unset($data);

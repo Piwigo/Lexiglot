@@ -27,9 +27,9 @@ defined('PATH') or die('Hacking attempt!');
 // default search
 $where_clauses = array('1=1');
 $search = array(
-  'from_mail' => array('%', null),
-  'to_mail' =>   array('%', null),
-  'subject' =>   array('%', null),
+  'from_mail' => array('%', ''),
+  'to_mail' =>   array('%', ''),
+  'subject' =>   array('%', ''),
   'limit' =>     array('=', 50),
   );
   
@@ -82,10 +82,10 @@ echo '
     </tr>
     <tr>
       <td>
-        <input type="text" size="20" name="from" value="'.$search['from_mail'][1].'">
+        <input type="text" size="20" name="from_mail" value="'.$search['from_mail'][1].'">
       </td>
       <td>
-        <input type="text" size="20" name="to" value="'.$search['to_mail'][1].'">
+        <input type="text" size="20" name="to_mail" value="'.$search['to_mail'][1].'">
       </td>
       <td>
         <input type="text" size="20" name="subject" value="'.$search['subject'][1].'">
@@ -95,7 +95,7 @@ echo '
       </td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+        <input type="submit" name="erase_search" class="red tiny" value="Reset">
       </td>
     </tr>
   </table>

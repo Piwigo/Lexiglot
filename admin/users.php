@@ -133,7 +133,7 @@ if ( isset($_POST['add_external_user']) and is_admin() )
 // +-----------------------------------------------------------------------+
 // default search
 $search = array(
-  'username' =>  array('%', null),
+  'username' =>  array('%', ''),
   'languages' => array('%', -1),
   'sections' =>  array('%', -1),
   'status' =>    array('=', -1),
@@ -144,41 +144,60 @@ $search = array(
 if (isset($_GET['user_id']))
 {
   $_POST['erase_search'] = true;
-  $search['username'][1] = get_username($_GET['lang_id']);
+  $search['username'][1] = get_username($_GET['user_id']);
+  $search['username'][2] = '';
   unset($_GET['user_id']);
 }
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
   $search['languages'][1] = $_GET['lang_id'];
+  $search['languages'][2] = -1;
   unset($_GET['lang_id']);
 }
 if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
   $search['sections'][1] = $_GET['section_id'];
+  $search['sections'][2] = -1;
   unset($_GET['section_id']);
 }
 if (isset($_GET['status']))
 {
   $_POST['erase_search'] = true;
   $search['status'][1] = $_GET['status'];
+  $search['status'][2] = -1;
   unset($_GET['status']);
 }
 
-$where_clauses = session_search($search, 'user_search', array('limit','sections'));
+$where_clauses = session_search($search, 'user_search', array('limit','sections','languages'));
 
-// special for 'section'
+// special for 'sections' and 'languages'
 if ($search['sections'][1] != -1) 
 {
-  if ($search['sections'][1] == 'none') 
+  if ($search['sections'][1] == 'n/a/m') 
   {
     foreach ($user['manage_sections'] as $section)
       array_push($where_clauses, 'sections NOT LIKE "%'.$section.'%"');
   }
+  else if ($search['sections'][1] == 'n/a') 
+  {
+    array_push($where_clauses, '(sections IS NULL OR sections = "")');
+  }
   else
   {
     array_push($where_clauses, 'sections LIKE "%'.$search['sections'][1].'%"');
+  }
+}
+if ($search['languages'][1] != -1) 
+{
+  if ($search['languages'][1] == 'n/a') 
+  {
+    array_push($where_clauses, '(languages IS NULL OR languages = "")');
+  }
+  else
+  {
+    array_push($where_clauses, 'languages LIKE "%'.$search['languages'][1].'%"');
   }
 }
 
@@ -197,7 +216,27 @@ SELECT COUNT(1)
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav');
+$highlight_pos = null;
+if (!empty($highlight_user))
+{
+  $query = '
+SELECT x.pos
+  FROM (
+    SELECT 
+        u.id,
+        @rownum := @rownum+1 AS pos
+      FROM '.USER_INFOS_TABLE.' AS i
+        INNER JOIN '.USERS_TABLE.' AS u
+          ON u.'.$conf['user_fields']['id'].' = i.user_id
+        JOIN (SELECT @rownum := 0) AS r
+      ORDER BY u.'.$conf['user_fields']['username'].' ASC
+  ) AS x
+  WHERE x.id = "'.$highlight_user.'"
+;';
+  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+}
+
+$paging = compute_pagination($total, $search['limit'][1], 'nav', $highlight_pos);
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -297,7 +336,8 @@ echo '
       </td>
       <td>
         <select name="languages">
-          <option value="-1" '.(-1==$search['languages'][1]?'selected="selected"':null).'>-------</option>';
+          <option value="-1" '.(-1==$search['languages'][1]?'selected="selected"':null).'>-------</option>
+          <option value="n/a" '.('n/a'==$search['languages'][1]?'selected="selected"':null).'>-- none assigned --</option>';
         foreach ($conf['all_languages'] as $row)
         {
           echo '
@@ -309,7 +349,8 @@ echo '
       <td>
         <select name="sections">
           <option value="-1" '.(-1==$search['sections'][1]?'selected="selected"':null).'>-------</option>
-          '.(is_manager() ? '<option value="none" '.('none'==$search['sections'][1]?'selected="selected"':null).'>-- none of mine --</option>' : null);
+          <option value="n/a" '.('n/a'==$search['sections'][1]?'selected="selected"':null).'>-- none assigned --</option>
+          '.(is_manager() ? '<option value="n/a/m" '.('n/a/m'==$search['sections'][1]?'selected="selected"':null).'>-- none of mine --</option>' : null);
         foreach ($displayed_sections as $row)
         {
           echo '
@@ -321,7 +362,7 @@ echo '
       <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+        <input type="submit" name="erase_search" class="red tiny" value="Reset">
       </td>
     </tr>
   </table>
@@ -330,7 +371,7 @@ echo '
 
 // users list
 echo '
-<form id="users" action="admin.php?page=users" method="post">
+<form id="users" action="admin.php?page=users'.(!empty($_GET['nav']) ? '&amp;nav='.@$_GET['nav'] : null).'" method="post">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">

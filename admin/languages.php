@@ -135,6 +135,20 @@ if (isset($_POST['save_lang']))
     {
       array_push($errors, 'Name is empty for language &laquo;'.$id.'&raquo;.');
     }
+    // check rank
+    if (!is_numeric($row['rank']) or $row['rank'] < 1)
+    {
+      array_push($errors, 'Rank must be an non null integer for language &laquo;'.$id.'&raquo;.');
+    }
+    // check category
+    if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
+    {
+      $row['category_id'] = add_category($row['category_id'], 'language');
+    }
+    if (empty($row['category_id']))
+    {
+      $row['category_id'] = 0;
+    }
     // check file
     if ( !empty($_FILES['flags-'.$id]['tmp_name']) and count($errors) == 0 )
     {
@@ -155,20 +169,6 @@ SELECT flag FROM '.LANGUAGES_TABLE.'
         
         $conf['all_languages'][$id]['flag'] = $row['flag'];
       }
-    }
-    // check rank
-    if (!is_numeric($row['rank']) or $row['rank'] < 1)
-    {
-      array_push($errors, 'Rank must be an non null integer for language &laquo;'.$id.'&raquo;.');
-    }
-    // check category
-    if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
-    {
-      $row['category_id'] = add_category($row['category_id'], 'language');
-    }
-    if (empty($row['category_id']))
-    {
-      $row['category_id'] = 0;
     }
     
     // save lang
@@ -225,7 +225,21 @@ SELECT id
   {
     array_push($page['errors'], 'Name is empty.');
   }
-  // check file
+  // check rank
+  if (!is_numeric($_POST['rank']) or $_POST['rank'] < 1)
+  {
+    array_push($page['errors'], 'Rank must be an non null integer.');
+  }
+  // check category
+  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
+  {
+    $row['category_id'] = add_category($_POST['category_id'], 'language');
+  }
+  if (empty($_POST['category_id']))
+  {
+    $_POST['category_id'] = 0;
+  }
+    // check file
   if ( !empty($_FILES['flag']['tmp_name']) and count($page['errors']) == 0 )
   {
     $_POST['flag'] = upload_flag($_FILES['flag'], $_POST['id']);
@@ -241,20 +255,6 @@ SELECT id
   else
   {
     $_POST['flag'] = null;
-  }
-  // check rank
-  if (!is_numeric($_POST['rank']) or $row['rank'] < 1)
-  {
-    array_push($page['errors'], 'Rank must be an non null integer.');
-  }
-  // check category
-  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
-  {
-    $row['category_id'] = add_category($_POST['category_id'], 'language');
-  }
-  if (empty($_POST['category_id']))
-  {
-    $_POST['category_id'] = 0;
   }
   
   // save lang
@@ -302,6 +302,7 @@ UPDATE '.USER_INFOS_TABLE.'
     
     array_push($page['infos'], 'Language added');
     $highlight_language = $_POST['id'];
+    $_POST['erase_search'] = true;
   }
 }
 
@@ -310,9 +311,9 @@ UPDATE '.USER_INFOS_TABLE.'
 // +-----------------------------------------------------------------------+
 // default search
 $search = array(
-  'id' =>       array('%', null),
-  'name' =>     array('%', null),
-  'rank' =>     array('%', null),
+  'id' =>       array('%', ''),
+  'name' =>     array('%', ''),
+  'rank' =>     array('%', ''),
   'flag' =>     array('=', -1),
   'category' => array('=', -1),
   'limit' =>    array('=', 20),
@@ -323,6 +324,7 @@ if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
   $search['id'][1] = $_GET['lang_id'];
+  $search['id'][2] = '';
   unset($_GET['lang_id']);
 }
 
@@ -348,7 +350,25 @@ SELECT COUNT(1)
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav');
+$highlight_pos = null;
+if (!empty($highlight_language))
+{
+  $query = '
+SELECT x.pos
+  FROM (
+    SELECT 
+        id,
+        @rownum := @rownum+1 AS pos
+      FROM '.LANGUAGES_TABLE.'
+        JOIN (SELECT @rownum := 0) AS r
+      ORDER BY rank DESC, id ASC
+  ) AS x
+  WHERE x.id = "'.$highlight_language.'"
+;';
+  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+}
+
+$paging = compute_pagination($total, $search['limit'][1], 'nav', $highlight_pos);
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -455,7 +475,7 @@ echo '
       <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+        <input type="submit" name="erase_search" class="red tiny" value="Reset">
       </td>
     </tr>
   </table>
@@ -464,7 +484,7 @@ echo '
 
 // langs list
 echo '
-<form id="langs" action="admin.php?page=languages" method="post" enctype="multipart/form-data">
+<form id="langs" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.@$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">

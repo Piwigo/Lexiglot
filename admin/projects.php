@@ -218,6 +218,26 @@ SELECT id
       array_push($page['errors'], 'A project with this name already exists.');
     }
   }
+  // check files
+  $_POST['files'] = str_replace(' ', null, $_POST['files']);
+  if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $_POST['files'].','))
+  {
+    array_push($page['errors'], 'Seperate each file with a comma.');
+  }
+  // check rank
+  if (!is_numeric($_POST['rank']) or $_POST['rank'] < 1)
+  {
+    array_push($page['errors'], 'Rank must be an non null integer.');
+  }
+  // check category
+  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
+  {
+    $_POST['category_id'] = add_category($_POST['category_id'], 'section');
+  }
+  if (empty($_POST['category_id']))
+  {
+    $_POST['category_id'] = 0;
+  }
   // check directory
   if ($conf['svn_activated'] and empty($_POST['directory']))
   {
@@ -251,26 +271,6 @@ SELECT id
     {
       mkdir($conf['local_dir'].$_POST['id'], 0777, true);
     }
-  }
-  // check files
-  $_POST['files'] = str_replace(' ', null, $_POST['files']);
-  if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $_POST['files'].','))
-  {
-    array_push($page['errors'], 'Seperate each file with a comma.');
-  }
-  // check rank
-  if (!is_numeric($_POST['rank']) or $row['rank'] < 1)
-  {
-    array_push($page['errors'], 'Rank must be an non null integer.');
-  }
-  // check category
-  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
-  {
-    $_POST['category_id'] = add_category($_POST['category_id'], 'section');
-  }
-  if (empty($_POST['category_id']))
-  {
-    $_POST['category_id'] = 0;
   }
   
   // save section
@@ -329,9 +329,9 @@ UPDATE '.USER_INFOS_TABLE.'
 // +-----------------------------------------------------------------------+
 // default search
 $search = array(
-  'id' =>          array('%', null),
-  'name' =>        array('%', null),
-  'rank' =>        array('=', null),
+  'id' =>          array('%', ''),
+  'name' =>        array('%', ''),
+  'rank' =>        array('=', ''),
   'category_id' => array('=', -1),
   'limit' =>       array('=', 20),
   );
@@ -341,6 +341,7 @@ if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
   $search['id'][1] = $_GET['section_id'];
+  $search['id'][2] = '';
   unset($_GET['section_id']);
 }
 
@@ -357,7 +358,25 @@ SELECT COUNT(1)
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav');
+$highlight_pos = null;
+if (!empty($highlight_section))
+{
+  $query = '
+SELECT x.pos
+  FROM (
+    SELECT 
+        id,
+        @rownum := @rownum+1 AS pos
+      FROM '.SECTIONS_TABLE.'
+        JOIN (SELECT @rownum := 0) AS r
+      ORDER BY rank DESC, id ASC
+  ) AS x
+  WHERE x.id = "'.$highlight_section.'"
+;';
+  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+}
+
+$paging = compute_pagination($total, $search['limit'][1], 'nav', $highlight_pos);
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -459,7 +478,7 @@ echo '
       <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Erase">
+        <input type="submit" name="erase_search" class="red tiny" value="Reset">
       </td>
     </tr>
   </table>
@@ -468,7 +487,7 @@ echo '
 
 // sections list
 echo '
-<form id="sections" action="admin.php?page=projects" method="post">
+<form id="sections" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.@$_GET['nav'] : null).'" method="post">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
