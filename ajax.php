@@ -21,7 +21,7 @@
 
 /**
  * This page is called by jQuery ro perform some AJAX actions
- * a ephemeral key is mandatory for security
+ * an ephemeral key is mandatory for security
  */
 
 define('PATH', './');
@@ -62,19 +62,10 @@ switch ($_POST['action'])
     
     $key = utf8_decode($_POST['row_name']);
     $text = utf8_decode($_POST['row_value']);
-    $_POST['directory'] = $conf['local_dir'].$_POST['section'].'/';
     
-    $_LANG =    load_language_file($_POST['directory'].$_POST['language'].'/'.$_POST['file']);
-    $_LANG_db = load_language_db($_POST['language'], $_POST['file'], $_POST['section'], $key);
+    $_LANG = load_language($_POST['section'], $_POST['language'], $_POST['file'], $key);
     
-    // see edit.array.php for explainations
-    if (
-      ( 
-        ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] ) 
-        and ( !isset($_LANG_db[$key]) or $text!=$_LANG_db[$key]['row_value'] ) 
-      )
-      or ( isset($_LANG_db[$key]) and $text!=$_LANG_db[$key]['row_value'] )
-    )
+    if ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
     {
       $query = '
 INSERT INTO `'.ROWS_TABLE.'`(

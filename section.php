@@ -32,7 +32,6 @@ if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_
 }
 
 $page['section'] = $_GET['section'];
-$page['directory'] = $conf['local_dir'].$page['section'].'/';
 
 // page title
 $page['window_title'] = get_section_name($page['section']);
@@ -118,7 +117,7 @@ foreach ($conf['all_languages'] as $row)
   }
   if (!in_array($row['id'], $user['languages']))
   {
-   unset($language_available[ $row['id'] ], $language_translated[ $row['id'] ]);
+    unset($language_available[ $row['id'] ], $language_translated[ $row['id'] ]);
   }
 }
 
@@ -152,7 +151,7 @@ foreach ($language_translated as $row)
   <li '.( !$row['section_exists'] || ($use_stats && empty($stats[$row['id']])) ? 'class="new"' : null).'>
     <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), true, 'edit').'">
       '.$row['name'].' '.get_language_flag($row['id']).'
-      '.(is_source_language($row['id']) ? '<i>(source)</i>': null).'
+      '.(is_default_language($row['id']) ? '<i>(source)</i>': null).'
       '.($use_stats ? display_progress_bar($stats[$row['id']], 150) : null).'
     </a>
   </li>';

@@ -38,21 +38,9 @@ if ( isset($_POST['submit']) and $is_translator )
     $key = $row['row_name'];
     $text = $row['row_value'];
     
-    /* what is done here ?
-      - first we check is the string is not empty
-      - then we compare the value to the file one
-      - and we compare the value to the database one
-      - finally it's allowed to "backup" a string to the value in the file
-    */
     if (
       !empty($text) and 
-      (
-        ( 
-          ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] ) 
-          and ( !isset($_LANG_db[$key]) or $text!=$_LANG_db[$key]['row_value'] ) 
-        )
-        or ( isset($_LANG_db[$key]) and $text!=$_LANG_db[$key]['row_value'] )
-      )
+      ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
     )
     {        
       $query = '
@@ -106,10 +94,14 @@ $search = array(
   );
 
 // erase search
-if (isset($_POST['erase_search']) or !isset($_GET['ks']))
+$referer = !empty($_SERVER['HTTP_REFERER']) ? parse_url($_SERVER['HTTP_REFERER']) : array('path'=>'edit.php');
+
+if ( isset($_POST['erase_search']) or basename($referer['path']) != 'edit.php' or isset($_GET['erase_search']) )
 {
   unset_session_var('edit_search');
   unset($_POST);
+  // QUERY_STRING is used by get_url_string, in order to not write everywhere that it must delete the parameter, we remove it here
+  $_SERVER['QUERY_STRING'] = preg_replace('#(&?erase_search)#', null, $_SERVER['QUERY_STRING']);
 }
 // get saved search
 else if (get_session_var('edit_search') != null)
@@ -144,26 +136,19 @@ $total = $translated = 0;
 foreach ($_LANG_default as $key => $row)
 {
   if (
-    $in_search                                                                                 // display search results
-    or $page['display']=='all'                                                                 // display all
-    or ( $page['display']=='missing'    and !isset($_LANG[$key]) and !isset($_LANG_db[$key]) ) // display missing
-    or ( $page['display']=='translated' and (isset($_LANG[$key])  or isset($_LANG_db[$key])) ) // display translated
+    $in_search                                                     // display search results
+    or $page['display']=='all'                                     // display all
+    or ( $page['display']=='missing'    and !isset($_LANG[$key]) ) // display missing
+    or ( $page['display']=='translated' and isset($_LANG[$key]) )  // display translated
   )
   {
-    // databse has priority
-    $_DIFFS[$key] = isset($_LANG_db[$key]) 
-                    ? $_LANG_db[$key] 
-                    : (
-                        isset($_LANG[$key]) 
-                        ? $_LANG[$key] 
-                        : array()
-                      );
+    $_DIFFS[$key] = isset($_LANG[$key]) ? $_LANG[$key] : array();
     // keep trace of source value
-    $_DIFFS[$key]['original'] = is_source_language($page['language']) ? $row['row_name'] : $row['row_value'];
+    $_DIFFS[$key]['original'] = is_default_language($page['language']) ? $row['row_name'] : $row['row_value'];
   }
   
   // stats
-  if ( isset($_LANG[$key]) or isset($_LANG_db[$key]) )
+  if (isset($_LANG[$key]))
   {
     $translated++;
   }
@@ -178,7 +163,18 @@ if ($in_search)
   $_DIFFS = search_fulltext($_DIFFS, $search['needle'], $search['where']);
 }
 
-
+// available for reference
+$stats = get_cache_stats($page['section'], null, 'language');
+$reference_languages = array();
+foreach ($conf['all_languages'] as $row)
+{
+  if ( isset($stats[ $row['id'] ]) and $stats[ $row['id'] ] > $conf['minimum_progress_for_language_reference'] )
+  {
+    array_push($reference_languages, $row);
+  }
+}
+  
+  
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
@@ -193,15 +189,17 @@ $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 echo '
 <div class="pagination">'.display_pagination($paging).'</div>
 <div id="display_buttons">
-  <a href="'.get_url_string(array('display'=>'all'), array('page','ks')).'" class="all '.($page['display']=='all'?'active display':null).'">All</a>
-  <a href="'.get_url_string(array('display'=>'missing'), array('page','ks')).'" class="missing '.($page['display']=='missing'?'active display':null).'">Untranslated</a>
+  <a href="'.get_url_string(array('display'=>'all','erase_search'=>null), array('page')).'" 
+    class="all '.($page['display']=='all'?'active display':null).'">All</a>
+  <a href="'.get_url_string(array('display'=>'missing','erase_search'=>null), array('page')).'" 
+    class="missing '.($page['display']=='missing'?'active display':null).'">Untranslated</a>
   <a href="#" class="search '.($page['display']=='search'?'active display':null).'">Search</a>
 </div>
 <div style="clear:both;"></div>';
 
 // search field
 echo '
-<form method="post" action="'.get_url_string(array('ks'=>null), array('page')).'" id="diffs_search" style="'.(!$in_search ? 'display:none;' : null).'">
+<form method="post" action="'.get_url_string(array(), array('page')).'" id="diffs_search" style="'.(!$in_search ? 'display:none;' : null).'">
 <fieldset class="common">
   <input type="text" name="needle" size="50" value="'.$search['needle'].'">
   &nbsp;&nbsp;Where ? 
@@ -212,13 +210,37 @@ echo '
 </form>';
 
 // strings list
-echo '
-<form method="post" action="" id="diffs" style="margin-top:10px;">
+echo '  
+<form method="post" action="'.get_url_string().'" id="diffs" style="margin-top:10px;">
 <fieldset class="common">
-  <!--<legend>'.($in_search ? 'Search results' : ($page['display'] == 'all' ? 'All strings' : 'Untranslated strings')).'</legend>-->
+  <legend></legend>
   
+  <table class="common">
+  <tr>
+    <th colspan="3" style="text-align:left;padding-bottom:5px;">
+      Change reference language to
+      <select onchange="document.location = this.options[this.selectedIndex].value;">';
+      foreach ($reference_languages as $row)
+      {
+        echo '
+        <option value="'.get_url_string(array('ref'=>$row['id'])).'" 
+          '.($row['id']==$page['ref']?'selected="selected"':null).' 
+          '.(is_default_language($row['id'])?'style="font-weight:bold;background:#222;color:#eee;"':null).'
+          >'.$row['name'].'</option>';
+      }
+      echo '</select>';
+      if (!is_default_language($page['ref']))
+      {
+        echo '
+        <div class="ui-state-warning" style="display:inline-block;padding:0.3em;font-weight:normal;">
+          <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
+          Not using the default language ('.$conf['all_languages'][ $conf['default_language'] ]['name'].') as reference may provide incomplete translation table.
+        </div>';
+      }
+      echo '
+    </th>
+  </tr>';
   
-  <table class="common">';
   $i=1;
   foreach ($_DIFFS as $key => $row)
   {
@@ -239,9 +261,10 @@ echo '
                 );
     
     // original value can be highlighted
+    $original = htmlspecialchars($row['original']);
     $original = $in_search && $search['where'] == 'original'
-             ? highlight_search_result(htmlspecialchars($row['original']), array_merge(array($search['needle']), $search['words'])) 
-             : htmlspecialchars($row['original']);
+             ? highlight_search_result($original, array_merge(array($search['needle']), $search['words'])) 
+             : $original;
 
     echo '
     <tr class="main '.($i%2!=0?'odd':'even').' '.$status.'">
@@ -250,13 +273,15 @@ echo '
         <textarea name="rows['.$i.'][row_name]" style="display:none;">'.proper_utf8($key).'</textarea>';
         if ($is_translator)
         { // textarea with dynamic height, highlight is done in javascript
+          $area_lines = count_lines(!empty($text)?$text:$row['original'], 68);
           echo '
-          <textarea name="rows['.$i.'][row_value]" style="height:'.max(count_lines(!empty($text)?$text:$row['original'], 68)*1.1, 2.1).'em;" tabindex="'.$i.'">'.proper_utf8($text).'</textarea>';
+          <textarea name="rows['.$i.'][row_value]" style="height:'.max($area_lines*1.1, 2.1).'em;" tabindex="'.$i.'">'.proper_utf8($text).'</textarea>';
         }
         else if (!empty($text))
         { // highlight value in case of read-only display
+          $text = htmlspecialchars($text);
           echo '
-          <pre>'.($in_search && $search['where'] == 'row_value' ? highlight_search_result(htmlspecialchars($text), array_merge(array($search['needle']), $search['words']))  : htmlspecialchars($text)).'</pre>';
+          <pre>'.($in_search && $search['where'] == 'row_value' ? highlight_search_result($text, array_merge(array($search['needle']), $search['words'])) : $text).'</pre>';
         }
         else if (is_visitor())
         {
@@ -271,7 +296,7 @@ echo '
       echo '
       </td>
       <td class="details">
-        '.(!is_source_language($page['language']) || $conf['allow_edit_default'] ? '<a href="#" class="expand tiptip" title="Show etails" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
+        '.(!is_default_language($page['language']) || $conf['allow_edit_default'] ? '<a href="#" class="expand tiptip" title="Show details" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
         '.($is_translator ? '<a href="#" class="save tiptip" title="Save this string" data="'.$i.'"><img src="template/images/disk.png" alt="save"></a>' : null).'
       </td>
     </tr>

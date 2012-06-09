@@ -43,7 +43,6 @@ if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_
 
 $page['language'] = $_GET['language'];
 $page['section'] = $_GET['section'];
-$page['directory'] = $conf['local_dir'].$page['section'].'/';
 $page['files'] = explode(',', $conf['all_sections'][$_GET['section']]['files']);
 
 // file
@@ -59,8 +58,7 @@ $page['file'] = $_GET['file'];
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
 
-$_LANG = load_language_file($page['directory'].$page['language'].'/'.$page['file']);
-$_LANG_db = load_language_db($page['language'], $page['file'], $page['section']);
+$_LANG = load_language($page['section'], $page['language'], $page['file']);
 
 
 // +-----------------------------------------------------------------------+
@@ -72,57 +70,25 @@ echo '
   '.get_section_name($page['section']).' &raquo; '.get_language_flag($page['language']).' '.get_language_name($page['language']).'
 </p>';
 
-// database rows
-if (count($_LANG_db))
-{
-  echo '
-  <form id="diffs">
-  <fieldset class="common">
-    <legend>Database rows</legend>
-    <table class="common">';
-    $i=0;
-    foreach ($_LANG_db as $key => $row)
-    {
-      if (is_array($row['row_value'])) continue; // we skip arrays (too complicated)
-                      
-      echo '
-      <tr class="'.($i%2==0?'odd':'even').'">
-        <td><pre>'.htmlspecialchars($key).'</pre></td>
-        <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
-      </tr>';
-      $i++;
-    }
+echo '
+<form id="diffs">
+<fieldset class="common">
+  <table class="common">';
+  $i=0;
+  foreach ($_LANG as $key => $row)
+  {
     echo '
-    </table>
-  </fieldset>
-  </form>';
-}
+    <tr class="'.($i%2==0?'odd':'even').'">
+      <td><pre>'.htmlspecialchars($key).'</pre></td>
+      <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
+    </tr>';
+    $i++;
+  }
+  echo '
+  </table>
+</fieldset>
+</form>';
 
-// file rows
-if (count($_LANG))
-{
-  echo '
-  <form id="diffs">
-  <fieldset class="common">
-    <legend>File rows</legend>
-    <table class="common">';
-    $i=0;
-    foreach ($_LANG as $key => $row)
-    {
-      if (is_array($row['row_value'])) continue; // we skip arrays (too complicated)
-                      
-      echo '
-      <tr class="'.($i%2==0?'odd':'even').'">
-        <td><pre>'.htmlspecialchars($key).'</pre></td>
-        <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
-      </tr>';
-      $i++;
-    }
-    echo '
-    </table>
-  </fieldset>
-  </form>';
-}
 
 print_page(false);
 ?>

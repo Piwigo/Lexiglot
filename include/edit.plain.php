@@ -19,7 +19,9 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!'); 
+defined('PATH') or die('Hacking attempt!');
+
+if (!empty($_LANG)) $_LANG = $_LANG[ $page['file'] ];
 
 // +-----------------------------------------------------------------------+
 // |                         SAVE FILE
@@ -38,13 +40,7 @@ if ( isset($_POST['submit']) and $is_translator )
   // test if the new value is really new (in file and in database)
   if (  
     !empty($text) and
-    ( 
-      ( 
-        ( empty($_LANG) or $text != $_LANG['row_value'] ) 
-        and ( empty($_LANG_db) or $text != $_LANG_db['row_value'] ) 
-      )
-      or ( !empty($_LANG_db) and $text != $_LANG_db['row_value'] )
-    )
+    ( empty($_LANG) or $text != $_LANG['row_value'] )
   )
   {
     $query = '
@@ -85,7 +81,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
 // |                         COMPUTE FILES
 // +-----------------------------------------------------------------------+
 $_DIFFS = false;
-if ( empty($_LANG) and empty($_LANG_db) )
+if (empty($_LANG))
 {
   $_DIFFS = true;
 }
@@ -100,14 +96,7 @@ if ($_DIFFS)
 // |                         DISPLAY FILE
 // +-----------------------------------------------------------------------+  
 // value, database has priority
-$text = ( !empty($_LANG_db) ) 
-        ? $_LANG_db['row_value'] 
-        : ( 
-            ( !empty($_LANG) )
-            ? $_LANG['row_value']
-            : null
-          )
-        ;
+$text = !empty($_LANG) ? $_LANG['row_value'] : null;
 
 echo '
 <form method="post" action="" id="diffs">

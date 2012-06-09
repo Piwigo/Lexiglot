@@ -64,7 +64,7 @@ Here is his message :<br>
     $result = send_mail(
       get_admin_email(), 
       $subject, $content, $args,
-      true, 'Language request for '.strip_tags($_POST['language'])
+      'Language request for '.strip_tags($_POST['language'])
       );
 
     if ($result)

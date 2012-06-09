@@ -282,7 +282,7 @@ function html_special_chars($string)
  *   - save in database
  * @return boolean
  */
-function send_mail($to, $subject, $content, $args = array(), $save=false, $additional_infos=null)
+function send_mail($to, $subject, $content, $args = array(), $additional_infos=null)
 {
   global $conf;
   
@@ -309,9 +309,11 @@ function send_mail($to, $subject, $content, $args = array(), $save=false, $addit
 
   // format subject
   $subject = trim(preg_replace('#[\n\r]+#s', null, $subject));
+  $subject = '=?UTF-8?B?'.base64_encode($subject).'?='; // deal with utf-8
 
   // headers
   $headers = 'From: '.$args['from']."\r\n";
+  $headers.= 'Reply-To: '.$args['from']."\r\n";
 
   if (!empty($args['cc']))
   {
@@ -331,6 +333,7 @@ function send_mail($to, $subject, $content, $args = array(), $save=false, $addit
 
   $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\r\n";
   $headers.= 'X-Mailer: Lexiglot'."\r\n";
+  $headers.= 'MIME-Version: 1.0'."\r\n";
 
   // content
   if ($args['content_format'] == 'text/plain')
@@ -338,12 +341,12 @@ function send_mail($to, $subject, $content, $args = array(), $save=false, $addit
     $content = htmlspecialchars($content);
   }
   
-  $content = wordwrap($content, 70);
+  $content = wordwrap($content, 70, "\n");
   
   // send mail
   $result = mail($to, $subject, $content, $headers);
   
-  if ($result and $save)
+  if ( $result and !empty($additional_infos) )
   {
     $query = '
 INSERT INTO '.MAIL_HISTORY_TABLE.' (

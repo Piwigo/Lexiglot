@@ -70,8 +70,8 @@ foreach ($_ROWS as $props => $files)
     else
     {
       // load language files
-      $_LANG =         load_language_file($file_infos['path']);
-      $_LANG_default = load_language_file($conf['local_dir'].$commit['section'].'/'.$conf['default_language'].'/'.$file_infos['name']);
+      $_LANG =         load_language_file($commit['section'], $commit['language'], $file_infos['name']);
+      $_LANG_default = load_language_file($commit['section'], $conf['default_language'], $file_infos['name']);
       
       // update the file
       if (!$file_infos['is_new'])
@@ -141,8 +141,8 @@ foreach ($_ROWS as $props => $files)
           $_FILE[] = $row['content'];
         }
         
-        array_push($file_infos['users'], $row['user_id']);
         array_push($file_infos['done_rows'], $row['id']);
+        array_push($file_infos['users'], $row['user_id']);
       }
       
       // obsolete rows from file

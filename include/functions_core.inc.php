@@ -103,28 +103,53 @@ Full error :<br>
   );
 
   set_session_var('notify_language_file_error.'.$filename, true);
-  send_mail(get_admin_email(), $subject, $content, $args, true, 'PHP '.$infos[1].' on '.$filename);
+  send_mail(get_admin_email(), $subject, $content, $args, 'PHP '.$infos[1].' on '.$filename);
 }
 
+/**
+ * load a language from file and db
+ * @param string file
+ * @return array
+ */
+function load_language($section, $language, $filename, $row_name=null)
+{
+  global $conf;
+  
+  $file = load_language_file($section, $language, $filename);
+  $db = load_language_db($section, $language, $filename, $row_name);
+  
+  if (!empty($row_name))
+  {
+    foreach ($file as $id => $row)
+    {
+      if ($id != $row_name) unset($file[$id]);
+    }
+  }
+  
+  $out = array_merge($file, $db);
+  uasort($out, create_function('$a,$b', 'return strcmp($a["row_name"], $b["row_name"]);'));
+  
+  return $out;
+}
 
 /**
  * load language rows from file
  * @param string file
  * @return array
  */
-function load_language_file($filename)
+function load_language_file($section, $language, $filename)
 {
   global $conf;
   
   if (is_plain_file($filename))
   {
-    return load_language_file_plain($filename);
+    return load_language_file_plain($section, $language, $filename);
   }
   
   ${$conf['var_name']} = array();
   $out = array();
   
-  if (($file = @file_get_contents($filename)) !== false)
+  if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
   {
     eval($conf['exec_before_file']);
     $file = preg_replace('#<\?php#', null, $file, 1);
@@ -150,14 +175,18 @@ function load_language_file($filename)
   return $out;
 }
 
-function load_language_file_plain($filename)
+function load_language_file_plain($section, $language, $filename)
 {
+  global $conf;
+  
   $out = array();
-  if (($file = @file_get_contents($filename)) !== false)
+  if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
   {
     $out = array(
-      'row_name' => $filename,
-      'row_value' => $file,
+      $filename => array(
+        'row_name' => $filename,
+        'row_value' => $file,
+        )
       );
   }
   return $out;
@@ -171,7 +200,7 @@ function load_language_file_plain($filename)
  * @param string row_name=null
  * @return array
  */
-function load_language_db($language, $file, $section, $row_name=null)
+function load_language_db($section, $language, $filename, $row_name=null)
 {
   // must use imbricated query to order before group
   $query = '
@@ -185,7 +214,7 @@ SELECT * FROM (
     FROM `'.ROWS_TABLE.'`
     WHERE 
       lang = "'.$language.'" 
-      AND file_name = "'.$file.'"
+      AND file_name = "'.$filename.'"
       AND section = "'.$section.'"
       AND status != "done"
       '.(!empty($row_name) ? 'AND row_name = "'.mres($row_name).'"' : null).'
@@ -248,7 +277,7 @@ function is_sub_string($string)
  * @param string language
  * @return boolean
  */
-function is_source_language($lang)
+function is_default_language($lang)
 {
   global $conf;
   return $lang == $conf['default_language'];

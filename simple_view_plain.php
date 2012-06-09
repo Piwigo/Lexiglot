@@ -52,7 +52,6 @@ else
 
 $page['language'] = $_GET['language'];
 $page['section'] = $_GET['section'];
-$page['directory'] = $conf['local_dir'].$page['section'].'/';
 $page['files'] = explode(',', $conf['all_sections'][$_GET['section']]['files']);
 
 // file
@@ -67,7 +66,8 @@ $page['file'] = $_GET['file'];
 // +-----------------------------------------------------------------------+
 // |                         GET FILE
 // +-----------------------------------------------------------------------+
-$_LANG = load_language_file_plain($page['directory'].$page['language'].'/'.$page['file']);
+$_LANG = load_language_file($page['section'], $page['language'], $page['file']);
+$_LANG = $_LANG[ $page['file'] ];
 
 
 // +-----------------------------------------------------------------------+
@@ -105,7 +105,7 @@ echo '
   {
     echo '
     <script type="text/javascript">$(document).ready(function(){$("iframe").css("height", $(window).height()-150);});</script>
-    <iframe src="'.$page['directory'].$conf['default_language'].'/'.$page['file'].'" style="width:100%;margin:0;"></iframe>';
+    <iframe src="'.$conf['local_dir'].$page['section'].'/'.$page['language'].'/'.$page['file'].'" style="width:100%;margin:0;"></iframe>';
   }
 echo '
 </fieldset>

@@ -48,16 +48,15 @@ function make_stats($section, $language, $save=true)
     
     foreach ($files as $file)
     {
-      $_LANG_default = load_language_file($directory.$conf['default_language'].'/'.$file);
-      $_LANG =         load_language_file($directory.$language.'/'.$file);
-      $_LANG_db =      load_language_db($language, $file, $section);
-        
+      $_LANG_default = load_language_file($section, $conf['default_language'], $file);
+      $_LANG =         load_language($section, $language, $file);
+      
       // for plain texts
       if (is_plain_file($file))
       {
-        $src_lenght = substr_count($_LANG_default['row_value'], $conf['eol'])+1;
+        $src_lenght = substr_count($_LANG_default[$file]['row_value'], $conf['eol'])+1;
         $total+= $src_lenght;
-        if ( ($_LANG_db and $_LANG_db[$file]['status'] != 'done') or $_LANG )
+        if ( !empty($_LANG) )
         {
           $translated+= $src_lenght;
         }
@@ -67,7 +66,7 @@ function make_stats($section, $language, $save=true)
       {
         foreach ($_LANG_default as $key => $row)
         {
-          if ( isset($_LANG[$key]) or isset($_LANG_db[$key]) )
+          if ( isset($_LANG[$key]) )
           {
             $translated++;
           }

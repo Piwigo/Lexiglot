@@ -80,8 +80,8 @@ echo '
         ## array file ##
         else
         {
-          $_LANG =         load_language_file($file_infos['path']);
-          $_LANG_default = load_language_file($conf['local_dir'].$commit['section'].'/'.$conf['default_language'].'/'.$file_infos['name']);
+          $_LANG =         load_language_file($commit['section'], $commit['language'], $file_infos['name']);
+          $_LANG_default = load_language_file($commit['section'], $conf['default_language'], $file_infos['name']);
           
           echo '
           <tr>

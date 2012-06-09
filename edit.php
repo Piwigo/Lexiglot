@@ -40,7 +40,6 @@ if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_
 
 $page['language'] = $_GET['language'];
 $page['section'] = $_GET['section'];
-$page['directory'] = $conf['local_dir'].$page['section'].'/';
 $page['files'] = explode(',', $conf['all_sections'][ $page['section'] ]['files']);
 
 
@@ -72,8 +71,19 @@ if ( isset($_GET['display']) and in_array($_GET['display'], array('all','missing
 }
 else
 {
-  $page['display'] = is_guest() || is_visitor() || is_source_language($page['language']) ? 'all' : 'missing';
+  $page['display'] = is_guest() || is_visitor() || is_default_language($page['language']) ? 'all' : 'missing';
 }
+// reference
+if ( isset($_GET['ref']) and array_key_exists($_GET['ref'], $conf['all_languages']) and !is_default_language($page['language']) and $page['language'] != $_GET['ref'] )
+{
+  $page['ref'] = $_GET['ref'];
+}
+else
+{
+  $page['ref'] = $conf['default_language'];
+}
+
+$page['file_uri'] = $conf['local_dir'].$page['section'].'/'.$page['language'].'/'.$page['file'];
 
 // title
 $page['window_title'] = get_section_name($page['section']).' &raquo; '.get_language_name($page['language']);
@@ -83,22 +93,22 @@ $page['title'] = 'Edit';
 // +-----------------------------------------------------------------------+
 // |                         LOAD ROWS
 // +-----------------------------------------------------------------------+
-if (!file_exists($page['directory'].'/'.$page['language']))
+if (!file_exists($conf['local_dir'].$page['section'].'/'.$page['language']))
 {
   array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('section'=>$page['section']), true, 'section').'">project page</a>.');
   print_page();
 }
 
-if (!file_exists($page['directory'].$conf['default_language'].'/'.$page['file']))
+if (!file_exists($conf['local_dir'].$page['section'].'/'.$conf['default_language'].'/'.$page['file']))
 {
   array_push($page['errors'], 'Can\'t find this file for default language.');
   print_page();
 }
 
 // for php files we check the validity of the file
-if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['directory'].$page['language'].'/'.$page['file'])) !== true )
+if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['file_uri'])) !== true )
 {
-  notify_language_file_error($page['directory'].$page['language'].'/'.$page['file'], $fileinfos);
+  notify_language_file_error($page['file_uri'], $fileinfos);
   
   if ($fileinfos[1] == 'Parse error')
   {
@@ -107,14 +117,8 @@ if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['dire
   }
 }
 
-$_LANG_default = load_language_file($page['directory'].$conf['default_language'].'/'.$page['file']);
-$_LANG =         load_language_file($page['directory'].$page['language'].'/'.$page['file']);
-$_LANG_db =      load_language_db($page['language'], $page['file'], $page['section']);
-
-if ( $page['mode'] == 'plain' and !empty($_LANG_db) )
-{
-  $_LANG_db = $_LANG_db[ $page['file'] ];
-}
+$_LANG_default = load_language($page['section'], $page['ref'], $page['file']);
+$_LANG =         load_language($page['section'], $page['language'], $page['file']);
 
 
 // +-----------------------------------------------------------------------+
@@ -150,7 +154,7 @@ SELECT
 Hi '.$to['username'].',<br>
 You receive this mail because you are registered as translator on <a href="'.get_absolute_home_url().'">'.strip_tags($conf['install_name']).'</a>.<br>
 <br>
-'.$user['username'].' notifies you about the translation of <b>'.get_section_name($page['section']).'</b> in <b>'.$page['language'].'</b> :<br>
+'.$user['username'].' notifies you about the translation of <b>'.get_section_name($page['section']).'</b> in <b>'.get_language_name($page['language']).'</b> :<br>
 <a href="'.$current_url.'">'.$current_url.'</a><br>
 <br>';
     if (!empty($_POST['message']))
@@ -174,7 +178,7 @@ You receive this mail because you are registered as translator on <a href="'.get
         {
           if ($i > $nb_rows) break;
           
-          if ( !isset($_LANG[$key]) and !isset($_LANG_db[$key]) )
+          if ( !isset($_LANG[$key]) )
           {
             $_DIFFS[] = $row['row_value'];
             $i++;
@@ -183,7 +187,7 @@ You receive this mail because you are registered as translator on <a href="'.get
       }
       else
       {
-        $_DIFFS[] = $_LANG_default['row_value'];
+        $_DIFFS[] = $_LANG_default[ $page['file'] ]['row_value'];
       }
 
       if (count($_DIFFS))
@@ -211,7 +215,7 @@ You receive this mail because you are registered as translator on <a href="'.get
     $result = send_mail(
       format_email($to['email'], $to['username']),
       $subject, $content, $args, 
-      true, 'Notification on '.get_section_name($page['section']).' in '.get_language_name($page['language'])
+      'Notification on '.get_section_name($page['section']).' in '.get_language_name($page['language'])
       );
 
     if ($result)
@@ -229,9 +233,9 @@ You receive this mail because you are registered as translator on <a href="'.get
 // +-----------------------------------------------------------------------+
 // |                         PAGE CONTENTS
 // +-----------------------------------------------------------------------+
-// only translators and admin can modify files, no one is translator for source language
+// only translators and admin can modify files
 $is_translator = true;
-if ( is_source_language($page['language']) and !$conf['allow_edit_default'] )
+if ( is_default_language($page['language']) and !$conf['allow_edit_default'] )
 {
   $is_translator = false;
   array_push($page['warnings'], 'The source language can\'t be modified.');
@@ -239,16 +243,13 @@ if ( is_source_language($page['language']) and !$conf['allow_edit_default'] )
 else if (!is_translator($page['language'], $page['section']))
 {
   $is_translator = false;
-  if ( !is_source_language($page['language']) or $conf['allow_edit_default'] )
+  if (is_guest())
   {
-    if (is_guest())
-    {
-      array_push($page['warnings'], 'You <a href="user.php?login">have to login</a> to edit this translation.');
-    }
-    else
-    {
-      array_push($page['errors'], 'You don\'t have the necessary rights to edit this file.');
-    }
+    array_push($page['warnings'], 'You <a href="user.php?login">have to login</a> to edit this translation.');
+  }
+  else
+  {
+    array_push($page['errors'], 'You don\'t have the necessary rights to edit this file.');
   }
 }
 
@@ -267,7 +268,7 @@ $page['begin'].= '
   <a href="'.get_url_string(array('language'=>$page['language']), true, 'language').'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a>
   
   '.($is_translator ? '<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>' : null).'
-  '.(!is_source_language($page['language']) ? '<a class="floating_link" '.
+  '.(!is_default_language($page['language']) ? '<a class="floating_link" '.
     js_popup(
       get_url_string(
         array(
@@ -291,24 +292,13 @@ include(PATH.'include/edit.'.$page['mode'].'.php');
 if ($is_translator)
 {
   // search users that can receive notifications (status, persmissions, preferences)
-  $query = '
-SELECT 
-    '.$conf['user_fields']['id'].' as user_id,
-    '.$conf['user_fields']['username'].' as username,
-    i.status,
-    i.nb_rows
-  FROM '.USERS_TABLE.' as u
-  INNER JOIN '.USER_INFOS_TABLE.' as i
-    ON u.'.$conf['user_fields']['id'].' = i.user_id
-  WHERE
-    i.status = "admin" OR (
-      i.sections LIKE "%'.$page['section'].'%"
-      AND i.languages LIKE "%'.$page['language'].'%"
-    )
-    AND i.status != "guest"
-    '.(!is_admin() ? 'AND i.email_privacy != "private"' : null).'
- ;';
-  $users = hash_from_query($query);
+  $where_clauses = array(
+    'i.status = "admin" OR (i.sections LIKE "%'.$page['section'].'%" AND i.languages LIKE "%'.$page['language'].'%")',
+    'i.status != "guest"',
+    );
+  if (!is_admin()) array_push($where_clauses, 'AND i.email_privacy != "private"');
+  
+  $users = get_users_list($where_clauses, 'i.status, i.nb_rows');
 
   $page['begin'].= '
 <div id="dialog-form" title="Send a notification by mail" style="display:none;">
@@ -325,7 +315,7 @@ SELECT
         foreach ($users as $row)
         {
           $page['begin'].= '
-          <option value="'.$row['user_id'].'" data="'.$row['nb_rows'].'">'.$row['username'].($row['status']=='admin' ? ' (admin)' : null).'</option>';
+          <option value="'.$row['id'].'" data="'.$row['nb_rows'].'">'.$row['username'].($row['status']=='admin' ? ' (admin)' : null).'</option>';
         }
         $page['begin'].= '
         </select>
