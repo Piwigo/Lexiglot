@@ -200,9 +200,13 @@ You receive this mail because you are registered as translator on <a href="'.get
     
     // send mail
     $args = array(
-      'from' => $user['username'].' <'.$user['email'].'>',
+      'from' => format_email($user['email'], $user['username']),
       'content_format' => 'text/html',
       );
+    if (isset($_POST['notification']))
+    {
+      $args['notification'] = $user['email'];
+    }
       
     $result = send_mail(
       format_email($to['email'], $to['username']),
@@ -325,6 +329,9 @@ SELECT
         }
         $page['begin'].= '
         </select>
+      </td></tr>
+      <tr><td>
+        <label><input type="checkbox" name="notification" value="1"> ask for disposition notification</label>
       </td></tr>
       <!--<tr><td>';
       if ($page['mode'] == 'array')

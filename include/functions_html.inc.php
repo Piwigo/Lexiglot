@@ -277,6 +277,7 @@ function html_special_chars($string)
  *       o from [default 'noreply@domain']
  *       o cc [default empty]
  *       o bcc [default empty]
+ *       o notification [default empty]
  *       o content_format [default value 'text/plain']
  *   - save in database
  * @return boolean
@@ -310,20 +311,26 @@ function send_mail($to, $subject, $content, $args = array(), $save=false, $addit
   $subject = trim(preg_replace('#[\n\r]+#s', null, $subject));
 
   // headers
-  $headers = 'From: '.$args['from']."\n";
+  $headers = 'From: '.$args['from']."\r\n";
 
   if (!empty($args['cc']))
   {
-    $headers.= 'Cc: '.implode(',', $args['cc'])."\n";
+    $headers.= 'Cc: '.implode(',', $args['cc'])."\r\n";
   }
 
   if (!empty($args['bcc']))
   {
-    $headers.= 'Bcc: '.implode(',', $args['bcc'])."\n";
+    $headers.= 'Bcc: '.implode(',', $args['bcc'])."\r\n";
   }
 
-  $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\n".
-  $headers.= 'X-Mailer: Lexiglot'."\n";
+  if (!empty($args['notification']))
+  {
+    $headers.= 'Disposition-Notification-To: '.$args['notification']."\r\n";
+    $headers.= 'Return-Receipt-To: '.$args['notification']."\r\n";
+  }
+
+  $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\r\n";
+  $headers.= 'X-Mailer: Lexiglot'."\r\n";
 
   // content
   if ($args['content_format'] == 'text/plain')
@@ -331,8 +338,10 @@ function send_mail($to, $subject, $content, $args = array(), $save=false, $addit
     $content = htmlspecialchars($content);
   }
   
+  $content = wordwrap($content, 70);
+  
   // send mail
-  $result = @mail($to, $subject, $content, $headers);
+  $result = mail($to, $subject, $content, $headers);
   
   if ($result and $save)
   {
