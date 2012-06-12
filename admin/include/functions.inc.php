@@ -224,7 +224,7 @@ function print_user_languages_tooltip(&$user, $max=3, $my=false)
   {
     foreach ($languages as $lang)
     {
-      $out.= '<a title="'.get_language_name($lang).'" class="clean expand">'.get_language_flag($lang, 'default').'</a>';
+      $out.= '<a title="'.get_language_name($lang).'" class="clean expand '.($user['main_language']==$lang?'main-language':null).'">'.get_language_flag($lang, 'default').'</a>';
     }
   }
   else
@@ -233,7 +233,7 @@ function print_user_languages_tooltip(&$user, $max=3, $my=false)
     $i=1; $j=ceil(sqrt(count($languages)/4));
     foreach ($languages as $lang)
     {
-      $out.= '<td>'.get_language_flag($lang, 'default').' '.get_language_name($lang).'</td>';
+      $out.= '<td '.($user['main_language']==$lang?'class="main-language"':null).'>'.get_language_flag($lang, 'default').' '.get_language_name($lang).'</td>';
       if($i%$j==0) $out.= '</tr><tr>'; $i++;
     }
     $out.= '</tr></table>\'>
@@ -251,9 +251,10 @@ function print_user_languages_tooltip(&$user, $max=3, $my=false)
  */
 function print_user_sections_tooltip(&$user, $max=1)
 {
+  global $conf;
   $sections = $user['sections'];
   
-  if ( in_array($user['status'], array('translator','manager')) AND !empty($user['main_language']) )
+  if ( $conf['use_stats'] and in_array($user['status'], array('translator','manager')) AND !empty($user['main_language']) )
   {
     $stats = get_cache_stats(null, $user['main_language'], 'section');
   }

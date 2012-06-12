@@ -109,7 +109,7 @@ echo '
         <td><input type="checkbox" name="delete_done_rows" value="1" '.($conf['delete_done_rows']?'checked="checked"':'').'></td>
       </tr>
       <tr>
-        <td>Compute and display statistics :</td>
+        <td>Display statistics :</td>
         <td><input type="checkbox" name="use_stats" value="1" '.($conf['use_stats']?'checked="checked"':'').'></td>
       </tr>
     </table>

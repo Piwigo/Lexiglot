@@ -112,7 +112,7 @@ UPDATE '.USER_INFOS_TABLE.'
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
 $local_user = build_user($_GET['user_id']);
-if (!empty($local_user['main_language']))
+if ( $conf['use_stats'] and !empty($local_user['main_language']) )
 {
   $stats = get_cache_stats(null, $local_user['main_language'], 'section');
 }
@@ -214,10 +214,10 @@ echo '
       if (array_key_exists($section, $conf['all_sections']))
       {
         echo '
-        <li id="list_'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).'>
+        <li id="list_'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).' title="'.get_section_name($section).'">
           '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$section.']" value="1" '.(in_array($section,$local_user['manage_sections'])?'checked="checked"':null).'>' : null).'
-          '.get_section_name($section).'
-          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section],'dark').';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'
+          '.cut_string(get_section_name($section), 12, false).'
+          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section],'dark').';font-size:0.8em;">'.number_format($stats[$section]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.get_section_rank($section).'</i>' : null).'
         </li>';
       }
@@ -232,10 +232,10 @@ echo '
       if (!in_array($row['id'], $local_user['sections']))
       {
         echo '
-        <li id="list_'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).'>
+        <li id="list_'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).' title="'.$row['name'].'">
           '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$row['id'].']" value="1" style="display:none;">' : null).'
-          '.$row['name'].'
-          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
+          '.cut_string($row['name'], 12, false).'
+          '.($use_stats ? ' <b style="color:'.get_gauge_color($stats[$row['id']],'dark').';font-size:0.8em;">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
           '.($use_section_rank ? '<i>'.$row['rank'].'</i>' : null).'
         </li>';
       }

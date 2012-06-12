@@ -106,7 +106,7 @@ SELECT id, directory, files
   
   foreach ($_POST['sections'] as $section_id => $row)
   {
-    $generate_stats = false;
+    $regenerate_stats = false;
     $errors = array();
     // check name
     if (empty($row['name']))
@@ -130,7 +130,7 @@ SELECT id, directory, files
     }
     else if ($row['files'] != $old_values[$section_id]['files'])
     {
-      $generate_stats = true;
+      $regenerate_stats = true;
     }
     // check rank
     if (!is_numeric($row['rank']) or $row['rank'] < 1)
@@ -157,7 +157,7 @@ SELECT id, directory, files
       }
       else
       {
-        $generate_stats = true;
+        $regenerate_stats = true;
       }
     }
     
@@ -177,7 +177,7 @@ UPDATE '.SECTIONS_TABLE.'
       mysql_query($query);
       
       // update stats
-      if ( $conf['use_stats'] and $generate_stats )
+      if ($regenerate_stats)
       {
         make_section_stats($section_id);
       }
@@ -308,15 +308,13 @@ UPDATE '.USER_INFOS_TABLE.'
 ;';
     mysql_query($query);
     
-    // generate stats
-    if ($conf['use_stats'])
-    {
-      $query = 'SELECT * FROM '.SECTIONS_TABLE.' ORDER BY id;';
-      $conf['all_sections'] = hash_from_query($query, 'id');
-      ksort($conf['all_sections']);
+    // update sections array
+    $query = 'SELECT * FROM '.SECTIONS_TABLE.' WHERE id = "'.$_POST['id'].'";';
+    $conf['all_sections'][ $_POST['id'] ] = mysql_fetch_assoc(mysql_query($query)); 
+    ksort($conf['all_sections']);
 
-      make_section_stats($_POST['id']);
-    }
+    // generate stats
+    make_section_stats($_POST['id']);
     
     array_push($page['infos'], '<b>'.$_POST['name'].'</b> : '.$svn_result);
     $highlight_section = $_POST['id'];
@@ -538,7 +536,7 @@ echo '
           <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
-          '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
+          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
           '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');">
             <img src="template/images/cross.png" alt="[x]"></a>' : null).'
         </td>

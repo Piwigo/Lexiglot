@@ -85,16 +85,18 @@ if (isset($_POST['add_lang']))
 // +-----------------------------------------------------------------------+
 // |                         DISPLAY LANGUAGES
 // +-----------------------------------------------------------------------+
-// statistics (must be computed with a clean rank)
+// update statistics
+if ( time() - strtotime(get_cache_date($page['section'], null)) > $conf['stats_cache_life'] )
+{
+  make_section_stats($page['section']);
+}
+  
+// get statistics (must be computed with a clean rank)
 if ($conf['use_stats'])
 {
   $old_section_rank = $conf['all_sections'][$page['section']]['rank'];
   $conf['all_sections'][$page['section']]['rank'] = 1;
 
-  if ( time() - strtotime(get_cache_date($page['section'], null)) > $conf['stats_cache_life'] )
-  {
-    make_section_stats($page['section']);
-  }
   $stats = get_cache_stats($page['section'], null, 'language');
   $section_stats = get_cache_stats($page['section'], null, 'all');
   

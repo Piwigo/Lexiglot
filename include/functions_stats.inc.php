@@ -171,7 +171,6 @@ function make_full_stats($save=true)
 function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
 {
   global $conf;
- if (!$conf['use_stats']) return array();
   
   $where_clauses = array('1=1');
   if (!empty($Slanguage))
@@ -272,7 +271,6 @@ SELECT * FROM (
 function get_cache_date($section=null, $language=null)
 {
   global $conf;
-  if (!$conf['use_stats']) return '0000-00-00 00:00:00';
   
   $where_clauses = array('1=1');
   if (!empty($language))

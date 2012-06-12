@@ -74,10 +74,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     }
   }
   
-  if ($conf['use_stats'])
-  {
-    make_stats($page['section'], $page['language']);
-  }
+  make_stats($page['section'], $page['language']);
   
   $_SESSION['page_infos'][] = 'Strings saved';
   redirect();   

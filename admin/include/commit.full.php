@@ -317,11 +317,7 @@ UPDATE '.ROWS_TABLE.'
     }
   }
   
-  if ($conf['use_stats'])
-  {
-    make_stats($commit['section'], $commit['language']);
-  }
-  
+  make_stats($commit['section'], $commit['language']);  
   unset($commit);
 }
 

@@ -73,6 +73,11 @@ tr.highlight td {
     text-align: right;
     padding-right: 10px;
   }
+  .main-language img {
+    box-shadow:0px 0px 3px #f70;
+    border:1px solid #f70;
+    margin:-1px 1px;
+  }
   
 /* PROJECTS PAGE */
 #sections {}

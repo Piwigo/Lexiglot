@@ -290,15 +290,13 @@ UPDATE '.USER_INFOS_TABLE.'
 ;';
     mysql_query($query);
     
-    // generate stats
-    if ($conf['use_stats'])
-    {
-      $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
-      $conf['all_languages'] = hash_from_query($query, 'id');
-      ksort($conf['all_languages']);
+    // update languages array
+    $query = 'SELECT * FROM '.LANGUAGES_TABLE.' WHERE id = "'.$_POST['id'].'";';
+    $conf['all_languages'][ $_POST['id'] ] = mysql_fetch_assoc(mysql_query($query)); 
+    ksort($conf['all_languages']);
       
-      make_language_stats($_POST['id']);
-    }
+    // generate stats
+    make_language_stats($_POST['id']);
     
     array_push($page['infos'], 'Language added');
     $highlight_language = $_POST['id'];
@@ -538,7 +536,7 @@ echo '
           <a href="'.get_url_string(array('lang_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
-          '.($conf['use_stats'] ? '<a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>' : null).'
+          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
           '.($conf['default_language'] != $row['id'] ? '<a href="'.get_url_string(array('delete_lang'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
             <img src="template/images/cross.png" alt="[x]"></a>' : null).'
         </td>

@@ -150,8 +150,8 @@ echo '
   
   <ul style="float:left;">
     <h5>Maintenance</h5>
-    '.($conf['use_stats'] ? '<li><a href="'.get_url_string(array('action'=>'make_stats')).'">Update all statistics</a></li>' : null).'
-    '.(!$conf['delete_done_rows'] ? '<li><a href="'.get_url_string(array('action'=>'delete_done_rows')).'">Delete all commited strings</a></li>' : null).'
+    <li><a href="'.get_url_string(array('action'=>'make_stats')).'">Update all statistics</a></li>
+    '.(!$conf['delete_done_rows'] ? '<li><a href="'.get_url_string(array('action'=>'delete_done_rows')).'" onclick="return confirm(\'Are you sure?\');">Delete all commited strings</a></li>' : null).'
   </ul>
   
   <div style="clear:both;"></div>
