@@ -25,6 +25,13 @@ defined('PATH') or die('Hacking attempt!');
 // |                        PREVIEW COMMIT
 // +-----------------------------------------------------------------------+
 
+// only use this with 'array_walk'
+function print_username(&$item, $key)
+{
+  global $_USERS;
+  $item = $_USERS[$item]['username'];
+}
+
 // legend
 echo '
 <form id="check_commit" action="admin.php?page=commit" method="post">
@@ -37,9 +44,9 @@ echo '
   {
     // commit infos
     list($commit['section'], $commit['language']) = explode('||', $props);
-    $commit['users'] = array();
     $commit['path'] = $conf['local_dir'].$commit['section'].'/'.$commit['language'].'/';
     $commit['is_new'] = dir_is_empty($commit['path']);
+    $commit['users'] = array();
     
     echo '
     <tr><td class="title commit" colspan="2">
@@ -64,7 +71,7 @@ echo '
         if (is_plain_file($file_infos['name']))
         {
           $row = $file_content[ $file_infos['name'] ];
-          $commit['users'][ $row['user_id'] ] = $_USERS[ $row['user_id'] ]['username'];
+          array_push($commit['users'], $row['user_id']);
           
           echo '
           <tr>
@@ -91,7 +98,8 @@ echo '
             foreach ($file_content as $key => $row)
             {
               if (!isset($_LANG_default[$key])) continue;
-              $commit['users'][ $row['user_id'] ] = $_USERS[$row['user_id']]['username'];
+              
+              array_push($commit['users'], $row['user_id']);
               
               echo '
               <tr class="'.$row['status'].' '.($i%2==0?'odd':'even').'">
@@ -124,7 +132,12 @@ echo '
       echo '
       </table>
     </td>
-    </tr>
+    </tr>';
+    
+    $commit['users'] = array_unique($commit['users']);
+    array_walk($commit['users'], 'print_username');
+  
+    echo '
     <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' language '.get_language_name($commit['language']).', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
     
     unset($commit);

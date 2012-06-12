@@ -170,14 +170,14 @@ UPDATE '.USER_INFOS_TABLE.'
   // reload the profile
   $user = build_user($user['id']);
   
-  array_push($page['infos'], 'Pofile saved.');
+  array_push($page['infos'], 'Profile saved.');
 }
 
 // +-----------------------------------------------------------------------+
-// |                         PUBLIC PROFILE PAGE
+// |                         PROFILE PAGE
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['user_id']) )
-{ 
+{
   if ($_GET['user_id'] == $conf['guest_id'])
   {
     $_GET['user_id'] = 0;
@@ -191,7 +191,268 @@ if ( isset($_GET['user_id']) )
   }
   else
   {
+    $page['window_title'] = $page['title'] = $local_user['username'];
+  }
+}
+else if (!is_guest())
+{
+  $local_user = $user;
+  define('PRIVATE_PROFILE', true);
+  
+  $page['window_title'] = $page['title'] = 'Profile';
+
+  if (isset($_GET['new']))
+  {
+    array_push($page['infos'], '<b>Welcome on '.strip_tags($conf['install_name']).' !</b> Your registration is almost complete...<br>
+      Before all please say us what languages you can speak, this way your registration as translator will be faster.
+      ');
+  }
+}
+else
+{
+  redirect('index.php');
+}
+  
+if ($local_user)
+{
+  /* public profile */
+  echo '
+  <form action="" method="post"> 
+    <fieldset class="common">
+      <legend>Public profile</legend>
+      <table class="login">
+        <tr>
+          <td>Username :</td>
+          <td>'.$local_user['username'].'</td>
+        </tr>
+        <tr>
+          <td>Status :</td>
+          <td><i>'.$local_user['status'].'</i></td>
+        </tr>';
+        if ($local_user['email_privacy'] == 'public')
+        {
+          echo '
+          <tr>
+            <td>E-mail :</td>
+            <td><i><a href="mailto:'.$local_user['email'].'">'.$local_user['email'].'</a></i></td>
+          </tr>';
+        }
+        echo '
+        <tr>
+          <td>Languages assigned :</td>
+          <td>';
+          $f=1;
+          foreach ($local_user['languages'] as $lang)
+          {
+            if(!$f)echo ', ';$f=0;
+            echo '
+            <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
+          }
+          echo '</td>
+        </tr>
+        <tr>
+          <td>Projects assigned :</td>
+          <td>';
+          $f=1;
+          foreach ($local_user['sections'] as $section)
+          {
+            if(!$f)echo ', ';$f=0;
+            echo '
+            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+          }
+          echo '</td>
+        </tr>';
+      if ($local_user['status'] == 'manager')
+      {
+        echo '
+        <tr>
+          <td>Projects managed :</td>
+          <td>';
+          $f=1;
+          foreach ($local_user['manage_sections'] as $section)
+          {
+            if(!$f)echo ', ';$f=0;
+            echo '
+            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+          }
+          echo '</td>
+        </tr>';
+      }
+      echo '
+      </table>
+    </fieldset>';
+    
+    /* registration */
+    if ( defined('PRIVATE_PROFILE') and $conf['allow_profile'] )
+    {
+      echo '
+      <fieldset class="common">
+        <legend>Registration</legend>
+        <table class="login">
+          <tr>
+            <td><label for="email">Email address :</label></td>
+            <td><input type="text" name="email" id="email" size="25" maxlength="64" value="'.$local_user['email'].'"></td>
+          </tr>
+          <tr>
+            <td><label for="password_new">New password :</label></td>
+            <td><input type="password" name="password_new" id="password_new" size="25" maxlength="32"> <i>(leave blank to not change)</i></td>
+          </tr>
+          <tr>
+            <td><label for="password_confirm">Confirm password :</label></td>
+            <td><input type="password" name="password_confirm" id="password_confirm" size="25" maxlength="32"></td>
+          </tr>
+          <tr>
+            <td><label for="password">Current password :</label></td>
+            <td><input type="password" name="password" id="password" size="25" maxlength="32"></td>
+          </tr>
+        </table>
+      </fieldset>';
+    }
+    
+    /* preference */
+    if (defined('PRIVATE_PROFILE'))
+    {
+      echo '    
+      <fieldset class="common">
+        <legend>Preferences</legend>
+        <table class="login">
+          <tr>
+            <td>Languages I speak :</td>
+            <td>
+            '.(isset($_GET['new']) ? '<div class="ui-state-warning ui-corner-all" style="padding:5px;"> <span class="ui-icon ui-icon-info" style="float:left; margin:3px 5px 0 0;"></span>' : null).'
+              <select id="my_languages" name="my_languages[]" multiple="multiple" data-placeholder="Select languages..." style="width:500px;">';
+              foreach ($conf['all_languages'] as $row)
+              {
+                if ($row['id'] == $conf['default_language']) continue;
+                echo '
+                <option'.(in_array($row['id'],$user['my_languages']) ? ' selected="selected"' : null).' value="'.$row['id'].'" style="color:#111 !important;">'.$row['name'].'</option>';
+              }
+              echo '
+              </select>
+              <br>
+              <i>(please note this only for information, this doesn\'t change languages you have access to)</i>
+            '.(isset($_GET['new']) ? '</div>' : null).'
+            </td>
+          </tr>
+          <tr>
+            <td><label for="nb_rows">Number of rows per page :</label></td>
+            <td><input type="text" name="nb_rows" id="nb_rows" size="3" maxlength="3" value="'.$user['nb_rows'].'"></td>
+          </tr>
+          <tr>
+            <td>Email visibility :</td>
+            <td>
+              <label><input type="radio" name="email_privacy" value="public" '.($user['email_privacy']=='public' ? 'checked="checked"' : null).'> All registered users can view my email and send me messages</label><br>
+              <label><input type="radio" name="email_privacy" value="hidden" '.($user['email_privacy']=='hidden' ? 'checked="checked"' : null).'> Only admins can view my email and registered users can send me messages through Lexiglot</label><br>
+              <label><input type="radio" name="email_privacy" value="private" '.($user['email_privacy']=='private' ? 'checked="checked"' : null).'> Only admins can view my email and send me messages</label>
+            </td>
+          </tr>
+          <tr>
+            <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
+            <td><input type="submit" name="save_profile" value="Submit" class="blue"></td>
+          </tr>
+        </table>
+      </fieldset>';
+    
+      load_jquery('chosen');  
+      $page['script'].= '
+      $("#my_languages").chosen();';
+    }
+    
+    /* activity */
     $query = '
+SELECT 
+    COUNT(*) AS total,
+    LEFT(last_edit, 10) as day
+  FROM '.ROWS_TABLE.' 
+  WHERE user_id = '.$local_user['id'].'
+  GROUP BY day
+  ORDER BY last_edit ASC
+;';
+    $plot = hash_from_query($query);
+    
+    if (count($plot) > 0)
+    {
+      echo '
+      <fieldset class="common">
+        <legend>Activity</legend>
+        <div id="highstock" style="height: 350px;"></div>
+      </fieldset>';
+    
+      $json = array();
+      foreach ($plot as $row)
+      {
+        list($year, $month, $day) = explode('-', $row['day']);
+        if (!isset($json[0])) $json[0] = null;
+        $json[0].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
+      }
+      
+      // version displaying separated languages
+      // $json = array();
+      // foreach ($plot as $row)
+      // {
+        // list($year, $month, $day) = explode('-', $row['day']);
+        // if (!isset($json[ $row['lang'] ])) $json[ $row['lang'] ] = null;
+        // $json[ $row['lang'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
+      // }
+      
+      load_jquery('highstock', false);
+      $page['script'].= '
+      $(function() {
+        window.chart = new Highcharts.StockChart({
+          chart : {
+            renderTo : "highstock",
+          },
+
+          rangeSelector : {
+            buttons: [
+              {type: "month", count: 1, text: "1 month"}, 
+              {type: "month", count: 3, text: "3 months"}, 
+              {type: "month", count: 6, text: "6 months"}, 
+              {type: "year", count: 1, text: "1 year"}, 
+              {type: "year", count: 2, text: "2 years"}, 
+              {type: "all", text: "All"}
+            ],
+            buttonTheme: { width: 80},
+            selected : 0,
+          },
+          
+          scrollbar: {
+            barBackgroundColor: "#999",
+            barBorderRadius: 7,
+            barBorderWidth: 0,
+            rifleColor: "#333",
+            buttonBackgroundColor: "#999",
+            buttonBorderWidth: 0,
+            buttonBorderRadius: 7,
+            buttonArrowColor: "#333",
+            trackBackgroundColor: "none",
+            trackBorderWidth: 1,
+            trackBorderRadius: 8,
+            trackBorderColor: "#CCC",
+          },
+          
+          navigator: {
+            handles: {
+              backgroundColor: "#999",
+              borderColor: "#555",
+            },
+          },
+          
+          series : [';
+          foreach ($json as $lang => $data)
+          {
+            $page['script'].= '
+            {
+              name : "'.$lang.'",
+              data : ['.$data.'],
+            },';
+          }
+          $page['script'].= '
+          ],
+        });
+      });';
+    
+      /*$query = '
 SELECT 
     lang,
     section, 
@@ -204,76 +465,9 @@ SELECT
   ORDER BY last_edit DESC
   LIMIT 0,10
 ;';
-    $recent = hash_from_query($query, null);
-    
-    $page['window_title'] = $page['title'] = $local_user['username'];
-    
-    echo '
-    <form action="" method="post"> 
-      <fieldset class="common">
-        <legend>Profile</legend>
-        <table class="login">
-          <tr>
-            <td>Username :</td>
-            <td>'.$local_user['username'].'</td>
-          </tr>
-          <tr>
-            <td>Status :</td>
-            <td><i>'.$local_user['status'].'</i></td>
-          </tr>';
-          if ($local_user['email_privacy'] == 'public')
-          {
-            echo '
-            <tr>
-              <td>E-mail :</td>
-              <td><i><a href="mailto:'.$local_user['email'].'">'.$local_user['email'].'</a></i></td>
-            </tr>';
-          }
-          echo '
-          <tr>
-            <td>Languages assigned :</td>
-            <td>';
-            $f=1;
-            foreach ($local_user['languages'] as $lang)
-            {
-              if(!$f)echo ', ';$f=0;
-              echo '
-              <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
-            }
-            echo '</td>
-          </tr>
-          <tr>
-            <td>Projects assigned :</td>
-            <td>';
-            $f=1;
-            foreach ($local_user['sections'] as $section)
-            {
-              if(!$f)echo ', ';$f=0;
-              echo '
-              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
-            }
-            echo '</td>
-          </tr>';
-        if ($local_user['status'] == 'manager')
-        {
-          echo '
-          <tr>
-            <td>Projects managed :</td>
-            <td>';
-            $f=1;
-            foreach ($local_user['manage_sections'] as $section)
-            {
-              if(!$f)echo ', ';$f=0;
-              echo '
-              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
-            }
-            echo '</td>
-          </tr>';
-        }
-        echo '
-        </table>
-      </fieldset>
+      $recent = hash_from_query($query, null);
       
+      echo '
       <fieldset class="common">
         <legend>Activity</legend>
         <table class="common">';
@@ -294,9 +488,17 @@ SELECT
           }
         echo '
         </table>
-      </fieldset>';
+      </fieldset>';*/
+    }
     
-    if ( is_admin() or ( !is_guest() and $local_user['email_privacy'] != 'private' ) )
+    /* contact */
+    if ( 
+      !defined('PRIVATE_PROFILE') and 
+      (
+        is_admin() or 
+        ( !is_guest() and $local_user['email_privacy'] != 'private' ) 
+      )
+    )
     {
       echo'
       <fieldset class="common">
@@ -321,8 +523,7 @@ SELECT
         </table>
       </fieldset>';
       
-      $page['header'].= '
-      <script type="text/javascript" src="template/js/jquery.autoresize.min.js"></script>';
+      load_jquery('autoresize', false);
       $page['script'].= '
       $("textarea").autoResize({
         maxHeight:2000,
@@ -330,195 +531,8 @@ SELECT
       });';
     }
     
-    echo '
-    </form>';
-  }
-}
-
-// +-----------------------------------------------------------------------+
-// |                         PRIVATE PROFILE PAGE
-// +-----------------------------------------------------------------------+
-else if ( !is_guest() ) 
-{
-  $page['window_title'] = $page['title'] = 'Profile';
-
-  if (isset($_GET['new']))
-  {
-    array_push($page['infos'], '
-      <b>Welcome on '.strip_tags($conf['install_name']).' !</b> Your registration is almost complete...<br>
-      Before all please say us what languages you can speak, this way your registration as translator will be faster.
-      ');
-  }
-  
-  $query = '
-SELECT 
-    lang,
-    section, 
-    LEFT(last_edit, 10) as date,
-    COUNT(CONCAT(lang, section, LEFT(last_edit, 10))) as count
-  FROM '.ROWS_TABLE.'
-  WHERE 
-    user_id = '.$user['id'].'
-  GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
-  ORDER BY last_edit DESC
-  LIMIT 0,10
-;';
-  $recent = hash_from_query($query, null);
-  
   echo '
-  <form action="" method="post"> 
-    <fieldset class="common">
-      <legend>Account properties</legend>
-      <table class="login">
-        <tr>
-          <td>Username :</td>
-          <td>'.$user['username'].'</td>
-        </tr>
-        <tr>
-          <td>Status :</td>
-          <td><i>'.$user['status'].'</i></td>
-        </tr>
-        <tr>
-          <td>Languages assigned :</td>
-          <td>';
-          $f=1;
-          foreach ($user['languages'] as $lang)
-          {
-            if(!$f)echo ', ';$f=0;
-            echo '
-            <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
-          }
-          echo '</td>
-        </tr>
-        <tr>
-          <td>Projects assigned :</td>
-          <td>';
-          $f=1;
-          foreach ($user['sections'] as $section)
-          {
-            if(!$f)echo ', ';$f=0;
-            echo '
-            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
-          }
-          echo '</td>
-        </tr>';
-        if ($user['status'] == 'manager')
-        {
-          echo '
-          <tr>
-            <td>Projects managed :</td>
-            <td>';
-            $f=1;
-            foreach ($user['manage_sections'] as $section)
-            {
-              if(!$f)echo ', ';$f=0;
-              echo '
-              <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
-            }
-            echo '</td>
-          </tr>';
-        }
-        echo '
-      </table>
-    </fieldset>';
-    
-    if ($conf['allow_profile'])
-    {
-      echo '
-    <fieldset class="common">
-      <legend>Registration</legend>
-      <table class="login">
-        <tr>
-          <td><label for="email">Email address :</label></td>
-          <td><input type="text" name="email" id="email" size="25" maxlength="64" value="'.$user['email'].'"></td>
-        </tr>
-        <tr>
-          <td><label for="password_new">New password :</label></td>
-          <td><input type="password" name="password_new" id="password_new" size="25" maxlength="32"> <i>(leave blank to not change)</i></td>
-        </tr>
-        <tr>
-          <td><label for="password_confirm">Confirm password :</label></td>
-          <td><input type="password" name="password_confirm" id="password_confirm" size="25" maxlength="32"></td>
-        </tr>
-        <tr>
-          <td><label for="password">Current password :</label></td>
-          <td><input type="password" name="password" id="password" size="25" maxlength="32"></td>
-        </tr>
-      </table>
-    </fieldset>';
-    }
-    
-    echo '    
-    <fieldset class="common">
-      <legend>Preferences</legend>
-      <table class="login">
-        <tr>
-          <td>Languages I speak :</td>
-          <td>
-          '.(isset($_GET['new']) ? '<div class="ui-state-warning ui-corner-all" style="padding:5px;"> <span class="ui-icon ui-icon-info" style="float:left; margin:3px 5px 0 0;"></span>' : null).'
-            <select id="my_languages" name="my_languages[]" multiple="multiple" data-placeholder="Select languages..." style="width:500px;">';
-            foreach ($conf['all_languages'] as $row)
-            {
-              if ($row['id'] == $conf['default_language']) continue;
-              echo '
-              <option'.(in_array($row['id'],$user['my_languages']) ? ' selected="selected"' : null).' value="'.$row['id'].'">'.$row['name'].'</option>';
-            }
-            echo '
-            </select>
-            <br>
-            <i>(please note this only for information, this doesn\'t change languages you have access to)</i>
-          '.(isset($_GET['new']) ? '</div>' : null).'
-          </td>
-        </tr>
-        <tr>
-          <td><label for="nb_rows">Number of rows per page :</label></td>
-          <td><input type="text" name="nb_rows" id="nb_rows" size="3" maxlength="3" value="'.$user['nb_rows'].'"></td>
-        </tr>
-        <tr>
-          <td>Email visibility :</td>
-          <td>
-            <label><input type="radio" name="email_privacy" value="public" '.($user['email_privacy']=='public' ? 'checked="checked"' : null).'> All registered users can view my email and send me messages</label><br>
-            <label><input type="radio" name="email_privacy" value="hidden" '.($user['email_privacy']=='hidden' ? 'checked="checked"' : null).'> Only admins can view my email and registered users can send me messages through Lexiglot</label><br>
-            <label><input type="radio" name="email_privacy" value="private" '.($user['email_privacy']=='private' ? 'checked="checked"' : null).'> Only admins can view my email and send me messages</label>
-          </td>
-        </tr>
-        <tr>
-          <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
-          <td><input type="submit" name="save_profile" value="Submit" class="blue"></td>
-        </tr>
-      </table>
-    </fieldset>
-    
-    <fieldset class="common">
-      <legend>Activity</legend>
-      <table class="common">';
-        foreach ($recent as $row)
-        {
-          echo '
-          <tr>
-            <td>'.format_date($row['date'],0,0).'</td>
-            <td><b>'.$row['count'].'</b> string(s)</td>
-            <td><i>'.get_section_name($row['section']).'</i></td>
-            <td><i>'.get_language_name($row['lang']).'</i></td>
-          </tr>';
-        }
-        if (!count($recent))
-        {
-          echo '
-          <tr><td>No recent activity</td></tr>';
-        }
-      echo '
-      </table>
-    </fieldset>
   </form>';
-  
-  load_jquery('chosen');  
-  $page['script'].= '
-  $("#my_languages").chosen();';
-}
-else
-{
-  redirect('index.php');
 }
 
 load_jquery('tiptip');

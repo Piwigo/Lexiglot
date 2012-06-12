@@ -137,7 +137,7 @@ function upload_flag($file, $name)
 }
 
 /**
- * search to the end of the row and delete the row
+ * search the end of the row and delete the row (doesn't delete the first line of the row)
  * @param array
  * @param int start
  * @return void
@@ -147,7 +147,7 @@ function unset_to_eor(&$array, $i)
   global $conf;
   
   $temp_file = array_slice($array, $i);
-  $eor = $i + array_pos('#(\'|");( *)$#', $temp_file, false, true);
+  $eor = $i + array_pos('#(\'|");(\s*)$#', $temp_file, false, true);
   for ($l=$i+1; $l<=$eor; $l++) unset($array[$l]);
   
   unset($temp_file);

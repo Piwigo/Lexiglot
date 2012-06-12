@@ -127,7 +127,7 @@ function load_language($section, $language, $filename, $row_name=null)
   }
   
   $out = array_merge($file, $db);
-  uasort($out, create_function('$a,$b', 'return strcmp($a["row_name"], $b["row_name"]);'));
+  uasort($out, create_function('&$a,&$b', 'return strcmp($a["row_name"], $b["row_name"]);'));
   
   return $out;
 }
@@ -172,6 +172,7 @@ function load_language_file($section, $language, $filename)
     }
   }
   
+  $out = array_map(create_function('&$v', 'clean_eol($v["row_value"]);return $v;'), $out);
   return $out;
 }
 
@@ -189,6 +190,8 @@ function load_language_file_plain($section, $language, $filename)
         )
       );
   }
+  
+  clean_eol($out[ $filename ]['row_value']);
   return $out;
 }
 

@@ -312,28 +312,28 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
   $subject = '=?UTF-8?B?'.base64_encode($subject).'?='; // deal with utf-8
 
   // headers
-  $headers = 'From: '.$args['from']."\r\n";
-  $headers.= 'Reply-To: '.$args['from']."\r\n";
+  $headers = 'From: '.$args['from']."\n";
+  $headers.= 'Reply-To: '.$args['from']."\n";
 
   if (!empty($args['cc']))
   {
-    $headers.= 'Cc: '.implode(',', $args['cc'])."\r\n";
+    $headers.= 'Cc: '.implode(',', $args['cc'])."\n";
   }
 
   if (!empty($args['bcc']))
   {
-    $headers.= 'Bcc: '.implode(',', $args['bcc'])."\r\n";
+    $headers.= 'Bcc: '.implode(',', $args['bcc'])."\n";
   }
 
   if (!empty($args['notification']))
   {
-    $headers.= 'Disposition-Notification-To: '.$args['notification']."\r\n";
-    $headers.= 'Return-Receipt-To: '.$args['notification']."\r\n";
+    $headers.= 'Disposition-Notification-To: '.$args['notification']."\n";
+    $headers.= 'Return-Receipt-To: '.$args['notification']."\n";
   }
 
-  $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\r\n";
-  $headers.= 'X-Mailer: Lexiglot'."\r\n";
-  $headers.= 'MIME-Version: 1.0'."\r\n";
+  $headers.= 'X-Mailer: Lexiglot'."\n";
+  $headers.= 'MIME-Version: 1.0'."\n";
+  $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\n";
 
   // content
   if ($args['content_format'] == 'text/plain')

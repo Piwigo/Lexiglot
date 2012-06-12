@@ -37,6 +37,7 @@ if ( isset($_POST['submit']) and $is_translator )
   {
     $key = $row['row_name'];
     $text = $row['row_value'];
+    clean_eol($text);
     
     if (
       !empty($text) and 

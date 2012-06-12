@@ -36,6 +36,7 @@ if ( isset($_POST['submit']) and $is_translator )
   }
   
   $text = $_POST['row_value'];
+  clean_eol($text);
 
   // test if the new value is really new (in file and in database)
   if (  

@@ -151,15 +151,18 @@ function file_exists_strict($file)
 }
 
 /**
- * check if a folder is empty
+ * check if a folder is empty (a directory with just '.svn' is empty)
  * @param string path
  * @return bool
  */
-function dir_is_empty($dir)
+function dir_is_empty($dirname)
 {
-  if (!is_dir($dir)) return false;
-  $array = scandir($dir);
-  if (count($array) > 2) return false;
+  if (!is_dir($dirname)) return false;
+  $dir = scandir($dirname);
+  foreach ($dir as $file)
+  {
+    if (!in_array(array('.','..','.svn'), $file)) return false;
+  }
   return true;
 }
 
@@ -405,6 +408,12 @@ function implode_array($array, $sep1=';', $sep2=',') {
   }
   
   return $result;
+}
+
+function clean_eol(&$val)
+{
+  global $conf;
+  $val = str_replace(array("\r\n","\r","\n"), $conf['eol'], $val);
 }
 
 /**

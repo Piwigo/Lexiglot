@@ -91,6 +91,22 @@ foreach ($_ROWS as $props => $files)
       {
         $sub_string = is_sub_string($key);
         
+        /* we search for
+          $lang['a key']
+          $lang["a key"]
+          $lang[a key]
+        */
+        /*if ($sub_string !== false)
+        {
+          $sub = $sub_string;
+          $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$sub[0]).'\'|"'.str_replace('"','\\"',$sub[0]).'"|'.$sub[0].')\]\[(\''.str_replace("'","\\'",$sub[1]).'\'|"'.str_replace('"','\\"',$sub[1]).'"|'.$sub[1].')\]#';
+        }
+        else
+        {
+          $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$key).'\'|"'.str_replace('"','\\"',$key).'"|'.$key.')\]#';
+
+        }*/
+        
         // supposing how the file line should looks like
         switch ($conf['quote'])
         {
@@ -113,10 +129,14 @@ foreach ($_ROWS as $props => $files)
         // remove obsolete row, and continue to the next
         if (!isset($_LANG_default[$key]))
         {
-          if ( !$file_infos['is_new'] and isset($_POST['delete_obsolete']) and ($i = array_pos($row['search'], $_FILE)) !== false )
+          if ( 
+            !$file_infos['is_new'] and
+            isset($_POST['delete_obsolete']) and
+            ($i = array_pos($row['search'], $_FILE)) !== false
+          )
           {
             // if the end of the line is not the end of the row, we search the end into lines bellow
-            if ( !preg_match('#(\'|");( *)$#', $_FILE[$i]) )
+            if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
             {
               unset_to_eor($_FILE, $i);
             }
@@ -126,10 +146,13 @@ foreach ($_ROWS as $props => $files)
         }
         
         // update existing line
-        if ( !$file_infos['is_new'] and ($i = array_pos($row['search'], $_FILE)) !== false )
+        if (
+          !$file_infos['is_new'] and 
+          ($i = array_pos($row['search'], $_FILE)) !== false
+        )
         {
           // if the end of the line is not the end of the row, we search the end into lines bellow
-          if ( !preg_match('#(\'|");( *)$#', $_FILE[$i]) )
+          if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
           {
             unset_to_eor($_FILE, $i);
           }
@@ -150,33 +173,36 @@ foreach ($_ROWS as $props => $files)
       {
         foreach ($_LANG as $key => $row)
         {
-          // supposing how the file line should looks like
-          switch ($conf['quote'])
-          {
-            case "'":
-              if ($sub_string !== false)
-                $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
-              else
-                $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
-              break;
-            case '"':
-              if ($sub_string !== false)
-                $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
-              else
-                $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
-              break;
-          }
-        
           // here we skip rows that were in the database, already deleted
           if ( !isset($_LANG_default[$key]) and !isset($file_content[$key]) )
           {
+            $sub_string = is_sub_string($key);
+            
+            // supposing how the file line should looks like
+            switch ($conf['quote'])
+            {
+              case "'":
+                if ($sub_string !== false)
+                  $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+                else
+                  $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+                break;
+              case '"':
+                if ($sub_string !== false)
+                  $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+                else
+                  $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+                break;
+            }
+          
             $i = array_pos($row['search'], $_FILE);
             // if the end of the line is not the end of the row, we search the end into lines bellow
-            if ( !preg_match('#(\'|");( *)$#', $_FILE[$i]) )
+            if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
             {
               unset_to_eor($_FILE, $i);
             }
             unset($_FILE[$i]);
+            
             array_push($file_infos['done_rows'], $row['id']);
           }
         }
@@ -251,6 +277,7 @@ foreach ($_ROWS as $props => $files)
   {
     array_push($page['errors'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': failed<br>'.implode('<br>', $commit['errors']));
   }
+  
   // some errors in files creation
   if ( count($commit['done_rows']) > 0 and count($commit['errors']) > 0 )
   {

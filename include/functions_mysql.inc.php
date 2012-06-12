@@ -80,6 +80,26 @@ function hash_from_query($query, $fieldname=null)
 }
 
 /**
+ * creates an simple associative array based on a query
+ * @param text query
+ * @param string fieldname
+ * @param string fieldname
+ * @return array
+ */
+function simple_hash_from_query($query, $key, $value)
+{
+  $array = array();
+
+  $result = mysql_query($query);
+  while ($row = mysql_fetch_assoc($result))
+  {
+    $array[ $row[$key] ] = $row[$value];
+  }
+
+  return $array;
+}
+
+/**
  * creates an one-depth array based on a query
  * @param text $query
  * @param string $fieldname
