@@ -14,7 +14,16 @@ function overlayMessage(msg, msg_class, $trigger) {
     
     $("#overlay-message").remove();
     $("#the_page").prepend('<div id="overlay-message" class="ui-state-'+ msg_class +'" style="padding: 0.7em;"><span class="ui-icon ui-icon-'+ icon +'" style="float: left; margin-right: 0.7em;"></span>'+ msg +'</div>');
-    $("#overlay-message").css({"top":offset.top-$(window).scrollTop()-24, "left":offset.left-$("#overlay-message").outerWidth()+45}).fadeIn("slow").delay(2000).fadeOut("slow", function(){ $(this).remove() });
+    $("#overlay-message")
+      .css({
+        "top": offset.top-$(window).scrollTop()-24, 
+        "left": offset.left-$(this).outerWidth()+45
+        })
+      .fadeIn("slow")
+      .delay(2000)
+      .fadeOut("slow", function(){
+        $(this).remove()
+      });
 }
 
 

@@ -20,22 +20,23 @@
 // +-----------------------------------------------------------------------+
 
 defined('PATH') or die('Hacking attempt!');
+isset($local_user) or die('Hacking attempt!');
 
 $my_languages =  !empty($local_user['my_languages']) ? '"'.implode_array(create_permissions_array($local_user['my_languages'])).'"' : 'NULL';
 $all_languages = implode_array(create_permissions_array(array_keys($conf['all_languages'])));
 $all_sections =  implode_array(create_permissions_array(array_keys($conf['all_sections'])));
 
-switch ($old_status.'->'.$new_status)
+switch ($local_user['status'].'->'.$new_status)
 {
   // * to manager (check manage_perms)
   case 'translator->manager':
   case 'admin->manager':
-    array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.DEFAULT_MANAGER_PERMS.'\')');
+    array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.$conf['default_manager_perms'].'\')');
     break;
     
   // visitor to manager (languages/sections depend on config & check manage_perms)
   case 'visitor->manager':
-    array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.DEFAULT_MANAGER_PERMS.'\')');
+    array_push($sets, 'manage_perms = \''.$conf['default_manager_perms'].'\'');
     
   // visitor to translator (languages/sections depend on config)
   case 'visitor->translator':
@@ -65,8 +66,14 @@ switch ($old_status.'->'.$new_status)
   case 'translator->visitor':
   case 'manager->visitor':
   case 'admin->visitor':
+    array_push($sets, 'manage_perms = NULL');
     array_push($sets, 'languages = NULL');
     array_push($sets, 'sections = NULL');
+    break;
+    
+  // others, do nothing
+  case 'manager->translator':
+  case 'admin->translator':
     break;
 }
 

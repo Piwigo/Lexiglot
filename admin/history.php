@@ -86,7 +86,7 @@ $search = array(
   'limit' =>    array('=', 50),
   );
 
-$where_clauses = session_search($search, 'history_search', array('limit','sections'));
+$where_clauses = session_search($search, 'history_search', array('limit'));
 
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
@@ -99,13 +99,17 @@ SELECT COUNT(1)
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav');
+$paging = compute_pagination($total, get_search_value('limit'), 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], array_combine($user['manage_sections'], $user['manage_sections']));
-array_push($where_clauses, 'l.section IN("'.implode('","', array_keys($displayed_sections)).'")');
+$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], create_permissions_array($user['manage_sections']));
+
+if (is_manager())
+{
+  array_push($where_clauses, 'l.section IN("'.implode('","', array_keys($displayed_sections)).'")');
+}
 
 $query = '
 SELECT 
@@ -113,7 +117,7 @@ SELECT
     u.'.$conf['user_fields']['username'].' as username
   FROM '.ROWS_TABLE.' as l
     INNER JOIN '.USERS_TABLE.' as u
-    ON l.user_id = u.'.$conf['user_fields']['id'].'
+      ON l.user_id = u.'.$conf['user_fields']['id'].'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   ORDER BY last_edit DESC
@@ -124,7 +128,7 @@ $_ROWS = hash_from_query($query, null);
 
 // get users infos
 $_USERS = get_users_list(
-  array('i.status = "translator" OR i.status = "admin"'), null
+  array('i.status IN( "translator", "manager", "admin" )'), null
   );
 
 // +-----------------------------------------------------------------------+
@@ -148,47 +152,47 @@ echo '
     <tr>
       <td>
         <select name="user_id">
-          <option value="-1" '.('-1'==$search['user_id'][1]?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.(-1==get_search_value('user_id')?'selected="selected"':'').'>-------</option>';
           foreach ($_USERS as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['user_id'][1]?'selected="selected"':'').'>'.$row['username'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('user_id')?'selected="selected"':'').'>'.$row['username'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
         <select name="lang">
-          <option value="-1" '.('-1'==$search['lang'][1]?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.(-1==get_search_value('lang')?'selected="selected"':'').'>-------</option>';
           foreach ($conf['all_languages'] as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['lang'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('lang')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
         <select name="section">
-          <option value="-1" '.('-1'==$search['section'][1]?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.(-1==get_search_value('section')?'selected="selected"':'').'>-------</option>';
           foreach ($displayed_sections as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['section'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('section')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
         <select name="status">
-          <option value="-1" '.('-1'==$search['status'][1]?'selected="selected"':'').'>-------</option>
-          <option value="new" '.('new'==$search['status'][1]?'selected="selected"':'').'>Added</option>
-          <option value="edit" '.('edit'==$search['status'][1]?'selected="selected"':'').'>Modified</option>
-          <option value="done" '.('done'==$search['status'][1]?'selected="selected"':'').'>Commited</option>
+          <option value="-1" '.(-1==get_search_value('status')?'selected="selected"':'').'>-------</option>
+          <option value="new" '.('new'==get_search_value('status')?'selected="selected"':'').'>Added</option>
+          <option value="edit" '.('edit'==get_search_value('status')?'selected="selected"':'').'>Modified</option>
+          <option value="done" '.('done'==get_search_value('status')?'selected="selected"':'').'>Commited</option>
         </select>
       </td>
       <td>
-        <input type="text" size="3" name="limit" value="'.$search['limit'][1].'">
+        <input type="text" size="3" name="limit" value="'.get_search_value('limit').'">
       </td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
@@ -223,18 +227,24 @@ echo '
     {
       echo '
       <tr class="'.$row['status'].'">
-        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
+        <td class="chkb">
+          <input type="checkbox" name="select[]" value="'.$row['id'].'">
+        </td>
         <td class="lang">
           <a href="'.get_url_string(array('page'=>'languages','lang_id'=>$row['lang']), true).'">'.get_language_name($row['lang']).'</a>
         </td>
         <td class="section">
           <a href="'.get_url_string(array('page'=>'projects','section_id'=>$row['section']), true).'">'.get_section_name($row['section']).'</a>
         </td>
-        <td class="file">'.$row['file_name'].'</td>
+        <td class="file">
+          '.$row['file_name'].'
+        </td>
         <td class="user">
           <a href="'.get_url_string(array('page'=>'users','user_id'=>$row['user_id']), true).'">'.$row['username'].'</a>
         </td>
-        <td class="date"><span style="display:none;">'.strtotime($row['last_edit']).'</span>'.format_date($row['last_edit'], true, false).'</td>
+        <td class="date">
+          <span style="display:none;">'.strtotime($row['last_edit']).'</span>'.format_date($row['last_edit'], true, false).'
+        </td>
         <td class="value">
           <pre class="row_value" title="'.str_replace('"',"'",$row['row_name']).'">'.cut_string(htmlspecialchars($row['row_value']), 400).'</pre>
         </td>

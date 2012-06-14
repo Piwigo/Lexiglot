@@ -37,7 +37,7 @@ switch ($_POST['selectAction'])
     {
       array_push($page['errors'], 'For security reasons you must confirm the deletion.');
     }
-    else
+    else if (is_admin())
     {
       if (USERS_TABLE == DB_PREFIX.'users')
       {
@@ -73,7 +73,7 @@ DELETE FROM '.USER_INFOS_TABLE.'
     {
       array_push($page['errors'], 'Wrong status !');
     }
-    else
+    else if (is_admin())
     {
       $query = '
 UPDATE '.USER_INFOS_TABLE.'
@@ -82,6 +82,7 @@ UPDATE '.USER_INFOS_TABLE.'
   WHERE 
     user_id IN('.implode(',', $selection).')
     AND user_id NOT IN ('.implode(',', $forbid_ids).')
+    AND user_id != '.$conf['guest_id'].'
 ;';
       mysql_query($query);
       
@@ -98,7 +99,7 @@ UPDATE '.USER_INFOS_TABLE.'
     {
       array_push($page['errors'], 'Wrong language !');
     }
-    else
+    else if (is_admin())
     {
       $query = '
 UPDATE '.USER_INFOS_TABLE.'
@@ -132,7 +133,7 @@ UPDATE '.USER_INFOS_TABLE.'
     {
       array_push($page['errors'], 'Wrong language !');
     }
-    else
+    else if (is_admin())
     {
       $users = get_users_list(
         array(

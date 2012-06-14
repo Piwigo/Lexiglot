@@ -27,7 +27,7 @@ defined('PATH') or die('Hacking attempt!');
 if ( isset($_POST['submit']) and $is_translator )
 {
   // note that the key never expires, translation can take a while!
-  if (!verify_ephemeral_key(@$_POST['key'], __FILE__, false))
+  if (!verify_ephemeral_key(@$_POST['key'], '', false))
   {
     array_push($page['errors'], 'Invalid/expired form key');
     print_page();
@@ -183,9 +183,11 @@ $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 // +-----------------------------------------------------------------------+
 // |                         DISPLAY ROWS
 // +-----------------------------------------------------------------------+  
-// legend
+// toolbar
 echo '
-<div class="pagination">'.display_pagination($paging).'</div>
+<div class="pagination">
+  '.display_pagination($paging).'
+</div>
 <div id="display_buttons">
   <a href="'.get_url_string(array('display'=>'all','erase_search'=>null), array('page')).'" 
     class="all '.($page['display']=='all'?'active display':null).'">All</a>
@@ -202,7 +204,7 @@ echo '
   <input type="text" name="needle" size="50" value="'.$search['needle'].'">
   &nbsp;&nbsp;Where ? 
     <label><input type="radio" name="where" value="row_value" '.($search['where']=='row_value' ? 'checked="checked"' : null).'> Translations</label> 
-    <label><input type="radio" name="where" value="original" '.($search['where']=='original' ? 'checked="checked"' : null).'> Source</label>
+    <label><input type="radio" name="where" value="original" '.($search['where']=='original' ? 'checked="checked"' : null).'> Reference</label>
   &nbsp;&nbsp;<input type="submit" name="search" value="Search" class="blue">
 </fieldset>
 </form>';
@@ -213,31 +215,35 @@ echo '
 <fieldset class="common">
   <legend></legend>
   
-  <table class="common">
-  <tr>
-    <th colspan="3" style="text-align:left;padding-bottom:5px;">
-      Change reference language to
-      <select onchange="document.location = this.options[this.selectedIndex].value;">';
-      foreach ($reference_languages as $row)
-      {
+  <table class="common">';
+  if (count($_DIFFS) > 0)
+  {
+    echo '
+    <tr>
+      <th colspan="3" style="text-align:left;padding-bottom:5px;">
+        Change reference language to
+        <select onchange="document.location = this.options[this.selectedIndex].value;">';
+        foreach ($reference_languages as $row)
+        {
+          echo '
+          <option value="'.get_url_string(array('ref'=>$row['id'],'erase_search'=>null)).'" 
+            '.($row['id']==$page['ref']?'selected="selected"':null).' 
+            '.(is_default_language($row['id'])?'style="font-weight:bold;background:#222;color:#eee;border-radius:0.6em;"':null).'
+            >'.$row['name'].'</option>';
+        }
+        echo '</select>';
+        if (!is_default_language($page['ref']))
+        {
+          echo '
+          <div class="ui-state-warning" style="display:inline-block;padding:0.3em;font-weight:normal;">
+            <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
+            Not using the default language ('.$conf['all_languages'][ $conf['default_language'] ]['name'].') as reference may provide incomplete translation table.
+          </div>';
+        }
         echo '
-        <option value="'.get_url_string(array('ref'=>$row['id'])).'" 
-          '.($row['id']==$page['ref']?'selected="selected"':null).' 
-          '.(is_default_language($row['id'])?'style="font-weight:bold;background:#222;color:#eee;"':null).'
-          >'.$row['name'].'</option>';
-      }
-      echo '</select>';
-      if (!is_default_language($page['ref']))
-      {
-        echo '
-        <div class="ui-state-warning" style="display:inline-block;padding:0.3em;font-weight:normal;">
-          <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-          Not using the default language ('.$conf['all_languages'][ $conf['default_language'] ]['name'].') as reference may provide incomplete translation table.
-        </div>';
-      }
-      echo '
-    </th>
-  </tr>';
+      </th>
+    </tr>';
+  }
   
   $i=1;
   foreach ($_DIFFS as $key => $row)
@@ -260,7 +266,7 @@ echo '
     
     // original value can be highlighted
     $original = htmlspecialchars($row['original']);
-    $original = $in_search && $search['where'] == 'original'
+    $original = ( $in_search && $search['where'] == 'original' )
              ? highlight_search_result($original, array_merge(array($search['needle']), $search['words'])) 
              : $original;
 
@@ -268,12 +274,12 @@ echo '
     <tr class="main '.($i%2!=0?'odd':'even').' '.$status.'">
       <td class="original"><pre>'.$original.'</pre></td>
       <td class="translation">
-        <textarea name="rows['.$i.'][row_name]" style="display:none;">'.proper_utf8($key).'</textarea>';
+        <textarea name="rows['.$i.'][row_name]" style="display:none;">'.htmlspecialchars_utf8($key).'</textarea>';
         if ($is_translator)
         { // textarea with dynamic height, highlight is done in javascript
           $area_lines = count_lines(!empty($text)?$text:$row['original'], 68);
           echo '
-          <textarea name="rows['.$i.'][row_value]" style="height:'.max($area_lines*1.1, 2.1).'em;" tabindex="'.$i.'">'.proper_utf8($text).'</textarea>';
+          <textarea name="rows['.$i.'][row_value]" style="height:'.max($area_lines*1.1, 2.1).'em;" tabindex="'.$i.'">'.htmlspecialchars_utf8($text).'</textarea>';
         }
         else if (!empty($text))
         { // highlight value in case of read-only display
@@ -314,7 +320,7 @@ echo '
     echo '
     <div class="ui-state-warning" style="padding: 0.7em;margin-bottom:10px;">
       <span class="ui-icon ui-icon-alert" style="float: left; margin-right: 0.7em;"></span>
-      No result
+      '.($in_search ? 'No result' : 'Translation complete').'
     </div>';
   }
   echo '
@@ -322,19 +328,24 @@ echo '
   
   '.(count($_DIFFS) >= 20 ? '<div class="pagination">'.display_pagination($paging).'</div>' : null).'
   <div class="centered">
-    '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'">
+    '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3).'">
     <input type="submit" name="submit" class="blue big" value="Save all" tabindex="'.($i+1).'">' : null).'
   </div>
 </fieldset>
-</form>
+</form>';
 
-<table class="legend">
-  <tr>
-    <td><span>&nbsp;</span> Up-to-date strings</td>
-    <td><span class="missing">&nbsp;</span> Untranslated strings</td>
-    <td><span class="new">&nbsp;</span> Newly translated strings</td>
-  </tr>
-</table>';
+// legend
+if (count($_DIFFS) > 0)
+{
+  echo '
+  <table class="legend">
+    <tr>
+      <td><span>&nbsp;</span> Up-to-date strings</td>
+      <td><span class="missing">&nbsp;</span> Untranslated strings</td>
+      <td><span class="new">&nbsp;</span> Newly translated strings</td>
+    </tr>
+  </table>';
+}
 
 // statistics
 if ($conf['use_stats'])

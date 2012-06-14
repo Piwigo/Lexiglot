@@ -23,6 +23,12 @@ defined('PATH') or die('Hacking attempt!');
 
 if (!file_exists(PATH.'config/database.inc.php'))
 {
+  if (!file_exists(PATH.'install.php'))
+  {
+    echo 'Unable to load <i>config/database.inc.php</i>';
+    exit();
+  }
+  
   header('Request-URI: install.php');
   header('Content-Location: install.php');
   header('Location: install.php');
@@ -133,7 +139,7 @@ if (!defined('IN_AJAX'))
   }
   
   // check SVN client
-  if ($conf['svn_activated'])
+  if ( is_admin() and $conf['svn_activated'] )
   {
     exec($conf['svn_path'].' 2>&1', $out);
     if ($out[0] != 'Type \'svn help\' for usage.')

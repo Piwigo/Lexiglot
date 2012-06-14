@@ -28,7 +28,8 @@ defined('PATH') or die('Hacking attempt!');
  *
  * @param string section
  * @param string language
- * @return float stat
+ * @param bool save in database
+ * @return float
  */
 function make_stats($section, $language, $save=true)
 {
@@ -43,7 +44,6 @@ function make_stats($section, $language, $save=true)
   else
   {
     $total = $translated = 0;
-    $directory = $conf['local_dir'].$section.'/';
     $files = explode(',', $conf['all_sections'][$section]['files']);
     
     foreach ($files as $file)
@@ -56,7 +56,7 @@ function make_stats($section, $language, $save=true)
       {
         $src_lenght = substr_count($_LANG_default[$file]['row_value'], $conf['eol'])+1;
         $total+= $src_lenght;
-        if ( !empty($_LANG) )
+        if (!empty($_LANG))
         {
           $translated+= $src_lenght;
         }
@@ -66,7 +66,7 @@ function make_stats($section, $language, $save=true)
       {
         foreach ($_LANG_default as $key => $row)
         {
-          if ( isset($_LANG[$key]) )
+          if (isset($_LANG[$key]))
           {
             $translated++;
           }
@@ -111,7 +111,8 @@ INSERT INTO '.STATS_TABLE.'(
 /**
  * make stats for a section
  * @param string section
- * @return array of floats stats
+ * @param bool save in database
+ * @return array of floats
  */
 function make_section_stats($section, $save=true)
 {
@@ -129,7 +130,8 @@ function make_section_stats($section, $save=true)
 /**
  * make stats for a language
  * @param string language
- * @return array of floats stats
+ * @param bool save in database
+ * @return array of floats
  */
 function make_language_stats($language, $save=true)
 {
@@ -146,7 +148,8 @@ function make_language_stats($language, $save=true)
 
 /**
  * make all stats
- * @return array of floats stats
+ * @param bool save in database
+ * @return array of floats
  */
 function make_full_stats($save=true)
 {
@@ -165,8 +168,8 @@ function make_full_stats($save=true)
  * get saved stats
  * @param string section
  * @param string language
- * @param string 'language','section','all'
- * @return array
+ * @param string sum stats (take ranks in account) (language|section|all)
+ * @return float or array of floats
  */
 function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
 {
@@ -246,13 +249,13 @@ SELECT * FROM (
       foreach ($from as $section)
       {
         $sub_num = $sub_denom = 0;
-        $from = !empty($Slanguage) ? array_keys($out[$section]) : array_keys($conf['all_languages']);
-        foreach ($from as $language)
+        $sub_from = !empty($Slanguage) ? array_keys($out[$section]) : array_keys($conf['all_languages']);
+        foreach ($sub_from as $language)
         {
           $sub_num+= @$out[$section][$language] * get_language_rank($language);
           $sub_denom+= get_language_rank($language);
         }
-        $num+= ($sub_num == 0 ? 0 : $sub_num/$sub_denom) * get_section_rank($section);
+        $num+= ( ($sub_num == 0) ? 0 : $sub_num/$sub_denom) * get_section_rank($section);
         $denom+= get_section_rank($section);
       }
       $out = ($num == 0) ? 0 : $num/$denom;
@@ -304,7 +307,7 @@ SELECT MIN(date)
  * @param float value
  * @param int width
  * @param bool display percentage inside the bar
- * @return string html
+ * @return string
  */
 function display_progress_bar($value, $width, $inside=true)
 {
@@ -328,4 +331,5 @@ function get_gauge_color($value, $color='light')
   $index = floor($value*(count(${$color})-1));
   return '#'.${$color}[$index];
 }
+
 ?>

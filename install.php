@@ -244,8 +244,11 @@ define('SALT_KEY', '".$_POST['salt_key']."');
     print_install_page();
   }
   
-  // duplicate config file
-  @copy(PATH.'config/config_default.inc.php', PATH.'config/config_local.inc.php');
+  // create blank config file
+  if (!file_exists(PATH.'config/config_local.inc.php'))
+  {
+    file_put_contents(PATH.'config/config_local.inc.php', "<?php\n\n\?>");
+  }
   
   // create tables
   execute_sqlfile(PATH.'config/structure.sql', 'lexiglot_', $_POST['dbprefix']);
@@ -255,9 +258,9 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   include(PATH.'/config/database.inc.php');
   
   // register guest and admin
-  mysql_query('INSERT INTO '.USERS_TABLE.'                                          VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
+  mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
   mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.$conf['guest_id'].', NOW(), "guest");'); 
-  mysql_query('INSERT INTO '.USERS_TABLE.'                                          VALUES(NULL, "'.$_POST['username'].'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
+  mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES(NULL, "'.$_POST['username'].'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
   mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.mysql_insert_id().', NOW(), "admin");');
   mysql_query('INSERT INTO '.CONFIG_TABLE.'(param, value)                           VALUES("version", "'.VERSION.'");');
   

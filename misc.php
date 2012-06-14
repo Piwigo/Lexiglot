@@ -30,14 +30,21 @@ if (isset($_POST['request_language']))
   if (!verify_ephemeral_key(@$_POST['key']))
   {
     array_push($page['errors'], 'Invalid/expired form key');
-    print_page();
+  }
+  else 
+  {
+    if (empty($_POST['language']))
+    {
+      array_push($page['errors'], 'Language name is empty');
+    }
+    if (strlen(@$_POST['message']) > 2000)
+    {
+      array_push($page['errors'], 'Message is too long. max: 2000 chars');
+    }
   }
   
-  if (empty($_POST['language'])) array_push($page['errors'], 'Language name is empty');
-  if (strlen(@$_POST['message']) > 2000) array_push($page['errors'], 'Message is too long. max: 2000 chars');
-  
   if (empty($page['errors']))
-  {    
+  {
     // send mail
     $subject = '['.strip_tags($conf['install_name']).'] New language request';
 

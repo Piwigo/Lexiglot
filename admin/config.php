@@ -48,11 +48,11 @@ if (isset($_POST['save_config']))
   if (function_exists('exec'))
   {
     $new_conf = array_merge($new_conf, array(
-      'svn_activated' =>          set_boolean(isset($_POST['svn_activated'])),
-      'svn_server' =>             rtrim($_POST['svn_server'], '/').'/',
-      'svn_path' =>               $_POST['svn_path'],
-      'svn_user' =>               $_POST['svn_user'],
-      'svn_password' =>           $_POST['svn_password'],
+      'svn_activated' =>        set_boolean(isset($_POST['svn_activated'])),
+      'svn_server' =>           rtrim($_POST['svn_server'], '/').'/',
+      'svn_path' =>             $_POST['svn_path'],
+      'svn_user' =>             $_POST['svn_user'],
+      'svn_password' =>         $_POST['svn_password'],
       ));
       
     if ($new_conf['svn_activated'] == 'true' and $new_conf['svn_server'] != $conf['svn_server'])
@@ -126,24 +126,33 @@ if (function_exists('exec'))
         <td>Activate Subversion client :</td>
         <td><input type="checkbox" name="svn_activated" value="1" '.($conf['svn_activated']?'checked="checked"':'').'></td>
       </tr>
-      <tr>
+      <tr class="svn" '.(!$conf['svn_activated']?'style="display:none;"':'').'>
         <td>Subversion server :</td>
         <td><input type="text" name="svn_server" value="'.$conf['svn_server'].'" size="30"></td>
       </tr>
-      <tr>
+      <tr class="svn" '.(!$conf['svn_activated']?'style="display:none;"':'').'>
         <td>Subversion path :</td>
         <td><input type="text" name="svn_path" value="'.$conf['svn_path'].'"></td>
       </tr>
-      <tr>
+      <tr class="svn" '.(!$conf['svn_activated']?'style="display:none;"':'').'>
         <td>Subversion user :</td>
         <td><input type="text" name="svn_user" value="'.$conf['svn_user'].'"></td>
       </tr>
-      <tr>
+      <tr class="svn" '.(!$conf['svn_activated']?'style="display:none;"':'').'>
         <td>Subversion password :</td>
         <td><input type="text" name="svn_password" value="'.$conf['svn_password'].'"></td>
       </tr>
     </table>
   </fieldset>';
+  
+  $page['script'].= '
+  $("input[name=\'svn_activated\']").change(function () {
+    if ($(this).is(":checked")) {
+      $("tr.svn").show();
+    } else {
+      $("tr.svn").hide();
+    }
+  });';
 }
 else
 {
@@ -215,7 +224,7 @@ echo '
 
     <div style="text-align:center;">
       (must be formatted as a <a href="http://php.net/manual/en/language.basic-syntax.comments.php">PHP comment</a>)<br>
-      <textarea name="new_file_content" style="width:80%;color:#008000" rows="5">'.$conf['new_file_content'].'</textarea>
+      <textarea name="new_file_content" style="width:80%;color:#008000;" rows="5">'.$conf['new_file_content'].'</textarea>
     </div>
   </fieldset>
   
@@ -224,7 +233,7 @@ echo '
   </div>
 </form>';
 
-load_jquery('autoresize', false);
+load_jquery('autoresize');
 
 $page['script'].= '
 $("textarea").autoResize({

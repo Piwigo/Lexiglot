@@ -93,8 +93,8 @@ if (isset($_POST['save_profile']))
   if ($conf['allow_profile'])
   {
     // save mail
-    $mail_error = validate_mail_address($user['id'], $_POST['email']);
-    if ($mail_error != '')
+    $mail_error = validate_mail_address($_POST['email'], $user['id'], true);
+    if ($mail_error !== true)
     {
       array_push($page['errors'], $mail_error);
     }
@@ -395,7 +395,7 @@ SELECT
         // $json[ $row['lang'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
       // }
       
-      load_jquery('highstock', false);
+      load_jquery('highstock');
       $page['script'].= '
       $(function() {
         window.chart = new Highcharts.StockChart({
@@ -523,7 +523,7 @@ SELECT
         </table>
       </fieldset>';
       
-      load_jquery('autoresize', false);
+      load_jquery('autoresize');
       $page['script'].= '
       $("textarea").autoResize({
         maxHeight:2000,

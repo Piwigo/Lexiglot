@@ -93,6 +93,18 @@ function session_search(&$search, $name, $exclude_from_query=array())
 }
 
 /**
+ * simple access to the value of a search field
+ * @param: string key
+ * @return: mixed
+ */
+function get_search_value($key)
+{
+  global $search;
+  if (!isset($search[$key])) return null;
+  return $search[$key][1];
+}
+
+/**
  * upload a flag
  * @param $_FILES entry
  * @param destination name

@@ -21,7 +21,7 @@
 
 defined('PATH') or die('Hacking attempt!');
 
-// string delimiter
+// string delimiters
 $conf['quote'] = "'";
 $conf['eol'] = "\n";
 
@@ -48,6 +48,7 @@ $conf['user_fields'] = array(
 // additional fields to complete when a new user register (only for a external users table)
 $conf['additional_user_infos'] = array();
 
+// minimum progression to allow a language to be used as reference by translators
 $conf['minimum_progress_for_language_reference'] = 0.5;
   
 // session prefix
@@ -56,11 +57,11 @@ $conf['session_prefix'] = 'lexiglot_';
 // the name of the cookie used to stay logged
 $conf['remember_me_name'] = $conf['session_prefix'].'remember_me';
 
-// time of validity for "remember me" cookies, in seconds.
+// time of validity for "remember me" cookies, in seconds
 $conf['remember_me_length'] = 864000;
 
 // function to hash the user password into the database
-$conf['pass_convert'] = create_function('$s', 'return md5($s);');
+$conf['pass_convert'] = create_function('$s', 'return md5(SALT_KEY.$s);');
 
 // a php snippet to execute before include language files
 $conf['exec_before_file'] = null;
@@ -74,16 +75,10 @@ $conf['system_email'] = 'Lexiglot <noreply@'.$_SERVER['HTTP_HOST'].'>';
 // how to navigate : sections, languages, both
 $conf['navigation_type'] = 'both';
 
-// cache validation time
+// cache validation time, in seconds
 $conf['stats_cache_life'] = 172800;
 
-// status, /!\ don't modify /!\
-$conf['status'] = array(
-  'guest'       => 1,
-  'visitor'     => 2,
-  'translator'  => 3,
-  'manager'     => 4,
-  'admin'       => 5,
-  );
+// default permissions for managers
+$conf['default_manager_perms'] = serialize(array('can_add_projects'=>true, 'can_delete_projects'=>true, 'can_change_users_projects'=>true));
 
 ?>

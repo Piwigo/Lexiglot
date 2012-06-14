@@ -46,7 +46,7 @@ SELECT
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
     ON c.id = l.category_id
   ORDER BY
-    IF(l.category_id = 0, "[999]zzz", c.name) ASC,
+    category_name ASC,
     rank DESC,
     l.id ASC
 ;';
@@ -94,13 +94,8 @@ if ( time() - strtotime(get_cache_date($page['section'], null)) > $conf['stats_c
 // get statistics (must be computed with a clean rank)
 if ($conf['use_stats'])
 {
-  $old_section_rank = $conf['all_sections'][$page['section']]['rank'];
-  $conf['all_sections'][$page['section']]['rank'] = 1;
-
   $stats = get_cache_stats($page['section'], null, 'language');
   $section_stats = get_cache_stats($page['section'], null, 'all');
-  
-  $conf['all_sections'][$page['section']]['rank'] = $old_section_rank;
 }
 $use_stats = !empty($stats);
 
@@ -147,20 +142,20 @@ foreach ($language_translated as $row)
     }
   }
   
-  if ($use_stats and !isset($stats[ $row['id'] ])) $stats[ $row['id'] ] = 0;
+  if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
   
   echo '
-  <li '.( !$row['section_exists'] || ($use_stats && empty($stats[$row['id']])) ? 'class="new"' : null).'>
+  <li '.( !$row['section_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
     <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), true, 'edit').'">
       '.$row['name'].' '.get_language_flag($row['id']).'
       '.(is_default_language($row['id']) ? '<i>(source)</i>': null).'
-      '.($use_stats ? display_progress_bar($stats[$row['id']], 150) : null).'
+      '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
     </a>
   </li>';
 }
 
 // add language button
-if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) and count($language_not_translated) > 0 )
+if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) and count($language_available) > 0 )
 {
   echo '
   <li class="add">
@@ -170,17 +165,17 @@ if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) an
   <div id="dialog-form" title="Add a new language" style="display:none;">
     <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
       <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-      You can only add language which you have permission to edit.<br>
+      You can only add languages you have permission to translate.<br>
       Can\'t see the language you wish to translate ? Please <a href="'.get_url_string(array('request_language'=>null), true, 'misc').'">send us a request</a>.
     </div>
     <form action="" method="post" style="text-align:center;">
       Select a language : 
       <select name="language">
         <option value="-1">----------</option>';
-      foreach ($language_not_translated as $row)
+      foreach ($language_available as $row)
       {
         echo '
-        <option value="'.$row['id'].'" '.(!array_key_exists($row['id'], $language_available) ? 'disabled' : null).'>'.$row['name'].'</option>';
+        <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>
@@ -211,7 +206,7 @@ $("#dialog-form").dialog({
   show: "clip", hide: "clip",
   buttons: {
     "Add": function() { $("#dialog-form form").submit(); },
-    Cancel: function() { $(this).dialog("close"); }
+    "Cancel": function() { $(this).dialog("close"); }
   }
 });
 

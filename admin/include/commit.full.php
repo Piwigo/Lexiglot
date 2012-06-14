@@ -56,7 +56,7 @@ foreach ($_ROWS as $props => $files)
       $row = $file_content[ $file_infos['name'] ];
       
       // try to put the content in the file
-      if (deep_file_put_contents($file_infos['path'], html_special_chars($row['row_value'])))
+      if (deep_file_put_contents($file_infos['path'], $row['row_value']))
       {
         array_push($file_infos['done_rows'], $row['id']);
         array_push($file_infos['users'], $row['user_id']);

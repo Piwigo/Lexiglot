@@ -34,12 +34,11 @@ function js_popup($url, $title=null, $height=600, $width=480, $top=0, $left=0)
 /**
  * add a jquery plugin and its css
  * @param string plugin name
- * @param bool load css
  */
-function load_jquery($name, $css=true)
+function load_jquery($name)
 {
   global $page;
-  if ($css) 
+  if (file_exists(PATH.'template/js/jquery.'.$name.'.css')) 
   {
     $page['header'].= '
   <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.'.$name.'.css">';
@@ -105,14 +104,15 @@ function count_lines($string, $chars_per_line)
   if (empty($string)) return 1;
   
   $count = 0;
+  $string = str_replace("\r\n", "\n", $string);
   $lines = explode("\n", $string);
+  
   foreach ($lines as $line)
   {
     $lenght = strlen($line);
     $count+= ceil($lenght/$chars_per_line);
   }
   
-  unset($lines);
   return $count > 1 ? $count : 1;
 }
 
@@ -120,10 +120,11 @@ function count_lines($string, $chars_per_line)
  * generate needed parameters for pagination system
  * @param int total entries
  * @param int entries a page
- * @param string page get param name
+ * @param string $_GET param name for page number
+ * @param int wanted element
  * @return array
  */
-function compute_pagination($total, $entries, $param, $needed_pos=null)
+function compute_pagination($total, $entries, $param='page', $needed_pos=null)
 {
   $paging['TotalEntries'] = $total;
   $paging['Entries'] = $entries;
@@ -152,8 +153,9 @@ function compute_pagination($total, $entries, $param, $needed_pos=null)
 }
 
 /**
- * write paging system
+ * write pagination system
  * @param array paging from compute_pagination function
+ * @param string $_GET param name for page number
  * @return string
  */
 function display_pagination($paging, $param='page')
@@ -173,7 +175,7 @@ function display_pagination($paging, $param='page')
   if ($paging['TotalPages'] <= 9) // less than 10 page
   {
     for ($i=1; $i<=$paging['TotalPages']; $i++)
-      $content .= paging_link($i, $paging['Page'], $param);
+      $content.= paging_link($i, $paging['Page'], $param);
       
   } 
   else // more than 10 pages
@@ -181,29 +183,29 @@ function display_pagination($paging, $param='page')
     if ($paging['Page'] <= 5) // 5 first elements : [1 2 3 4 5 6 ... n-1 n]
     {
       for ($i=1; $i<=6; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
-      $content .= '<span class="dot">...</span>';
+        $content.= paging_link($i, $paging['Page'], $param);
+      $content.= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-1; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
+        $content.= paging_link($i, $paging['Page'], $param);
     }
     else if ($paging['Page'] >= $paging['TotalPages']-4) // 5 lasts elements : [1 2 ... n-5 n-4 n-3 n-2 n-1 n]
     {
       for ($i=1; $i<=2; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
-      $content .= '<span class="dot">...</span>';
+        $content.= paging_link($i, $paging['Page'], $param);
+      $content.= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-5; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
+        $content.= paging_link($i, $paging['Page'], $param);
     }
     else // common case : [1 2 ... x-1 x x+1 ... n-1 n]
     {
       for ($i=1; $i<=2; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
-      $content .= '<span class="dot">...</span>';
+        $content.= paging_link($i, $paging['Page'], $param);
+      $content.= '<span class="dot">...</span>';
       for ($i=$paging['Page']-1; $i<=$paging['Page']+1; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
-      $content .= '<span class="dot">...</span>';
+        $content.= paging_link($i, $paging['Page'], $param);
+      $content.= '<span class="dot">...</span>';
       for ($i=$paging['TotalPages']-1; $i<=$paging['TotalPages']; $i++)
-        $content .= paging_link($i, $paging['Page'], $param);
+        $content.= paging_link($i, $paging['Page'], $param);
     }
   }
   
@@ -246,25 +248,15 @@ function str2url($str)
 }
 
 /**
- * encode a string in utf8 if not encoded yet
+ * version of htmlspecialchars that checks if teh string is in UTF-8
  */
-function proper_utf8($string)
+function htmlspecialchars_utf8($string)
 {
   if (!seems_utf8($string))
   {
     return utf8_encode($string);
   }
   return htmlspecialchars($string);
-}
-
-/**
- * custom version of htmlentities that leaves html tags intact
- * http://stackoverflow.com/questions/4776035/convert-accents-to-html-but-ignore-tags/4776054#4776054
- * @param string
- */
-function html_special_chars($string)
-{
-  return htmlspecialchars_decode(htmlentities($string, ENT_NOQUOTES, 'UTF-8'), ENT_NOQUOTES);
 }
 
 /**
@@ -307,9 +299,8 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
     $args['content_format'] = 'text/plain';
   }
 
-  // format subject
-  $subject = trim(preg_replace('#[\n\r]+#s', null, $subject));
-  $subject = '=?UTF-8?B?'.base64_encode($subject).'?='; // deal with utf-8
+  // subject
+  $subject = encode_mail_header($subject);
 
   // headers
   $headers = 'From: '.$args['from']."\n";
@@ -333,6 +324,7 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
 
   $headers.= 'X-Mailer: Lexiglot'."\n";
   $headers.= 'MIME-Version: 1.0'."\n";
+  $headers.= 'Content-Transfer-Encoding: Quoted-Printable'."\n";
   $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\n";
 
   // content
@@ -341,7 +333,9 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
     $content = htmlspecialchars($content);
   }
   
-  $content = wordwrap($content, 70, "\n");
+  $content = quoted_printable_encode($content);
+  $content = wordwrap($content, 70, "\n", true);
+  
   
   // send mail
   $result = mail($to, $subject, $content, $headers);
@@ -368,12 +362,51 @@ INSERT INTO '.MAIL_HISTORY_TABLE.' (
   return $result;
 }
 
-function format_email($mail, $name=null)
+/**
+ * returns an email address with an associated name
+ * @param string name
+ * @param string email
+ */
+function format_email($email, $name)
 {
-  if ($name == null)
-    return $mail;
+  $email = trim(preg_replace('#[\n\r]+#s', '', $email));
+
+  if ($name != '')
+  {
+    $name = encode_mail_header('"'.addcslashes($cvt_name,'"').'"');
+  }
+
+  if (strpos($email, '<') === false)
+  {
+    return $name.' <'.$email.'>';
+  }
   else
-    return $name.' <'.$mail.'>';
+  {
+    return $name.' '.$email;
+  }
+}
+
+/**
+ * encodes a header string using Q form if required (RFC2045)
+ */
+function encode_mail_header($str)
+{
+  $str = trim(preg_replace('#[\n\r]+#s', '', $str));
+  
+  $x = preg_match_all('/[\000-\010\013\014\016-\037\177-\377]/', $str, $matches);
+  if ($x==0)
+  {
+    return $str;
+  }
+  // Replace every high ascii, control =, ? and _ characters
+  $str = preg_replace('/([\000-\011\013\014\016-\037\075\077\137\177-\377])/e',
+                  "'='.sprintf('%02X', ord('\\1'))", $str);
+
+  // Replace every spaces to _ (more readable than =20)
+  $str = str_replace(" ", "_", $str);
+
+  global $lang_info;
+  return '=?UTF-8?Q?'.$str.'?=';
 }
 
 /**

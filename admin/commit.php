@@ -30,20 +30,12 @@ if (!svn_check_connection())
 // +-----------------------------------------------------------------------+
 // |                        GET DATAS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], array_combine($user['manage_sections'], $user['manage_sections']));
+$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], create_permissions_array($user['manage_sections']));
   
 // get users name
-$query = '
-SELECT 
-    u.'.$conf['user_fields']['id'].' as id,
-    u.'.$conf['user_fields']['username'].' as username
-  FROM '.USERS_TABLE.' as u
-    INNER JOIN '.USER_INFOS_TABLE.' as i
-    ON u.'.$conf['user_fields']['id'].'  = i.user_id
-  WHERE i.status != "guest" AND i.status != "visitor"
-  ORDER BY u.'.$conf['user_fields']['username'].' ASC
-;';
-$_USERS = hash_from_query($query, 'id');
+$_USERS = get_users_list(
+  array('i.status NOT IN( "guest", "visitor" )'), null
+  );
 
 if (isset($_POST['init_commit']))
 {
@@ -127,7 +119,6 @@ SELECT * FROM (
   {
     include(PATH.'admin/include/commit.full.php');
   }
-
 }
 
 
@@ -142,8 +133,8 @@ else
     <!--<legend>What to commit ?</legend>-->
     
     <div id="mode">
-      <input type="radio" id="radio1" name="mode" value="all" checked="checked" /><label for="radio1">All</label>
-      <input type="radio" id="radio2" name="mode" value="filter" /><label for="radio2">Filter</label>
+      <input type="radio" id="radio1" name="mode" value="all" checked="checked"><label for="radio1">All</label>
+      <input type="radio" id="radio2" name="mode" value="filter"><label for="radio2">Filter</label>
     </div>
     
     <ul id="filter" style="display:none;">

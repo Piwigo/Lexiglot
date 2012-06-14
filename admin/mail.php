@@ -25,7 +25,6 @@ defined('PATH') or die('Hacking attempt!');
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
 // default search
-$where_clauses = array('1=1');
 $search = array(
   'from_mail' => array('%', ''),
   'to_mail' =>   array('%', ''),
@@ -46,7 +45,7 @@ SELECT COUNT(1)
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav');
+$paging = compute_pagination($total, get_search_value('limit'), 'nav');
 
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
@@ -81,18 +80,10 @@ echo '
       <th></th>
     </tr>
     <tr>
-      <td>
-        <input type="text" size="20" name="from_mail" value="'.$search['from_mail'][1].'">
-      </td>
-      <td>
-        <input type="text" size="20" name="to_mail" value="'.$search['to_mail'][1].'">
-      </td>
-      <td>
-        <input type="text" size="20" name="subject" value="'.$search['subject'][1].'">
-      </td>
-      <td>
-        <input type="text" size="3" name="limit" value="'.$search['limit'][1].'">
-      </td>
+      <td><input type="text" size="20" name="from_mail" value="'.get_search_value('from_mail').'"></td>
+      <td><input type="text" size="20" name="to_mail" value="'.get_search_value('to_mail').'"></td>
+      <td><input type="text" size="20" name="subject" value="'.get_search_value('subject').'"></td>
+      <td><input type="text" size="3" name="limit" value="'.get_search_value('limit').'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Reset">
@@ -102,9 +93,9 @@ echo '
 </fieldset>
 </form>';
 
-// rows list
+// mails list
 echo '
-<form action="admin.php?page=mail" method="post" id="mail_history">
+<form id="mail_history">
 <fieldset class="common">
   <legend>History</legend>
   

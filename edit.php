@@ -71,10 +71,10 @@ if ( isset($_GET['display']) and in_array($_GET['display'], array('all','missing
 }
 else
 {
-  $page['display'] = is_guest() || is_visitor() || is_default_language($page['language']) ? 'all' : 'missing';
+  $page['display'] = ( is_guest() || is_visitor() || is_default_language($page['language']) ) ? 'all' : 'missing';
 }
 // reference
-if ( isset($_GET['ref']) and array_key_exists($_GET['ref'], $conf['all_languages']) and !is_default_language($page['language']) and $page['language'] != $_GET['ref'] )
+if ( isset($_GET['ref']) and array_key_exists($_GET['ref'], $conf['all_languages']) and !is_default_language($page['language']) and $page['language']!=$_GET['ref'] )
 {
   $page['ref'] = $_GET['ref'];
 }
@@ -110,7 +110,7 @@ if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['file
 {
   notify_language_file_error($page['file_uri'], $fileinfos);
   
-  if ($fileinfos[1] == 'Parse error')
+  if ($fileinfos[0] == 'Parse error')
   {
     array_push($page['errors'], 'The language file is corrupted. Administrators have been notified. <a href="javascript:history.back();">Go back</a>.');
     print_page();
@@ -140,7 +140,7 @@ SELECT
     nb_rows
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
-    ON i.user_id = u.'.$conf['user_fields']['id'].'
+      ON i.user_id = u.'.$conf['user_fields']['id'].'
   WHERE '.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
 ;';
     $to = mysql_fetch_assoc(mysql_query($query));
@@ -168,7 +168,7 @@ You receive this mail because you are registered as translator on <a href="'.get
     // add missing translations
     if (isset($_POST['send_rows']))
     {
-      $nb_rows = !empty($_POST['nb_rows']) && is_int($_POST['nb_rows']) ? $_POST['nb_rows'] : $to['nb_rows'];
+      $nb_rows = ( !empty($_POST['nb_rows']) && is_int($_POST['nb_rows']) ) ? $_POST['nb_rows'] : $to['nb_rows'];
       
       if ($page['mode'] == 'array')
       {
@@ -178,7 +178,7 @@ You receive this mail because you are registered as translator on <a href="'.get
         {
           if ($i > $nb_rows) break;
           
-          if ( !isset($_LANG[$key]) )
+          if (!isset($_LANG[$key]))
           {
             $_DIFFS[] = $row['row_value'];
             $i++;
@@ -258,7 +258,7 @@ $tabsheet['param'] = 'file';
 $tabsheet['selected'] = $page['file'];
 foreach ($page['files'] as $file)
 {
-  $tabsheet['tabs'][$file] = array(basename($file), "Edit the file '".$file."'", array('page','ks'));
+  $tabsheet['tabs'][$file] = array(basename($file), "Edit the file '".$file."'", array('page'));
 }
 
 // path
@@ -298,7 +298,7 @@ if ($is_translator)
     );
   if (!is_admin()) array_push($where_clauses, 'AND i.email_privacy != "private"');
   
-  $users = get_users_list($where_clauses, 'i.status, i.nb_rows');
+  $users = get_users_list($where_clauses, 'i.status, i.nb_rows, i.sections');
 
   $page['begin'].= '
 <div id="dialog-form" title="Send a notification by mail" style="display:none;">
@@ -314,8 +314,11 @@ if ($is_translator)
           <option value="-1" data="15">---------</option>';
         foreach ($users as $row)
         {
+          $status = null;
+          if ($row['status']=='admin') $status = ' (admin)';
+          if (in_array($page['section'], $row['manage_sections'])) $status = ' (manager)';
           $page['begin'].= '
-          <option value="'.$row['id'].'" data="'.$row['nb_rows'].'">'.$row['username'].($row['status']=='admin' ? ' (admin)' : null).'</option>';
+          <option value="'.$row['id'].'" data="'.$row['nb_rows'].'">'.$row['username'].$status.'</option>';
         }
         $page['begin'].= '
         </select>
@@ -379,7 +382,7 @@ else
 // Can't use autoResize plugin with too many textarea (browser crashes) and incompatible with highlightTextarea
 if ( count($_DIFFS) <= 30 and !isset($block_autoresize) )
 {
-  load_jquery('autoresize', false);
+  load_jquery('autoresize');
   
   $page['script'].= '
   $("#diffs textarea").autoResize({

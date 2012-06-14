@@ -27,7 +27,7 @@ include(PATH.'admin/include/functions.inc.php');
 // check rights
 if ( !is_manager() and !is_admin() )
 {
-  array_push($page['errors'], 'Your are not allowed to view this page. <a href="user.php?login">Login</a> '.($conf['allow_registration']?'<i>or</i> <a href="user.php?register">Register</a>':null));
+  array_push($page['errors'], 'Your are not allowed to view this page. <a href="user.php?login">Login</a>.');
   print_page();
 }
 
@@ -39,27 +39,41 @@ if (is_manager())
 // +-----------------------------------------------------------------------+
 // |                         LOCATION
 // +-----------------------------------------------------------------------+
-// global pages
-$pages = array(
-  'history' => 'History', 
-  'commit' => 'Commit',
-  'users' => 'Users',
-  'projects' => 'Projects',
-  );
-$sub_pages = array(
-  'user_perm' => 'User permissions',
-  );
-
 // admin pages
 if (is_admin())
 {
-  $pages = array_merge($pages, array(
+  $pages = array(
+    'history' => 'History', 
+    'commit' => 'Commit',
+    'users' => 'Users',
+    'projects' => 'Projects',
     'languages' => 'Languages', 
     'mail' => 'Mail archive',
     'config' => 'Configuration',
     'maintenance' => 'Maintenance',
-    ));
+    );
+  $sub_pages = array(
+    'user_perm' => 'User permissions',
+    );
 }
+// manager pages
+else if (is_manager())
+{
+  $pages = array(
+    'history' => 'History', 
+    'commit' => 'Commit',
+    'projects' => 'Projects',
+    );
+    
+  if ($user['manage_perms']['can_change_users_projects'])
+  {
+    $pages['users'] = 'Users';
+    $sub_pages = array(
+      'user_perm' => 'User permissions',
+      );
+  }
+}
+    
 
 if ( isset($_GET['page']) and array_key_exists($_GET['page'], array_merge($pages, $sub_pages)) )
 {

@@ -106,14 +106,21 @@ DELETE FROM '.SECTIONS_TABLE.'
   // CHANGE RANK
   case 'change_rank':
   {
-    $query = '
+    if (!is_numeric(@$_POST['batch_rank']) or @$_POST['batch_rank'] < 1)
+    {
+      array_push($errors, 'Rank must be an non null integer for project &laquo;'.$section_id.'&raquo;.');
+    }
+    else
+    {
+      $query = '
 UPDATE '.SECTIONS_TABLE.'
-  SET rank = '.intval(@$_POST['batch_rank']).'
+  SET rank = '.$_POST['batch_rank'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-    mysql_query($query);
-    
-    array_push($page['infos'], 'Rank changed for <b>'.mysql_affected_rows().'</b> projects.');
+      mysql_query($query);
+      
+      array_push($page['infos'], 'Rank changed for <b>'.mysql_affected_rows().'</b> projects.');
+    }
     break;
   }
   

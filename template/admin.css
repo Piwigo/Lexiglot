@@ -142,27 +142,40 @@ tr.highlight td {
     padding: 0 5px 5px 5px;
     background-color: #e5e5e5;
     border-radius: 5px;
+    text-align:center;
   }
   #permissions ul.active {
     background-color: #7cba0f;
   }
     #permissions li {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 2px 5px;
       margin: 3px;
       height:15px;
-      min-width:135px;
+      width:140px;
       background-color: #fff;
       box-shadow: 1px 1px 0px #888;
       border-radius: 5px;
       cursor: w-resize;
+      text-align:left;
     }
+      #permissions li img {
+        vertical-align: baseline;
+      }
       #permissions li input {
-        vertical-align:middle;
+        vertical-align:baseline;
         margin:-2px 2px 0 -2px;
       }
-      #permissions li img {
-        vertical-align: middle;
+      #permissions li span {
+        display:inline-block;
+        height:15px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      #permissions li b {
+        font-size:0.8em;
+        vertical-align:top;
       }
       #permissions li:hover {
         background: #81CCE8;
@@ -170,7 +183,7 @@ tr.highlight td {
       #permissions li i {
         display:block;
         float:right;
-        margin:-2px -8px -2px 5px;
+        margin:-2px -8px -2px 0px;
         padding:0 3px;
         height:19px;
         background:#81CCE8;

@@ -28,9 +28,12 @@ include_once(PATH.'include/functions_html.inc.php');
 include_once(PATH.'include/functions_mysql.inc.php');
 include_once(PATH.'include/functions_stats.inc.php');
 
-if (!function_exists('json_decode'))
+/**
+ * PHP COMPATIBILITIES
+ */
+if (!function_exists('json_decode')) // >= 5.2.0
 {
-  include_once(PATH.'include/json.class.php');
+  include_once(PATH.'include/php_compat/json.class.php');
   $json_service = new Services_JSON();
   
   function json_decode($value)
@@ -43,6 +46,11 @@ if (!function_exists('json_decode'))
     global $json_service;
     return $json_service->encode($value);
   }
+}
+
+if (!function_exists('quoted_printable_encode')) // >= 5.3.0
+{
+  include_once(PATH.'include/php_compat/quoted_printable.inc.php');
 }
 
 
@@ -86,6 +94,9 @@ function get_url_string($add=array(), $reject=array(), $file=null)
   return $file.'.php'.$query_string;
 }
 
+/**
+ * get filename (without extension) of the current script
+ */
 function script_basename()
 {
   return basename($_SERVER['SCRIPT_NAME'], '.php');
@@ -161,7 +172,7 @@ function dir_is_empty($dirname)
   $dir = scandir($dirname);
   foreach ($dir as $file)
   {
-    if (!in_array(array('.','..','.svn'), $file)) return false;
+    if (!in_array($file, array('.','..','.svn'))) return false;
   }
   return true;
 }
@@ -282,7 +293,7 @@ function print_page($login_box=true)
   // get and close buffer
   $page['content'].= ob_get_clean();
 
-  // messages transmitted throught the session
+  // messages transmitted through the session
   foreach (array('infos','warnings','errors') as $state)
   {
     if (isset($_SESSION['page_'.$state]))
@@ -320,11 +331,11 @@ function close_page()
     ob_end_clean();
   }
   mysql_close();
-  exit();
+  exit(0);
 }
 
 /**
- * extract unique values of the specified keys in a two dimensional array
+ * extract unique values of the specified key in a two dimensional array
  * @param array
  * @param mixed key name
  * @return array
@@ -348,7 +359,7 @@ function array_unique_deep(&$array, $key)
 
 /**
  * recursively merge two arrays with overwrites (Arr2 overwrites Arr1)
- * http://www.php.net/manual/fr/function.array-merge-recursive.php#102379
+ * http://www.php.net/manual/en/function.array-merge-recursive.php#102379
  */
 function array_merge_recursive_distinct($Arr1, $Arr2)
 {
@@ -410,6 +421,9 @@ function implode_array($array, $sep1=';', $sep2=',') {
   return $result;
 }
 
+/**
+ * replace all end-line characters by the configured one
+ */
 function clean_eol(&$val)
 {
   global $conf;
@@ -453,7 +467,8 @@ function rrmdir($dir)
 } 
 
 /**
- * search a string in array values (not like 'array_search')
+ * search a string in array values
+ * // http://www.strangeplanet.fr/blog/dev/php-une-fonction-pour-rechercher-dans-un-tableau
  * @param string needle
  * @param array haystack
  * @param bool return all instances

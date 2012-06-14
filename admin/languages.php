@@ -28,53 +28,59 @@ $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 // +-----------------------------------------------------------------------+
 if (isset($_GET['delete_lang']))
 {
-  // delete lang from user infos
-  $users = get_users_list(
-    array('languages LIKE "%'.$_GET['delete_lang'].'%" OR my_languages LIKE "%'.$_GET['delete_lang'].'%"'), 
-    'languages, my_languages'
-    );
-  
-  foreach ($users as $u)
+  if (!array_key_exists($_GET['delete_lang'], $conf['all_languages']))
   {
-    unset($u['languages'][ array_search($_GET['delete_lang'], $u['languages']) ]);
-    unset($u['my_languages'][ array_search($_GET['delete_lang'], $u['my_languages']) ]);
-    $u['languages'] = create_permissions_array($u['languages']);
+    array_push($page['errors'], 'Unknown language.');
+  }
+  else
+  {
+    // delete lang from user infos
+    $users = get_users_list(
+      array('languages LIKE "%'.$_GET['delete_lang'].'%" OR my_languages LIKE "%'.$_GET['delete_lang'].'%"'), 
+      'languages, my_languages'
+      );
     
-    if      ($u['main_language'] == $_GET['delete_lang'])   $u['main_language'] = null;
-    else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
-    
-    $u['languages'] = implode_array($u['languages']);
-    $u['my_languages'] = implode(',', $u['my_languages']);
-    
-    $query = '
+    foreach ($users as $u)
+    {
+      unset($u['languages'][ array_search($_GET['delete_lang'], $u['languages']) ]);
+      unset($u['my_languages'][ array_search($_GET['delete_lang'], $u['my_languages']) ]);
+      $u['languages'] = create_permissions_array($u['languages']);
+      
+      if      ($u['main_language'] == $_GET['delete_lang'])   $u['main_language'] = null;
+      else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
+      
+      $u['languages'] = implode_array($u['languages']);
+      $u['my_languages'] = implode(',', $u['my_languages']);
+      
+      $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET
     languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').',
     my_languages = '.(!empty($u['my_languages']) ? '"'.$u['my_languages'].'"' : 'NULL').'
   WHERE user_id = '.$u['id'].'
 ;';
-    mysql_query($query);
-  }
-  
-  // delete flag
-  $flag = $conf['all_languages'][ $_GET['delete_lang'] ]['flag'];
-  @unlink($conf['flags_dir'].$flag);
-  
-  // delete from stats table
-  $query = '
+      mysql_query($query);
+    }
+    
+    // delete flag
+    @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_lang'] ]['flag']);
+    
+    // delete from stats table
+    $query = '
 DELETE FROM '.STATS_TABLE.'
   WHERE language = "'.$_GET['delete_lang'].'"
 ;';
-  mysql_query($query);
-  
-  // delete from languages table
-  $query = '
+    mysql_query($query);
+    
+    // delete from languages table
+    $query = '
 DELETE FROM '.LANGUAGES_TABLE.' 
   WHERE id = "'.$_GET['delete_lang'].'"
 ;';
-  mysql_query($query);
-  
-  array_push($page['infos'], 'Language deleted.');
+    mysql_query($query);
+    
+    array_push($page['infos'], 'Language deleted.');
+  }
 }
 
 // +-----------------------------------------------------------------------+
@@ -90,12 +96,7 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 // +-----------------------------------------------------------------------+
 if (isset($_GET['delete_flag']))
 {
-  $query = '
-SELECT flag FROM '.LANGUAGES_TABLE.' 
-  WHERE id = "'.$_GET['delete_flag'].'"
-;';
-  list($flag) = mysql_fetch_row(mysql_query($query));
-  @unlink($conf['flags_dir'].$flag);
+  @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_flag'] ]['flag']);
   
   $query = '
 UPDATE '.LANGUAGES_TABLE.'
@@ -104,7 +105,6 @@ UPDATE '.LANGUAGES_TABLE.'
 ;';
   mysql_query($query);
   
-  $conf['all_languages'][$_GET['delete_flag']]['flag'] = null;
   array_push($page['infos'], 'Flag deleted.');
   $highlight_language = $_GET['delete_flag'];
 }
@@ -141,7 +141,7 @@ if (isset($_POST['save_lang']))
       array_push($errors, 'Rank must be an non null integer for language &laquo;'.$id.'&raquo;.');
     }
     // check category
-    if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
+    if ( !count($errors) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
     {
       $row['category_id'] = add_category($row['category_id'], 'language');
     }
@@ -149,8 +149,9 @@ if (isset($_POST['save_lang']))
     {
       $row['category_id'] = 0;
     }
-    // check file
-    if ( !empty($_FILES['flags-'.$id]['tmp_name']) and count($errors) == 0 )
+    
+    // check flag
+    if ( !count($errors) and !empty($_FILES['flags-'.$id]['tmp_name']) )
     {
       $row['flag'] = upload_flag($_FILES['flags-'.$id], $id);
       if (is_array($row['flag']))
@@ -159,15 +160,7 @@ if (isset($_POST['save_lang']))
       }
       else
       {
-        // delete old file
-        $query = '
-SELECT flag FROM '.LANGUAGES_TABLE.' 
-  WHERE id = "'.$id.'"
-;';
-        list($flag) = mysql_fetch_row(mysql_query($query));
-        @unlink($conf['flags_dir'].$flag);
-        
-        $conf['all_languages'][$id]['flag'] = $row['flag'];
+        @unlink($conf['flags_dir'].$conf['all_languages'][ $id ]['flag']);
       }
     }
     
@@ -190,6 +183,11 @@ UPDATE '.LANGUAGES_TABLE.'
       $page['errors'] = array_merge($page['errors'], $errors);
     }
   }
+  
+  // reload languages array
+  $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
+  $conf['all_languages'] = hash_from_query($query, 'id');
+  ksort($conf['all_languages']);
   
   if (count($page['errors']) == 0)
   {
@@ -231,7 +229,7 @@ SELECT id
     array_push($page['errors'], 'Rank must be an non null integer.');
   }
   // check category
-  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
+  if ( !count($page['errors']) and !empty($_POST['category_id']) and !is_numeric($_POST['category_id']) )
   {
     $row['category_id'] = add_category($_POST['category_id'], 'language');
   }
@@ -239,17 +237,14 @@ SELECT id
   {
     $_POST['category_id'] = 0;
   }
-    // check file
-  if ( !empty($_FILES['flag']['tmp_name']) and count($page['errors']) == 0 )
+  
+  // check flag
+  if ( !count($page['errors']) and !empty($_FILES['flag']['tmp_name']) )
   {
     $_POST['flag'] = upload_flag($_FILES['flag'], $_POST['id']);
     if (is_array($_POST['flag']))
     {
       $page['errors'] = array_merge($page['errors'], $_POST['flag']);
-    }
-    else
-    {
-      $conf['all_languages'][$_POST['id']]['flag'] = $_POST['flag'];
     }
   }
   else
@@ -286,13 +281,18 @@ UPDATE '.USER_INFOS_TABLE.'
     "'.$_POST['id'].',0",
     CONCAT(languages, ";'.$_POST['id'].',0")
     )
-  WHERE '.($conf['language_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
+  WHERE status IN ( "admin"'.($conf['language_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
 ;';
     mysql_query($query);
     
     // update languages array
-    $query = 'SELECT * FROM '.LANGUAGES_TABLE.' WHERE id = "'.$_POST['id'].'";';
-    $conf['all_languages'][ $_POST['id'] ] = mysql_fetch_assoc(mysql_query($query)); 
+    $conf['all_languages'][ $_POST['id'] ] = array(
+                                              'id' => $_POST['id'],
+                                              'name' => $_POST['name'],
+                                              'flag' => $_POST['flag'],
+                                              'rank' => $_POST['rank'],
+                                              'category_id' => $_POST['category_id'],
+                                              );
     ksort($conf['all_languages']);
       
     // generate stats
@@ -321,18 +321,17 @@ $search = array(
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'][1] = $_GET['lang_id'];
-  $search['id'][2] = '';
+  $search['id'] = array('%', $_GET['lang_id'], '');
   unset($_GET['lang_id']);
 }
 
 $where_clauses = session_search($search, 'language_search', array('limit','flag'));
 
 // special for 'flag'
-if ($search['flag'][1] != -1)
+if (get_search_value('flag') != -1)
 {
-  if ($search['flag'][1] == 'with') array_push($where_clauses, 'flag != ""');
-  if ($search['flag'][1] == 'without') array_push($where_clauses, 'flag = ""');
+  if (get_search_value('flag') == 'with') array_push($where_clauses, 'flag != "" AND flag IS NOT NULL');
+  if (get_search_value('flag') == 'without') array_push($where_clauses, 'flag = "" OR flag IS NULL');
 }
 
 set_session_var('language_search', serialize($search));
@@ -366,7 +365,7 @@ SELECT x.pos
   list($highlight_pos) = mysql_fetch_row(mysql_query($query));
 }
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav', $highlight_pos);
+$paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
@@ -377,7 +376,7 @@ SELECT
     COUNT(u.user_id) as total_users
   FROM '.LANGUAGES_TABLE.' as l
     INNER JOIN '.USER_INFOS_TABLE.' as u
-    ON u.languages LIKE CONCAT("%",l.id,"%") OR u.status = "admin"
+      ON u.languages LIKE CONCAT("%",l.id,"%") AND u.status != "guest"
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY l.id
@@ -449,28 +448,28 @@ echo '
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.$search['id'][1].'"></td>
-      <td><input type="text" name="name" size="20" value="'.$search['name'][1].'"></td>
+      <td><input type="text" name="id" size="15" value="'.get_search_value('id').'"></td>
+      <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
       <td>
         <select name="flag">
-          <option value="-1" '.('-1'==$search['flag'][1]?'selected="selected"':'').'>-------</option>
-          <option value="with" '.('with'==$search['flag'][1]?'selected="selected"':'').'>With flag</option>
-          <option value="without" '.('without'==$search['flag'][1]?'selected="selected"':'').'>Without flag</option>
+          <option value="-1" '.(-1==get_search_value('flag')?'selected="selected"':'').'>-------</option>
+          <option value="with" '.('with'==get_search_value('flag')?'selected="selected"':'').'>With flag</option>
+          <option value="without" '.('without'==get_search_value('flag')?'selected="selected"':'').'>Without flag</option>
         </select>
       </td>
-      <td><input type="text" name="rank" size="2" value="'.$search['rank'][1].'"></td>
+      <td><input type="text" name="rank" size="2" value="'.get_search_value('rank').'"></td>
       <td>
         <select name="category">
-          <option value="-1" '.('-1'==$search['category'][1]?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.(-1==get_search_value('category')?'selected="selected"':'').'>-------</option>';
           foreach ($categories as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['category'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('category')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
-      <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
+      <td><input type="text" name="limit" size="3" value="'.get_search_value('limit').'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Reset">
@@ -482,7 +481,7 @@ echo '
 
 // langs list
 echo '
-<form id="langs" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.@$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
+<form id="langs" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
@@ -503,11 +502,15 @@ echo '
     {
       echo '
       <tr class="'.($highlight_language==$row['id'] ? 'highlight' : null).'">
-        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
-        <td class="id">'.$row['id'].'</td>
+        <td class="chkb">
+          <input type="checkbox" name="select[]" value="'.$row['id'].'">
+        </td>
+        <td class="id">
+          <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">'.$row['id'].'</a>
+        </td>
         <td class="name">
-          <input type="text" name="langs['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
           <span style="display:none;">'.$row['name'].'</span>
+          <input type="text" name="langs['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
         </td>
         <td class="flag">
           '.get_language_flag($row['id'], 'default');
@@ -526,8 +529,8 @@ echo '
           Change : <input type="file" name="flags-'.$row['id'].'" size="15">
         </td>
         <td class="rank">
-          <input type="text" name="langs['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
           <span style="display:none;">'.$row['rank'].'</span>
+          <input type="text" name="langs['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
         </td>
         <td class="category">
           <input type="text" name="langs['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
@@ -567,7 +570,7 @@ echo '
   <select name="selectAction">
     <option value="-1">Choose an action...</option>
     <option disabled="disabled">------------------</option>
-    '.($conf['use_stats'] ? '<option value="make_stats">Refresh stats</option>' : null).'
+    <option value="make_stats">Refresh stats</option>
     <option value="delete_languages">Delete languages</option>
     <option value="change_rank">Change priority</option>
     <option value="change_category">Change category</option>

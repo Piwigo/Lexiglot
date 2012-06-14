@@ -28,12 +28,6 @@ define('PATH', './');
 define('IN_AJAX', 1);
 include(PATH.'include/common.inc.php');
 
-function close_ajax($errcode, $data=null)
-{
-  echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
-  close_page();
-}
-
 
 if (!isset($_POST['action']))
 {
@@ -55,7 +49,7 @@ switch ($_POST['action'])
       close_ajax('error', 'String is empty');
     }
     
-    if (empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']))
+    if ( empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']) )
     {
       close_ajax('error', 'Bad parameters');
     }
@@ -106,7 +100,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   // HISTORY OF A ROW
   case 'row_log':
   {
-    if (empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']))
+    if ( empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']) )
     {
       close_ajax('error', 'Bad parameters');
     }
@@ -120,7 +114,7 @@ SELECT
     status
   FROM '.ROWS_TABLE.' AS r
     INNER JOIN '.USERS_TABLE.' AS u
-    ON u.id = r.user_id
+      ON u.id = r.user_id
   WHERE
     row_name = "'.mres(utf8_decode($_POST['row_name'])).'"
     AND section = "'.mres($_POST['section']).'"
@@ -145,6 +139,13 @@ SELECT
       '.implode('', $out).'
     </ul>');
   }
+}
+
+
+function close_ajax($errcode, $data=null)
+{
+  echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
+  close_page();
 }
 
 close_page();

@@ -43,9 +43,9 @@ SELECT
     IF(l.category_id = 0, "[999]zzz", c.name) as category_name
   FROM '.LANGUAGES_TABLE.' AS l
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
-    ON c.id = l.category_id
+      ON c.id = l.category_id
   ORDER BY
-    IF(l.category_id = 0, "[999]zzz", c.name) ASC,
+    category_name ASC,
     rank DESC,
     l.id ASC
 ;';
@@ -91,10 +91,10 @@ SELECT
       }
     }
   
-    if ($use_stats and !isset($stats[ $row['id'] ])) $stats[ $row['id'] ] = 0;
+    if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
   
     echo '
-    <li '.($use_stats && empty($stats[$lang]) ? 'class="new"' : null).'>
+    <li '.($use_stats && empty($stats[ $row['id'] ]) ? 'class="new"' : null).'>
       <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">
         '.$row['name'].' '.get_language_flag($row['id']).'
         '.($row['id'] == $conf['default_language'] ? '<i>(source)</i>': null).'
@@ -127,7 +127,7 @@ SELECT
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
     ON c.id = s.category_id
   ORDER BY
-    IF(s.category_id = 0, "[999]zzz", c.name) ASC,
+    category_name ASC,
     rank DESC,
     s.name ASC
 ;';
@@ -173,7 +173,7 @@ SELECT
       }
     }
     
-    if ($use_stats and !isset($stats[ $row['id'] ])) $stats[ $row['id'] ] = 0;
+    if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
     
     echo '
     <li>

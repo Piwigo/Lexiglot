@@ -28,47 +28,53 @@ $highlight_section = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['delete_section']) and ( is_admin() or (is_manager($_GET['delete_section']) and $user['manage_perms']['can_delete_projects']) ) )
 {
-  // delete sections from user infos
-  $users = get_users_list(
-    array('sections LIKE "%'.$_GET['delete_section'].'%"'), 
-    'sections'
-    );
-  
-  foreach ($users as $u)
+  if (!array_key_exists($_GET['delete_section'], $conf['all_sections']))
   {
-    unset($u['sections'][ array_search($_GET['delete_section'], $u['sections']) ]);
-    unset($u['manage_sections'][ array_search($_GET['delete_section'], $u['manage_sections']) ]);
-    $u['sections'] = create_permissions_array($u['sections']);
-    $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
-    $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+    array_push($page['errors'], 'Unknown project.');
+  }
+  else
+  {
+    // delete sections from user infos
+    $users = get_users_list(
+      array('sections LIKE "%'.$_GET['delete_section'].'%"'), 
+      'sections'
+      );
     
-    $query = '
+    foreach ($users as $u)
+    {
+      unset($u['sections'][ array_search($_GET['delete_section'], $u['sections']) ]);
+      unset($u['manage_sections'][ array_search($_GET['delete_section'], $u['manage_sections']) ]);
+      $u['sections'] = create_permissions_array($u['sections']);
+      $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
+      $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+      
+      $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
   WHERE user_id = '.$u['id'].'
 ;';
-    mysql_query($query);
-  }
-  
-  // delete directory
-  $dir = $conf['local_dir'].$_GET['delete_section'];
-  @rrmdir($dir);  
+      mysql_query($query);
+    }
     
-  // delete from stats table
-  $query = '
+    // delete directory
+    @rrmdir($conf['local_dir'].$_GET['delete_section']);  
+      
+    // delete from stats table
+    $query = '
 DELETE FROM '.STATS_TABLE.'
   WHERE section = "'.$_GET['delete_section'].'"
 ;';
-  mysql_query($query);
-  
-  // delete from sections table
-  $query = '
+    mysql_query($query);
+    
+    // delete from sections table
+    $query = '
 DELETE FROM '.SECTIONS_TABLE.' 
   WHERE id = "'.$_GET['delete_section'].'"
 ;';
-  mysql_query($query);
-  
-  array_push($page['infos'], 'Project deleted.');
+    mysql_query($query);
+    
+    array_push($page['infos'], 'Project deleted.');
+  }
 }
 
 // +-----------------------------------------------------------------------+
@@ -138,7 +144,7 @@ SELECT id, directory, files
       array_push($errors, 'Rank must be an non null integer for project &laquo;'.$section_id.'&raquo;.');
     }
     // check category
-    if ( !empty($row['category_id']) and !count($errors) and !is_numeric($row['category_id']) )
+    if ( !count($errors) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
     {
       $row['category_id'] = add_category($row['category_id'], 'section');
     }
@@ -148,7 +154,7 @@ SELECT id, directory, files
     }
     
     // switch directory
-    if ( count($errors) == 0 and $conf['svn_activated'] and $old_values[$section_id]['directory'] != $row['directory'] )
+    if ( !count($errors) and $conf['svn_activated'] and $old_values[$section_id]['directory'] != $row['directory'] )
     {
       $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$section_id);
       if ($svn_result['level'] == 'error')
@@ -187,6 +193,12 @@ UPDATE '.SECTIONS_TABLE.'
       $page['errors'] = array_merge($page['errors'], $errors);
     }
   }
+  
+  // reload sections array
+  $query = 'SELECT * FROM '.SECTIONS_TABLE.' ORDER BY id;';
+  $conf['all_sections'] = hash_from_query($query, 'id');
+  ksort($conf['all_sections']);
+
   
   if (count($page['errors']) == 0)
   {
@@ -230,7 +242,7 @@ SELECT id
     array_push($page['errors'], 'Rank must be an non null integer.');
   }
   // check category
-  if ( !empty($_POST['category_id']) and !count($page['errors']) and !is_numeric($_POST['category_id']) )
+  if ( !count($page['errors']) and !empty($_POST['category_id']) and !is_numeric($_POST['category_id']) )
   {
     $_POST['category_id'] = add_category($_POST['category_id'], 'section');
   }
@@ -239,11 +251,11 @@ SELECT id
     $_POST['category_id'] = 0;
   }
   // check directory
-  if ($conf['svn_activated'] and empty($_POST['directory']))
+  if ( $conf['svn_activated'] and empty($_POST['directory']) )
   {
     array_push($page['errors'], 'Directory is empty');
   }
-  else if ($conf['svn_activated'] and count($page['errors']) == 0)
+  else if ( !count($page['errors']) and $conf['svn_activated'] )
   {
     $_POST['directory'] = rtrim($_POST['directory'], '/').'/';
     if (file_exists($conf['local_dir'].$_POST['id']))
@@ -264,7 +276,7 @@ SELECT id
       }
     }
   }
-  else if (count($page['errors']) == 0)
+  else if (!count($page['errors']))
   {
     $svn_result = 'section created.';
     if (!file_exists($conf['local_dir'].$_POST['id']))
@@ -304,13 +316,19 @@ UPDATE '.USER_INFOS_TABLE.'
     "'.$_POST['id'].','.(is_manager()?'1':'0').'",
     CONCAT(sections, ";'.$_POST['id'].','.(is_manager()?'1':'0').'")
     )
-  WHERE '.($conf['section_default_user'] == 'all' ? 'status = "translator" OR status = "guest" OR status = "manager" OR ' : null).'status = "admin"
+  WHERE status IN( "admin"'.($conf['section_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
 ;';
     mysql_query($query);
     
     // update sections array
-    $query = 'SELECT * FROM '.SECTIONS_TABLE.' WHERE id = "'.$_POST['id'].'";';
-    $conf['all_sections'][ $_POST['id'] ] = mysql_fetch_assoc(mysql_query($query)); 
+    $conf['all_sections'][ $_POST['id'] ] = array(
+                                              'id' => $_POST['id'],
+                                              'name' => $_POST['name'],
+                                              'directory' => $_POST['directory'],
+                                              'files' => $_POST['files'],
+                                              'rank' => $_POST['rank'],
+                                              'category_id' => $_POST['category_id'],
+                                              );
     ksort($conf['all_sections']);
 
     // generate stats
@@ -338,8 +356,7 @@ $search = array(
 if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'][1] = $_GET['section_id'];
-  $search['id'][2] = '';
+  $search['id'] = array('%', $_GET['section_id'], '');
   unset($_GET['section_id']);
 }
 
@@ -374,13 +391,17 @@ SELECT x.pos
   list($highlight_pos) = mysql_fetch_row(mysql_query($query));
 }
 
-$paging = compute_pagination($total, $search['limit'][1], 'nav', $highlight_pos);
+$paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);
 
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_manager() ? $user['manage_sections'] : array_keys($conf['all_sections']);
-array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
+$displayed_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
+
+if (is_manager())
+{
+  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
+}
 
 $query = '
 SELECT 
@@ -388,7 +409,7 @@ SELECT
     COUNT(u.user_id) as total_users
   FROM '.SECTIONS_TABLE.' as s
     INNER JOIN '.USER_INFOS_TABLE.' as u
-    ON u.sections LIKE CONCAT("%",s.id,"%") OR u.status = "admin"
+      ON u.sections LIKE CONCAT("%",s.id,"%") AND u.status != "guest"
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY s.id
@@ -421,7 +442,7 @@ echo '
   <table class="search">
     <tr>
       <th>Name <span class="red">*</span></th>
-      <th>Directory (on Subversion server) '.($conf['svn_activated'] ? '<span class="red">*</span>' : null).'</th>
+      '.($conf['svn_activated'] ? '<th>Directory (on Subversion server) <span class="red">*</span></th>' : null).'
       <th>Files <span class="red">*</span></th>
       <th>Priority</th>
       <th>Category</th>
@@ -429,8 +450,8 @@ echo '
     </tr>
     <tr>
       <td><input type="text" name="name" size="20"></td>
-      <td><input type="text" name="directory" size="30"></td>
-      <td><input type="text" name="files" size="45"></td>
+      '.($conf['svn_activated'] ? '<td><input type="text" name="directory" size="30"></td>' : null).'
+      <td><input type="text" name="files" size="50"></td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>
       <td><input type="submit" name="add_section" class="blue" value="Add"></td>
@@ -459,21 +480,21 @@ echo '
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.$search['id'][1].'"></td>
-      <td><input type="text" name="name" size="20" value="'.$search['name'][1].'"></td>
-      <td><input type="text" name="rank" size="2" value="'.$search['rank'][1].'"></td>
+      <td><input type="text" name="id" size="15" value="'.get_search_value('id').'"></td>
+      <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
+      <td><input type="text" name="rank" size="2" value="'.get_search_value('rank').'"></td>
       <td>
         <select name="category_id">
-          <option value="-1" '.('-1'==$search['category_id'][1]?'selected="selected"':'').'>-------</option>';
+          <option value="-1" '.(-1==get_search_value('category_id')?'selected="selected"':'').'>-------</option>';
           foreach ($categories as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==$search['category_id'][1]?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('category_id')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
-      <td><input type="text" name="limit" size="3" value="'.$search['limit'][1].'"></td>
+      <td><input type="text" name="limit" size="3" value="'.get_search_value('limit').'"></td>
       <td>
         <input type="submit" name="search" class="blue" value="Search">
         <input type="submit" name="erase_search" class="red tiny" value="Reset">
@@ -485,7 +506,7 @@ echo '
 
 // sections list
 echo '
-<form id="sections" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.@$_GET['nav'] : null).'" method="post">
+<form id="sections" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
@@ -507,17 +528,19 @@ echo '
     {
       echo '
       <tr class="'.($highlight_section==$row['id'] ? 'highlight' : null).'">
-        <td class="chkb"><input type="checkbox" name="select[]" value="'.$row['id'].'"></td>
+        <td class="chkb">
+          <input type="checkbox" name="select[]" value="'.$row['id'].'">
+        </td>
         <td class="id">
-          '.$row['id'].'
+          <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">'.$row['id'].'</a>
         </td>
         <td class="name">
-          <input type="text" name="sections['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
           <span style="display:none;">'.$row['name'].'</span>
+          <input type="text" name="sections['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
         </td>
         <td class="dir">
-          <input type="text" name="sections['.$row['id'].'][directory]" value="'.$row['directory'].'" size="35">
           <span style="display:none;">'.$row['directory'].'</span>
+          <input type="text" name="sections['.$row['id'].'][directory]" value="'.$row['directory'].'" size="35">
         </td>
         <td class="files">
           <a href="#" class="show-files" data="'.$row['id'].'">Edit</a>
@@ -526,8 +549,8 @@ echo '
           </div>    
         </td>
         <td class="rank">
-          <input type="text" name="sections['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
           <span style="display:none;">'.$row['rank'].'</span>
+          <input type="text" name="sections['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
         </td>
         <td class="category">
           <input type="text" name="sections['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
@@ -566,7 +589,7 @@ echo '
   <select name="selectAction">
     <option value="-1">Choose an action...</option>
     <option disabled="disabled">------------------</option>
-    '.($conf['use_stats'] ? '<option value="make_stats">Refresh stats</option>' : null).'
+    <option value="make_stats">Refresh stats</option>
     '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<option value="delete_projects">Delete projects</option>' : null).'
     <option value="change_rank">Change priority</option>
     <option value="change_category">Change category</option>

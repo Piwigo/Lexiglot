@@ -23,7 +23,7 @@ echo '<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>'.(!empty($page['window_title']) ? $page['window_title'].' | ' : null).' '.strip_tags($conf['install_name']).'</title>
+  <title>'.(!empty($page['window_title']) ? $page['window_title'].' | ' : null).strip_tags($conf['install_name']).'</title>
   
   <!-- default css & js -->
   <link type="text/css" rel="stylesheet" media="screen" href="template/style.css">

@@ -23,7 +23,7 @@ defined('PATH') or die('Hacking attempt!');
 
 /**
  * check the connection to the subversion server
- * /!\ don't know how to process yet /!\
+ * /!\ don't know how to proceed yet /!\
  * @return bool
  */
 function svn_check_connection()

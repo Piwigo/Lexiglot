@@ -29,7 +29,7 @@ if (!empty($_LANG)) $_LANG = $_LANG[ $page['file'] ];
 if ( isset($_POST['submit']) and $is_translator )
 {
   // note that the key never expires, translation can take a while!
-  if (!verify_ephemeral_key(@$_POST['key'], __FILE__, false))
+  if (!verify_ephemeral_key(@$_POST['key'], '', false))
   {
     array_push($page['errors'], 'Invalid/expired form key');
     print_page();
@@ -103,9 +103,9 @@ echo '
 <form method="post" action="" id="diffs">
 <fieldset class="common">
   <legend>File content</legend>
-  <textarea name="row_value" style="width:99.5%;height:'. max(count_lines($text, 126)+3, 10)*1.1 .'em;margin-bottom:10px;" tabindex="1">'.proper_utf8($text).'</textarea>
+  <textarea name="row_value" style="width:99.5%;height:'. max(count_lines($text, 126)+3, 10)*1.1 .'em;margin-bottom:10px;" tabindex="1">'.htmlspecialchars_utf8($text).'</textarea>
   <div class="centered">
-    '.($is_translator ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3, __FILE__).'">
+    '.($is_translator ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3).'">
     <input type="submit" name="submit" value="Save" class="blue big" tabindex="2">' : null).'
   </div>
 </fieldset>
@@ -118,7 +118,7 @@ if (count_lines($text, 126) > 40)
   <a href="#top" id="top-link" title="To top"></a>
   <a href="#bottom" id="bottom-link" title="To bottom"></a>';
   
-  load_jquery('scrollTo', false);
+  load_jquery('scrollTo');
   
   $page['script'].= '
   //smoothscroll

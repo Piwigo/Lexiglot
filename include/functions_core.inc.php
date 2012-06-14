@@ -22,93 +22,11 @@
 defined('PATH') or die('Hacking attempt!');
 
 /**
- * catch eval() errors while parsing a language file
- * @param: string filename
- * @return: bool true or array(file state, message, details)
- */
-function verify_language_file($filename)
-{
-  global $conf;
-  
-  if (($file = @file_get_contents($filename)) !== false)
-  {
-    if ( strpos($file, '<?php')===false or strpos($file, '?>')===false )
-    {
-      return array(false, 'Warning', 'Missing PHP open and/or close tags');
-    }
-     
-    eval($conf['exec_before_file']);
-    $file = preg_replace('#<\?php#', null, $file, 1);
-    
-    ob_start();
-    eval($file);
-    $out = ob_get_clean();
-    
-    if (preg_match('#( *)Parse error#mi', $out))
-    {
-      return array(false, 'Parse error', $out);
-    }
-    else if (preg_match('#( *)Warning#mi', $out))
-    {
-      return array(false, 'Warning', $out);
-    }
-    else if (preg_match('#( *)Notice#mi', $out))
-    {
-      return array(false, 'Notice', $out);
-    }
-    else 
-    {
-      return true;
-    }
-  }
-  else
-  {
-    return true;
-  }
-}
-
-/**
- * send a mail to admins to notify a language file PHP error
- * @param: string filename
- * @param: array returned by verify_language_file()
- * @return: void
- */
-function notify_language_file_error($filename, $infos)
-{
-  global $conf;
-  
-  // don't notify 'Notice' errors
-  if ($infos[1] == 'Notice') return;
-  
-  // check if the notification was already send
-  if (get_session_var('notify_language_file_error.'.$filename) !== null) return;
-  
-  $query = '
-SELECT COUNT(1)
-  FROM '.MAIL_HISTORY_TABLE.'
-  WHERE subject = "PHP '.$infos[1].' on '.$filename.'"
-;';
-  if (mysql_num_rows(mysql_query($query))) return;
-  
-  
-  $subject = '['.strip_tags($conf['install_name']).'] PHP '.$infos[1].' on a language file';
-  $content = '
-Language file : '.$filename.'<br>
-Error level : '.$infos[1].'<br>
-Full error :<br>
-'.nl2br($infos[2]).'
-';
-  $args = array(
-    'content_format' => 'text/html',
-  );
-
-  set_session_var('notify_language_file_error.'.$filename, true);
-  send_mail(get_admin_email(), $subject, $content, $args, 'PHP '.$infos[1].' on '.$filename);
-}
-
-/**
  * load a language from file and db
- * @param string file
+ * @param string section
+ * @param string language
+ * @param string filename
+ * @param string row_name
  * @return array
  */
 function load_language($section, $language, $filename, $row_name=null)
@@ -134,7 +52,9 @@ function load_language($section, $language, $filename, $row_name=null)
 
 /**
  * load language rows from file
- * @param string file
+ * @param string section
+ * @param string language
+ * @param string filename
  * @return array
  */
 function load_language_file($section, $language, $filename)
@@ -152,7 +72,7 @@ function load_language_file($section, $language, $filename)
   if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
   {
     eval($conf['exec_before_file']);
-    $file = preg_replace('#<\?php#', null, $file, 1);
+    $file = preg_replace('#<\?php#', null, $file, 1); // remove first php open tag
     
     @eval($file); 
   }
@@ -172,7 +92,11 @@ function load_language_file($section, $language, $filename)
     }
   }
   
-  $out = array_map(create_function('&$v', 'clean_eol($v["row_value"]);return $v;'), $out);
+  if (empty($out))
+  {
+    $out = array_map(create_function('&$v', 'clean_eol($v["row_value"]);return $v;'), $out);
+  }
+  
   return $out;
 }
 
@@ -183,6 +107,8 @@ function load_language_file_plain($section, $language, $filename)
   $out = array();
   if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
   {
+    clean_eol($file);
+    
     $out = array(
       $filename => array(
         'row_name' => $filename,
@@ -191,16 +117,15 @@ function load_language_file_plain($section, $language, $filename)
       );
   }
   
-  clean_eol($out[ $filename ]['row_value']);
   return $out;
 }
 
 /**
  * load language rows from database
- * @param string language
- * @param string file
  * @param string section
- * @param string row_name=null
+ * @param string language
+ * @param string filename
+ * @param string row_name
  * @return array
  */
 function load_language_db($section, $language, $filename, $row_name=null)
@@ -227,6 +152,45 @@ SELECT * FROM (
 ;';
 
   return hash_from_query($query, 'row_name');
+}
+
+/**
+ * determine if a key is for a sub-array and returns it's components
+ * @param string
+ * @return mixed false or array
+ */
+function is_sub_string($string)
+{
+  if (0 === preg_match('#(.+)\[(.+)\]$#', $string, $matches))
+  {
+    return false;
+  }
+  else
+  {
+    return array($matches[1], $matches[2]);
+  }
+}
+
+/**
+ * determine if the language is the reference one
+ * @param string language
+ * @return boolean
+ */
+function is_default_language($lang)
+{
+  global $conf;
+  return $lang == $conf['default_language'];
+}
+
+/**
+ * determine if the file is plain text (check extension)
+ * @param string filename
+ * @return boolean
+ */
+function is_plain_file($file)
+{
+  global $conf;
+  return preg_match('#['.implode('|', $conf['plain_types']).']$#', $file);
 }
 
 /**
@@ -258,43 +222,86 @@ function pop_sub_array($array, $array_name)
 }
 
 /**
- * determine if a key is for a sub-array and returns it's components
- * @param string
- * @return mixed false or array
+ * catch eval() errors while parsing a language file
+ * @param: string filename
+ * @return: bool true or array(file state, message, details)
  */
-function is_sub_string($string)
+function verify_language_file($filename)
 {
-  if (0 === preg_match('#(.+)\[(.+)\]$#', $string, $matches))
+  global $conf;
+  
+  if (($file = @file_get_contents($filename)) !== false)
   {
-    return false;
+    if ( strpos($file, '<?php')===false or strpos($file, '?>')===false )
+    {
+      return array('Warning', 'Missing PHP open and/or close tags');
+    }
+     
+    eval($conf['exec_before_file']);
+    $file = preg_replace('#<\?php#', null, $file, 1);
+    
+    ob_start();
+    eval($file);
+    $out = ob_get_clean();
+    
+    if (preg_match('#( *)Parse error#mi', $out))
+    {
+      return array('Parse error', $out);
+    }
+    else if (preg_match('#( *)Warning#mi', $out))
+    {
+      return array('Warning', $out);
+    }
+    else if (preg_match('#( *)Notice#mi', $out))
+    {
+      return array('Notice', $out);
+    }
+    else 
+    {
+      return true;
+    }
   }
   else
   {
-    return array($matches[1], $matches[2]);
+    return true;
   }
 }
 
-
 /**
- * determine if the language is the reference one
- * @param string language
- * @return boolean
+ * send a mail to admins to notify a language file PHP error
+ * @param: string filename
+ * @param: array returned by verify_language_file()
+ * @return: void
  */
-function is_default_language($lang)
+function notify_language_file_error($filename, $infos)
 {
-  global $conf;
-  return $lang == $conf['default_language'];
-}
+  // don't notify 'Notice' errors
+  if ($infos[0] == 'Notice') return;
+  
+  // check if the notification was already send
+  if (get_session_var('notify_language_file_error.'.$filename) !== null) return;
+  
+  $query = '
+SELECT COUNT(1)
+  FROM '.MAIL_HISTORY_TABLE.'
+  WHERE subject = "PHP '.$infos[0].' on '.$filename.'"
+;';
+  if (mysql_num_rows(mysql_query($query))) return;
+  
+  
+  $subject = '['.strip_tags($conf['install_name']).'] PHP '.$infos[0].' on a language file';
+  $content = '
+Language file : '.$filename.'<br>
+Error level : '.$infos[0].'<br>
+Full error :<br>
+'.nl2br($infos[1]).'
+';
+  $args = array(
+    'content_format' => 'text/html',
+  );
 
-/**
- * determine if the file is plain text (check extension)
- * @param string filename
- * @return boolean
- */
-function is_plain_file($file)
-{
-  global $conf;
-  return preg_match('#['.implode('|', $conf['plain_types']).']$#', $file);
+  set_session_var('notify_language_file_error.'.$filename, true);
+  send_mail(get_admin_email(), $subject, $content, $args, 'PHP '.$infos[0].' on '.$filename);
 }
 
 /**
@@ -430,7 +437,7 @@ function create_directory($path)
  *
  * @param array language array
  * @param string needle
- * @param string 'row_value' or 'row_name'
+ * @param string 'row_value' or 'row_name' or 'original'
  * @return array sorted by 'search_rank'
  */
 function search_fulltext($haystack, $needle, $where='row_value')
@@ -500,7 +507,7 @@ function search_fulltext($haystack, $needle, $where='row_value')
  */
 function get_fulltext_words($needle)
 {
-  $str = preg_replace('#[\&\#\"\'\{\(\[\-\|\_\\\@\)\]\+\=\}\*\,\?\;\.\:\/\!]#', ' ', $needle);
+  $str = preg_replace('#[\&\#\"\{\(\[\-\|\_\\\@\)\]\+\=\}\*\,\?\;\.\:\/\!]#', ' ', $needle);
   $str = preg_replace('#[\s]+#',' ', $str);
   $words = explode(' ', $str);
   return $words;

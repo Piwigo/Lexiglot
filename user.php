@@ -67,7 +67,7 @@ SELECT '.$conf['user_fields']['id'].'
   
   if (!mysql_num_rows($result))
   {
-    array_push($page['errors'], 'Wrong username or email.');
+    array_push($page['errors'], 'Wrong username and/or email.');
   }
   else
   {

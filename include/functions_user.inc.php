@@ -21,8 +21,6 @@
  
 defined('PATH') or die('Hacking attempt!'); 
 
-define('DEFAULT_MANAGER_PERMS', serialize(array('can_add_projects'=>true, 'can_delete_projects'=>true, 'can_change_users_projects'=>true)));
-
 /**
  * get user infos
  * @param int user_id
@@ -62,11 +60,7 @@ SELECT *
   {
     create_user_infos($user_id);
     
-    /*$query = '
-SELECT *
-  FROM '.USER_INFOS_TABLE.'
-  WHERE user_id = '.$user_id.'
-;';*/
+    // redo previous query
     $result = mysql_query($query);
     
     $user['is_new'] = true;
@@ -102,12 +96,11 @@ SELECT *
   // explode languages array
   if (!empty($user['languages']))
   {
-    $languages = explode(';', $user['languages']);
+    $languages = explode_string($user['languages']);
     $user['languages'] = array();
     $user['main_language'] = null;
-    foreach ($languages as $v)
+    foreach ($languages as $lang => $rank)
     {
-      list($lang, $rank) = explode(',', $v);
       if ($rank == 1) $user['main_language'] = $lang;
       array_push($user['languages'], $lang);
     }
@@ -123,12 +116,11 @@ SELECT *
   // explode sections array
   if (!empty($user['sections']))
   {
-    $sections = explode(';', $user['sections']);
+    $sections = explode_string($user['sections']);
     $user['sections'] = array();
     $user['manage_sections'] = array();
-    foreach ($sections as $v)
+    foreach ($sections as $section => $rank)
     {
-      list($section, $rank) = explode(',', $v);
       if ($rank == 1) array_push($user['manage_sections'], $section);
       array_push($user['sections'], $section);
     }
@@ -148,13 +140,22 @@ SELECT *
     }
     else
     {
-      $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+      $user['manage_perms'] = unserialize($conf['default_manager_perms']);
     }
+  }
+  else
+  {
+    $user['manage_sections'] = array();
   }
 
   return $user;
 }
 
+/**
+ * create row in user_infos_table
+ * @param: int user_id
+ * @param: string status
+ */
 function create_user_infos($user_id, $status='visitor')
 {
   $query = '
@@ -211,6 +212,10 @@ SELECT
         if ($value == 'true' or $value == 'false')
           $user[$key] = get_boolean($value);
       }
+      else
+      {
+        unset($user[$key]);
+      }
     }
   
     // if the user is visitor we must get guest permissions
@@ -223,12 +228,11 @@ SELECT
     // explode languages array
     if (!empty($user['languages']))
     {
-      $languages = explode(';', $user['languages']);
+      $languages = explode_string($user['languages']);
       $user['languages'] = array();
       $user['main_language'] = null;
-      foreach ($languages as $v)
+      foreach ($languages as $lang => $rank)
       {
-        list($lang, $rank) = explode(',', $v);
         if ($rank == 1) $user['main_language'] = $lang;
         array_push($user['languages'], $lang);
       }
@@ -244,12 +248,11 @@ SELECT
     // explode sections array
     if (!empty($user['sections']))
     {
-      $sections = explode(';', $user['sections']);
+      $sections = explode_string($user['sections']);
       $user['sections'] = array();
       $user['manage_sections'] = array();
-      foreach ($sections as $v)
+      foreach ($sections as $section => $rank)
       {
-        list($section, $rank) = explode(',', $v);
         if ($rank == 1) array_push($user['manage_sections'], $section);
         array_push($user['sections'], $section);
       }
@@ -261,7 +264,7 @@ SELECT
     }
     
     // if the user is manager we must fill management permissions
-    if ($user['status'] == 'manager' and isset($user['manage_perms']))
+    if ( $user['status'] == 'manager' and isset($user['manage_perms']) )
     {
       if (!empty($user['manage_perms']))
       {
@@ -269,8 +272,12 @@ SELECT
       }
       else
       {
-        $user['manage_perms'] = unserialize(DEFAULT_MANAGER_PERMS);
+        $user['manage_perms'] = unserialize($conf['default_manager_perms']);
       }
+    }
+    else if ($user['status'] != 'manager')
+    {
+      $user['manage_sections'] = array();
     }
   }
 
@@ -298,24 +305,25 @@ function get_db_user_fields()
 }
 
 /**
- * Performs auto-connexion when cookie remember_me exists
+ * performs auto-connexion when cookie remember_me exists
  * @return bool
  */
 function auto_login() 
 {
   global $conf;
   
-  if ( isset( $_COOKIE[$conf['remember_me_name']] ) )
+  if ( isset($_COOKIE[ $conf['remember_me_name'] ]) )
   {
     $cookie = explode('-', stripslashes($_COOKIE[$conf['remember_me_name']]));
-    if ( count($cookie)===3
-        and is_numeric(@$cookie[0]) /*user id*/
-        and is_numeric(@$cookie[1]) /*time*/
-        and time()-$conf['remember_me_length']<=@$cookie[1]
-        and time()>=@$cookie[1] /*cookie generated in the past*/ )
+    if ( 
+      count($cookie) === 3
+      and is_numeric(@$cookie[0]) /*user id*/
+      and is_numeric(@$cookie[1]) /*time*/
+      and time()-$conf['remember_me_length'] <= @$cookie[1]
+      and time() >= @$cookie[1] /*cookie generated in the past*/ )
     {
       $key = calculate_auto_login_key($cookie[0], $cookie[1]);
-      if ($key!==false and $key===$cookie[2])
+      if ( $key!==false and $key===$cookie[2] )
       {
         log_user($cookie[0], true);
         return true;
@@ -327,7 +335,7 @@ function auto_login()
 }
 
 /**
- * Performs user login
+ * performs user login
  * @param int user_id
  * @param bool remember_me
  * @return void
@@ -340,7 +348,7 @@ function log_user($user_id, $remember_me)
   {
     $now = time();
     $key = calculate_auto_login_key($user_id, $now);
-    if ($key!==false)
+    if ($key !== false)
     {
       $cookie = $user_id.'-'.$now.'-'.$key;
       setcookie($conf['remember_me_name'], $cookie, time()+$conf['remember_me_length']);
@@ -350,6 +358,7 @@ function log_user($user_id, $remember_me)
   { // make sure we clean any remember me ...
     setcookie($conf['remember_me_name'], '', 0);
   }
+  
   if (session_id() != "")
   { // we regenerate the session for security reasons
     // see http://www.acros.si/papers/session_fixation.pdf
@@ -359,11 +368,12 @@ function log_user($user_id, $remember_me)
   {
     session_start();
   }
+  
   $user['id'] = $_SESSION['uid'] = (int)$user_id;
 }
 
 /** 
- * Performs all the cleanup on user logout 
+ * performs all the cleanup on user logout 
  */
 function logout_user()
 {
@@ -376,7 +386,7 @@ function logout_user()
 }
 
 /**
- * Tries to login a user given username and password
+ * tries to login a user given username and password
  * @return bool
  */
 function try_log_user($username, $password, $remember_me)
@@ -440,8 +450,6 @@ function get_userid($username)
 {
   global $conf;
 
-  $username = mysql_real_escape_string($username);
-
   $query = '
 SELECT '.$conf['user_fields']['id'].'
   FROM '.USERS_TABLE.'
@@ -468,13 +476,11 @@ SELECT '.$conf['user_fields']['id'].'
 function get_username($id)
 {
   global $conf;
-  
-  $id = mysql_real_escape_string($id);
 
   $query = '
 SELECT '.$conf['user_fields']['username'].'
   FROM '.USERS_TABLE.'
-  WHERE '.$conf['user_fields']['id'].' = "'.$id.'"
+  WHERE '.$conf['user_fields']['id'].' = "'.mres($id).'"
 ;';
   $result = mysql_query($query);
 
@@ -490,12 +496,13 @@ SELECT '.$conf['user_fields']['username'].'
 } 
 
 /**
- * validate_mail_address:
- * @param int user_id
+ * validate_mail_address
  * @param string mail_adress
+ * @param int user_id
+ * @param bool check if already exists
  * @return string message
  */
-function validate_mail_address($user_id, $mail_address)
+function validate_mail_address($mail_address, $user_id, $check_user=true)
 {
   global $conf;
 
@@ -508,7 +515,7 @@ function validate_mail_address($user_id, $mail_address)
     return 'Mail address must be like xxx@yyy.eee (example : jack@altern.org)';
   }
 
-  if (!empty($mail_address))
+  if ( !empty($mail_address) and $check_user )
   {
     $query = '
 SELECT count(*)
@@ -524,6 +531,8 @@ SELECT count(*)
       return 'This email address is already in use';
     }
   }
+  
+  return true;
 }
 
 /**
@@ -542,13 +551,9 @@ function register_user($login, $password, $mail_address)
   {
     array_push($errors, 'Please, enter a login');
   }
-  if (preg_match('/^.* $/', $login))
+  if ( preg_match('/^.* $/', $login) or preg_match('/^ .*$/', $login) )
   {
-    array_push($errors, 'Login mustn\'t end with a space character');
-  }
-  if (preg_match('/^ .*$/', $login))
-  {
-    array_push($errors, 'Login mustn\'t start with a space character');
+    array_push($errors, 'Login mustn\'t begin or start with a space character');
   }
   if (get_userid($login))
   {
@@ -558,8 +563,8 @@ function register_user($login, $password, $mail_address)
   {
     array_push($errors, 'HTML tags are not allowed in login');
   }
-  $mail_error = validate_mail_address(null, $mail_address);
-  if (!empty($mail_error))
+  $mail_error = validate_mail_address($mail_address, null, true);
+  if ($mail_error !== true)
   {
     array_push($errors, $mail_error);
   }
@@ -590,26 +595,14 @@ INSERT INTO '.USERS_TABLE.'(
 ;';
     mysql_query($query);
     
-    $query = '
-INSERT INTO '.USER_INFOS_TABLE.'(
-    user_id,
-    status,
-    registration_date
-    )
-  VALUES(
-    "'.mysql_insert_id().'",
-    "visitor",
-    NOW()
-    )
-;';
-    mysql_query($query);
+    create_user_infos(mysql_insert_id(), 'visitor');
   }
 
   return $errors;
 }
 
 /**
- * Returns admins email
+ * return admins emails
  * @return string
  */
 function get_admin_email()
@@ -622,7 +615,7 @@ SELECT
   '.$conf['user_fields']['username'].' as username
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
-     ON u.'.$conf['user_fields']['id'].' = i.user_id
+      ON u.'.$conf['user_fields']['id'].' = i.user_id
   WHERE i.status = "admin"
 ;';
   $to = hash_from_query($query);
@@ -633,7 +626,7 @@ SELECT
 }
 
 /**
- * Return user status
+ * return user status
  * @return string
  */
 function get_user_status($user_id=null)
@@ -656,7 +649,7 @@ function get_user_status($user_id=null)
     $query = '
 SELECT status
   FROM '.USER_INFOS_TABLE.'
-  WHERE user_id = '.$user_id.'
+  WHERE user_id = '.mres($user_id).'
 ;';
     list($status) = mysql_fetch_row(mysql_query($query));
     return $status;
@@ -683,8 +676,8 @@ function is_visitor()
 
 /**
  * search if current user is translator
- *   admins are always translators
- *   managers have same rights of translators
+ *   - admins are always translators
+ *   - managers have same rights of translators
  * @param string language
  * @param string section
  * @return bool
@@ -695,7 +688,7 @@ function is_translator($lang=null, $section=null)
   
   global $user;
   
-  $cond = true;
+  $cond = get_user_status() == 'translator' || get_user_status() == 'manager'; // status
   if ($lang != null) // access to language
   {
     $cond = $cond && in_array($lang, $user['languages']);
@@ -704,7 +697,6 @@ function is_translator($lang=null, $section=null)
   {
     $cond = $cond && in_array($section, $user['sections']);
   }
-  $cond = $cond && (get_user_status() == 'translator' || get_user_status() == 'manager'); // status
   
   return $cond;
 }
@@ -716,16 +708,13 @@ function is_translator($lang=null, $section=null)
  */
 function is_manager($section=null)
 {
-  // if (is_admin()) return true;
-  
   global $user;
   
-  $cond = true;
+  $cond = get_user_status() == 'manager'; // status
   if ($section != null) // access to section
   {
     $cond = $cond && in_array($section, $user['manage_sections']);
   }
-  $cond = $cond && get_user_status() == 'manager'; // status
   
   return $cond;
 }
