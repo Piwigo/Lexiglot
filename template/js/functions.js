@@ -17,7 +17,7 @@ function overlayMessage(msg, msg_class, $trigger) {
     $("#overlay-message")
       .css({
         "top": offset.top-$(window).scrollTop()-24, 
-        "left": offset.left-$(this).outerWidth()+45
+        "left": offset.left-$("#overlay-message").outerWidth()+45
         })
       .fadeIn("slow")
       .delay(2000)

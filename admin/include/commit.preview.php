@@ -25,13 +25,6 @@ defined('PATH') or die('Hacking attempt!');
 // |                        PREVIEW COMMIT
 // +-----------------------------------------------------------------------+
 
-// only use this with 'array_walk'
-function print_username(&$item, $key)
-{
-  global $_USERS;
-  $item = $_USERS[$item]['username'];
-}
-
 // legend
 echo '
 <form id="check_commit" action="admin.php?page=commit" method="post">

@@ -116,6 +116,9 @@ tr.highlight td {
   #langs .name {
     width: 160px;
   }
+  #langs .ref {
+    width: 160px;
+  }
   #langs .rank {
     width: 60px;
   }

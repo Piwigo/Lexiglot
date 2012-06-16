@@ -351,8 +351,8 @@ INSERT INTO '.MAIL_HISTORY_TABLE.' (
   )
   VALUES (
     NOW(),
-    "'.$args['from'].'",
-    "'.$to.'",
+    "'.mres($args['from']).'",
+    "'.mres($to).'",
     "'.mres($additional_infos).'"
   )
 ;';
@@ -373,7 +373,7 @@ function format_email($email, $name)
 
   if ($name != '')
   {
-    $name = encode_mail_header('"'.addcslashes($cvt_name,'"').'"');
+    $name = encode_mail_header('"'.addcslashes($name,'"').'"');
   }
 
   if (strpos($email, '<') === false)

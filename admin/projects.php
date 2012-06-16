@@ -362,6 +362,13 @@ if (isset($_GET['section_id']))
 
 $where_clauses = session_search($search, 'section_search', array('limit'));
 
+$displayed_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
+
+if (is_manager())
+{
+  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
+}
+
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
@@ -396,13 +403,6 @@ $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highligh
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
-
-if (is_manager())
-{
-  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
-}
-
 $query = '
 SELECT 
     s.*,
@@ -544,7 +544,7 @@ echo '
         </td>
         <td class="files">
           <a href="#" class="show-files" data="'.$row['id'].'">Edit</a>
-          <div id="textarea-'.$row['id'].'" title="'.$row['name'].' files">
+          <div id="textarea-'.$row['id'].'" title="'.$row['name'].' files :">
             <textarea name="sections['.$row['id'].'][files]" style="width:370px;height:145px;">'.$row['files'].'</textarea>
           </div>    
         </td>
@@ -638,14 +638,18 @@ $("#sections table").tablesorter({
 
 /* files dialog */
 $("div[id^=\'textarea\']").dialog({
-  autoOpen: false, resizable: false,
+  autoOpen: false, resizable: false, modal: true,
   show: "clip", hide: "clip",
   height: 250, width: 400,
   buttons: {
+    "Reset": function() { $(this).html($(this).html()); },
     "OK": function() { $(this).dialog("close"); }
   },
   create: function() { // jQuery.dialog moves the textarea away the form, me must set it back
     $(this).parent().appendTo($("form#sections"));
+  },
+  open: function(event, ui) { // remove close button
+    $(".ui-dialog-titlebar-close", ui.dialog).hide();
   }
 });
 

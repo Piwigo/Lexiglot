@@ -235,4 +235,10 @@ $(".ui-button input[type=\"checkbox\"]").change(function() {
 });
 ';
 
+function print_username(&$item, $key)
+{
+  global $_USERS;
+  $item = $_USERS[$item]['username'];
+}
+
 ?>

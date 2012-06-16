@@ -25,13 +25,6 @@ defined('PATH') or die('Hacking attempt!');
 // |                        SEND COMMIT
 // +-----------------------------------------------------------------------+
 
-// only use this with 'array_walk'
-function print_username(&$item, $key)
-{
-  global $_USERS;
-  $item = $_USERS[$item]['username'];
-}
-
 // FOREACH COMMIT
 foreach ($_ROWS as $props => $files)
 {
@@ -202,8 +195,6 @@ foreach ($_ROWS as $props => $files)
               unset_to_eor($_FILE, $i);
             }
             unset($_FILE[$i]);
-            
-            array_push($file_infos['done_rows'], $row['id']);
           }
         }
       }

@@ -235,7 +235,7 @@ echo '
         if (!is_default_language($page['ref']))
         {
           echo '
-          <div class="ui-state-warning" style="display:inline-block;padding:0.3em;font-weight:normal;">
+          <div class="ui-state-highlight" style="display:inline-block;padding:0.3em;font-weight:normal;">
             <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
             Not using the default language ('.$conf['all_languages'][ $conf['default_language'] ]['name'].') as reference may provide incomplete translation table.
           </div>';
@@ -287,15 +287,15 @@ echo '
           echo '
           <pre>'.($in_search && $search['where'] == 'row_value' ? highlight_search_result($text, array_merge(array($search['needle']), $search['words'])) : $text).'</pre>';
         }
-        else if (is_visitor())
+        else if (is_guest())
         {
           echo '
-          <p class="login">Not translated yet.</p>';
+          <p class="login">You <a href="user.php?login">have to login</a> to add a translation.</p>';
         }
         else
         {
           echo '
-          <p class="login">You <a href="user.php?login">have to login</a> to add a translation.</p>';
+          <p class="login">Not translated yet.</p>';
         }
       echo '
       </td>

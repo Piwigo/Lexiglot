@@ -80,7 +80,7 @@ if ( isset($_GET['ref']) and array_key_exists($_GET['ref'], $conf['all_languages
 }
 else
 {
-  $page['ref'] = $conf['default_language'];
+  $page['ref'] = get_language_ref($page['language']);
 }
 
 $page['file_uri'] = $conf['local_dir'].$page['section'].'/'.$page['language'].'/'.$page['file'];
@@ -293,10 +293,10 @@ if ($is_translator)
 {
   // search users that can receive notifications (status, persmissions, preferences)
   $where_clauses = array(
-    'i.status = "admin" OR (i.sections LIKE "%'.$page['section'].'%" AND i.languages LIKE "%'.$page['language'].'%")',
+    '( i.status = "admin" OR ( i.sections LIKE "%'.$page['section'].'%" AND (i.languages LIKE "%'.$page['language'].'%" OR i.status = "manager") ) )',
     'i.status != "guest"',
     );
-  if (!is_admin()) array_push($where_clauses, 'AND i.email_privacy != "private"');
+  if (!is_admin()) array_push($where_clauses, 'i.email_privacy != "private"');
   
   $users = get_users_list($where_clauses, 'i.status, i.nb_rows, i.sections');
 

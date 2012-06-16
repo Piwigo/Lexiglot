@@ -231,16 +231,16 @@ echo '
           <input type="checkbox" name="select[]" value="'.$row['id'].'">
         </td>
         <td class="lang">
-          <a href="'.get_url_string(array('page'=>'languages','lang_id'=>$row['lang']), true).'">'.get_language_name($row['lang']).'</a>
+          <a href="'.get_url_string(array('language'=>$row['lang']), true, 'language').'">'.get_language_name($row['lang']).'</a>
         </td>
         <td class="section">
-          <a href="'.get_url_string(array('page'=>'projects','section_id'=>$row['section']), true).'">'.get_section_name($row['section']).'</a>
+          <a href="'.get_url_string(array('section'=>$row['section']), true, 'section').'">'.get_section_name($row['section']).'</a>
         </td>
         <td class="file">
           '.$row['file_name'].'
         </td>
         <td class="user">
-          <a href="'.get_url_string(array('page'=>'users','user_id'=>$row['user_id']), true).'">'.$row['username'].'</a>
+          <a href="'.get_url_string(array('user_id'=>$row['user_id']), true, 'profile').'">'.$row['username'].'</a>
         </td>
         <td class="date">
           <span style="display:none;">'.strtotime($row['last_edit']).'</span>'.format_date($row['last_edit'], true, false).'

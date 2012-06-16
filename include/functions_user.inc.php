@@ -142,6 +142,12 @@ SELECT *
     {
       $user['manage_perms'] = unserialize($conf['default_manager_perms']);
     }
+    
+    // manager have access to all languages in its sections (must find a better way to do that)
+    if ( isset($_GET['section']) and in_array($_GET['section'], $user['manage_sections']) )
+    {
+      $user['languages'] = array_keys($conf['all_languages']);
+    }
   }
   else
   {

@@ -254,7 +254,7 @@ if ($local_user)
           <td>Projects assigned :</td>
           <td>';
           $f=1;
-          foreach ($local_user['sections'] as $section)
+          foreach (array_diff($local_user['sections'], $local_user['manage_sections']) as $section)
           {
             if(!$f)echo ', ';$f=0;
             echo '

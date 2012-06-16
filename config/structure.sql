@@ -66,6 +66,7 @@ CREATE TABLE `lexiglot_languages` (
   `flag` varchar(64),
   `rank` int(2) NOT NULL DEFAULT '1',
   `category_id` smallint(5) DEFAULT '0',
+  `ref_id` varchar(32),
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 

@@ -149,6 +149,15 @@ if (isset($_POST['save_lang']))
     {
       $row['category_id'] = 0;
     }
+    // check reference
+    if ( !empty($row['ref_id']) and $row['ref_id']==$id )
+    {
+      array_push($errors, 'Reference language can\'t be it-self for language &laquo;'.$id.'&raquo;.');
+    }
+    if (empty($row['ref_id']))
+    {
+      $row['ref_id'] = null;
+    }
     
     // check flag
     if ( !count($errors) and !empty($_FILES['flags-'.$id]['tmp_name']) )
@@ -172,8 +181,9 @@ UPDATE '.LANGUAGES_TABLE.'
   SET
     name = "'.$row['name'].'",
     rank = '.$row['rank'].',
-    category_id = '.$row['category_id'].''
-    .(isset($row['flag']) ? ',flag = "'.$row['flag'].'"' : null).'
+    category_id = '.$row['category_id'].',
+    ref_id = "'.$row['ref_id'].'"
+    '.(isset($row['flag']) ? ',flag = "'.$row['flag'].'"' : null).'
   WHERE id = "'.$id.'"
 ;';
       mysql_query($query);
@@ -237,6 +247,11 @@ SELECT id
   {
     $_POST['category_id'] = 0;
   }
+  // check reference
+  if (empty($_POST['ref_id']))
+  {
+    $_POST['ref_id'] = null;
+  }
   
   // check flag
   if ( !count($page['errors']) and !empty($_FILES['flag']['tmp_name']) )
@@ -261,14 +276,16 @@ INSERT INTO '.LANGUAGES_TABLE.'(
     name,
     flag,
     rank,
-    category_id
+    category_id,
+    ref_id
   )
   VALUES(
     "'.$_POST['id'].'",
     "'.$_POST['name'].'",
     "'.$_POST['flag'].'",
     '.$_POST['rank'].',
-    '.$_POST['category_id'].'
+    '.$_POST['category_id'].',
+    "'.$_POST['ref_id'].'"
   )
 ;';
     mysql_query($query);
@@ -292,6 +309,7 @@ UPDATE '.USER_INFOS_TABLE.'
                                               'flag' => $_POST['flag'],
                                               'rank' => $_POST['rank'],
                                               'category_id' => $_POST['category_id'],
+                                              'ref_id' => $_POST['ref_id'],
                                               );
     ksort($conf['all_languages']);
       
@@ -409,6 +427,7 @@ echo '
       <th>Id. (folder name) <span class="red">*</span></th>
       <th>Name <span class="red">*</span></th>
       <th>Flag</th>
+      <th>Reference</th>
       <th>Priority</th>
       <th>Category</th>
       <th></th>
@@ -419,6 +438,17 @@ echo '
       <td>
         <input type="file" name="flag">
         <input type="hidden" name="MAX_FILE_SIZE" value="10240">
+      </td>
+      <td>
+        <select name="ref_id">
+          <option value="" selected="selected">(default)</option>';
+          foreach ($conf['all_languages'] as $lang)
+          {
+            echo '
+          <option value="'.$lang['id'].'">'.$lang['name'].'</option>';
+          }
+        echo '
+        </select>
       </td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>
@@ -491,6 +521,7 @@ echo '
         <th class="id">Id.</th>
         <th class="name">Name</th>
         <th class="flag">Flag</th>
+        <th class="ref">Reference</th>
         <th class="rank">Priority</th>
         <th class="category">Category</th>
         <th class="users">Translators</th>
@@ -526,7 +557,22 @@ echo '
           <span style="display:inline-block;margin-right:10px;width:16px;">&nbsp;</span>';
         }
         echo '
-          Change : <input type="file" name="flags-'.$row['id'].'" size="15">
+          <a href="#" class="show-flag" data="'.$row['id'].'">Change</a>
+          <div id="flag-'.$row['id'].'" title="'.$row['name'].' flag :">
+            <input type="file" name="flags-'.$row['id'].'" size="40">
+          </div>   
+        </td>
+        <td class="ref">
+          <span style="display:none;">'.$row['ref_id'].'</span>
+          <select name="langs['.$row['id'].'][ref_id]">
+            <option value="" '.(null==$row['ref_id']?'selected="selected"':'').'>(default)</option>';
+            foreach ($conf['all_languages'] as $lang)
+            {
+              echo '
+            <option value="'.$lang['id'].'" '.($lang['id']==$row['ref_id']?'selected="selected"':'').'>'.$lang['name'].'</option>';
+            }
+          echo '
+          </select>
         </td>
         <td class="rank">
           <span style="display:none;">'.$row['rank'].'</span>
@@ -549,7 +595,7 @@ echo '
     {
       echo '
       <tr>
-        <td colspan="8"><i>No results</i></td>
+        <td colspan="9"><i>No results</i></td>
       </tr>';
     }
     echo '
@@ -612,9 +658,31 @@ $("input.category").tokenInput(['.$categories_json.'], {
 
 /* tablesorter */
 $("#langs table").tablesorter({
-  sortList: [[4,1],[1,0]],
-  headers: { 0: {sorter: false}, 3: {sorter: false}, 7: {sorter: false} },
+  sortList: [[5,1],[1,0]],
+  headers: { 0: {sorter: false}, 3: {sorter: false}, 8: {sorter: false} },
   widgets: ["zebra"]
+});
+
+/* flag dialog */
+$("div[id^=\'flag\']").dialog({
+  autoOpen: false, resizable: false, modal: true,
+  show: "clip", hide: "clip",
+  height: 120, width: 400,
+  buttons: {
+    "Reset": function() { $(this).html($(this).html()); },
+    "OK": function() { $(this).dialog("close"); }
+  },
+  create: function() { // jQuery.dialog moves the textarea away the form, me must set it back
+    $(this).parent().appendTo($("form#langs"));
+  },
+  open: function(event, ui) { // remove close button
+    $(".ui-dialog-titlebar-close", ui.dialog).hide();
+  }
+});
+
+$("a.show-flag").click(function() {
+  $("div#flag-"+ $(this).attr("data")).dialog("open");
+  return false;
 });
 
 /* actions */

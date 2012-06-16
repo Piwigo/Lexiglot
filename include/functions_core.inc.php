@@ -325,7 +325,7 @@ function get_language_name($lang)
 function get_language_rank($lang)
 {
   global $conf;
-  return @$conf['all_languages'][$lang]['rank'];
+  return (int)@$conf['all_languages'][$lang]['rank'];
 }
 
 /**
@@ -336,7 +336,7 @@ function get_language_rank($lang)
 function get_language_flag($lang, $force=false)
 {
   global $conf;
-  if ( isset($conf['all_languages'][$lang]) and file_exists_strict($conf['flags_dir'].$conf['all_languages'][$lang]['flag']) )
+  if ( !empty($conf['all_languages'][$lang]['flag']) and file_exists_strict($conf['flags_dir'].$conf['all_languages'][$lang]['flag']) )
   {
     return '<img src="'.$conf['flags_dir'].$conf['all_languages'][$lang]['flag'].'" alt="'.$lang.'" class="flag">';
   }
@@ -354,6 +354,23 @@ function get_language_flag($lang, $force=false)
   }
   
   return null;
+}
+
+/**
+ * get language reference
+ * @param string lang
+ */
+function get_language_ref($lang)
+{
+  global $conf;
+  if ( !empty($conf['all_languages'][$lang]['ref_id']) and $lang!=$conf['all_languages'][$lang]['ref_id'] and array_key_exists($conf['all_languages'][$lang]['ref_id'], $conf['all_languages']) )
+  {
+    return $conf['all_languages'][$lang]['ref_id'];
+  }
+  else
+  {
+    return $conf['default_language'];
+  }
 }
 
 /**
@@ -377,7 +394,7 @@ function get_section_name($section)
 function get_section_rank($lang)
 {
   global $conf;
-  return @$conf['all_sections'][$lang]['rank'];
+  return (int)@$conf['all_sections'][$lang]['rank'];
 }
 
 /**

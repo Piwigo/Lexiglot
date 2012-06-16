@@ -81,6 +81,11 @@ DELETE FROM '.ROWS_TABLE.'
       array_push($page['infos'], mysql_affected_rows().' commited strings deleted');
       break;
     }
+    
+    case 'clean_mail_history' :
+      mysql_query('TRUNCATE TABLE '.MAIL_HISTORY_TABLE.';');
+      array_push($page['infos'],'Mail archive cleaned');
+      break;
   }
 }
 
@@ -152,6 +157,7 @@ echo '
     <h5>Maintenance</h5>
     <li><a href="'.get_url_string(array('action'=>'make_stats')).'">Update all statistics</a></li>
     '.(!$conf['delete_done_rows'] ? '<li><a href="'.get_url_string(array('action'=>'delete_done_rows')).'" onclick="return confirm(\'Are you sure?\');">Delete all commited strings</a></li>' : null).'
+    <li><a href="'.get_url_string(array('action'=>'clean_mail_history')).'">Clean mail archive</a></li>
   </ul>
   
   <div style="clear:both;"></div>
