@@ -225,6 +225,8 @@ SELECT x.pos
         INNER JOIN '.USERS_TABLE.' AS u
           ON u.'.$conf['user_fields']['id'].' = i.user_id
         JOIN (SELECT @rownum := 0) AS r
+      WHERE 
+        '.implode("\n    AND ", $where_clauses).'
       ORDER BY u.'.$conf['user_fields']['username'].' ASC
   ) AS x
   WHERE x.id = "'.$highlight_user.'"
@@ -443,13 +445,15 @@ echo '
         <td class="actions">';
         if ( !in_array($row['status'], array('admin','visitor')) and $row['id']!=$user['id'] and (!is_manager() or $row['id']!=$conf['guest_id']) )
         {
-          echo '
-          <a href="'.get_url_string(array('page'=>'user_perm','user_id'=>$row['id']), true).'" title="Manage permissions"><img src="template/images/user_edit.png"></a>';
+          echo ' <a href="'.get_url_string(array('page'=>'user_perm','user_id'=>$row['id']), true).'" title="Manage permissions"><img src="template/images/user_edit.png"></a>';
         }
         if ( !in_array($row['status'], array('admin','guest')) and $row['id']!=$user['id'] and is_admin() )
         {
-          echo '
-          <a href="'.get_url_string(array('delete_user'=>$row['id'])).'" title="Delete this user" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="[x]"></a>';
+          echo ' <a href="'.get_url_string(array('delete_user'=>$row['id'])).'" title="Delete this user" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="[x]"></a>';
+        }
+        else
+        {
+          echo ' <span style="display:inline-block;width:16px;">&nbsp;</span>';
         }
         echo '
         </td>

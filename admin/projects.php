@@ -22,6 +22,7 @@
 defined('PATH') or die('Hacking attempt!');
 
 $highlight_section = isset($_GET['from_id']) ? $_GET['from_id'] : null;
+$deploy_section = null;
 
 // +-----------------------------------------------------------------------+
 // |                         DELETE SECTION
@@ -101,108 +102,114 @@ if (isset($_GET['make_stats']))
 // +-----------------------------------------------------------------------+
 // |                         SAVE SECTIONS
 // +-----------------------------------------------------------------------+
-if (isset($_POST['save_section']))
+if ( isset($_POST['save_section']) and isset($_POST['active_section']) )
 {
+  $row = $_POST['sections'][ $_POST['active_section'] ];
+  $row['id'] = $_POST['active_section'];
+  
   $query = '
 SELECT id, directory, files
   FROM '.SECTIONS_TABLE.'
-  WHERE id IN("'.implode('","', array_keys($_POST['sections'])).'")
+  WHERE id = "'.$row['id'].'"
 ;';
-  $old_values = hash_from_query($query, 'id');
+  $old_values = mysql_fetch_assoc(mysql_query($query));
   
-  foreach ($_POST['sections'] as $section_id => $row)
+  $regenerate_stats = false;
+  // check name
+  if (empty($row['name']))
   {
-    $regenerate_stats = false;
-    $errors = array();
-    // check name
-    if (empty($row['name']))
+    array_push($page['errors'], 'Name is empty.');
+  }
+  // check directory
+  if ($conf['svn_activated'] and empty($row['directory']))
+  {
+    array_push($page['errors'], 'Directory is empty.');
+  }
+  else if (!empty($row['directory']))
+  {
+    $row['directory'] = rtrim($row['directory'], '/').'/';
+  }
+  // check files
+  $row['files'] = str_replace(' ', null, $row['files']);
+  if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $row['files'].','))
+  {
+    array_push($page['errors'], 'Seperate each file with a comma.');
+  }
+  else if ($row['files'] != $old_values['files'])
+  {
+    $regenerate_stats = true;
+  }
+  // check rank
+  if (!is_numeric($row['rank']) or $row['rank'] < 1)
+  {
+    array_push($page['errors'], 'Rank must be an non null integer.');
+  }
+  // check category
+  if ( !count($page['errors']) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
+  {
+    $row['category_id'] = add_category($row['category_id'], 'section');
+  }
+  if (empty($row['category_id']))
+  {
+    $row['category_id'] = 0;
+  }
+  // check url
+  if (empty($row['url']))
+  {
+    $row['url'] = null;
+  }
+  
+  // switch directory
+  if ( !count($page['errors']) and $conf['svn_activated'] and $old_values['directory'] != $row['directory'] )
+  {
+    $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id']);
+    if ($svn_result['level'] == 'error')
     {
-      array_push($errors, 'Name is empty for project &laquo;'.$section_id.'&raquo;.');
+      array_push($page['errors'], $svn_result['msg']);
     }
-    // check directory
-    if ($conf['svn_activated'] and empty($row['directory']))
-    {
-      array_push($errors, 'Directory is empty for project &laquo;'.$section_id.'&raquo;.');
-    }
-    else if (!empty($row['directory']))
-    {
-      $row['directory'] = rtrim($row['directory'], '/').'/';
-    }
-    // check files
-    $row['files'] = str_replace(' ', null, $row['files']);
-    if (!preg_match('#^(([a-zA-Z0-9\._\-/]+)([,]{1}))+$#', $row['files'].','))
-    {
-      array_push($errors, 'Seperate each file with a comma for project &laquo;'.$section_id.'&raquo;.');
-    }
-    else if ($row['files'] != $old_values[$section_id]['files'])
+    else
     {
       $regenerate_stats = true;
     }
-    // check rank
-    if (!is_numeric($row['rank']) or $row['rank'] < 1)
-    {
-      array_push($errors, 'Rank must be an non null integer for project &laquo;'.$section_id.'&raquo;.');
-    }
-    // check category
-    if ( !count($errors) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
-    {
-      $row['category_id'] = add_category($row['category_id'], 'section');
-    }
-    if (empty($row['category_id']))
-    {
-      $row['category_id'] = 0;
-    }
-    
-    // switch directory
-    if ( !count($errors) and $conf['svn_activated'] and $old_values[$section_id]['directory'] != $row['directory'] )
-    {
-      $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$section_id);
-      if ($svn_result['level'] == 'error')
-      {
-        array_push($errors, $svn_result['msg']);
-      }
-      else
-      {
-        $regenerate_stats = true;
-      }
-    }
-    
-    // save section
-    if (count($errors) == 0)
-    {
-      $query = '
+  }
+  
+  // save section
+  if (count($page['errors']) == 0)
+  {
+    $query = '
 UPDATE '.SECTIONS_TABLE.'
   SET 
     name = "'.$row['name'].'",
     directory = "'.$row['directory'].'",
     files = "'.$row['files'].'",
     rank = '.$row['rank'].',
-    category_id = '.$row['category_id'].'
-  WHERE id = "'.$section_id.'"
+    category_id = '.$row['category_id'].',
+    url = "'.$row['url'].'"
+  WHERE id = "'.$row['id'].'"
 ;';
-      mysql_query($query);
-      
-      // update stats
-      if ($regenerate_stats)
-      {
-        make_section_stats($section_id);
-      }
-    }
-    else
-    {
-      $page['errors'] = array_merge($page['errors'], $errors);
-    }
+    mysql_query($query);
   }
   
-  // reload sections array
-  $query = 'SELECT * FROM '.SECTIONS_TABLE.' ORDER BY id;';
-  $conf['all_sections'] = hash_from_query($query, 'id');
-  ksort($conf['all_sections']);
+  $highlight_section = $row['id'];
+  
+  // update sections array
+  $conf['all_sections'][ $row['id'] ] = array_merge($conf['all_sections'][ $row['id'] ], $row);
+  
+  // update stats
+  if ($regenerate_stats)
+  {
+    make_section_stats($section_id);
+  }
 
   
   if (count($page['errors']) == 0)
   {
     array_push($page['infos'], 'Modifications saved.');
+  }
+  else
+  {
+    array_push($page['errors'], 'Modifications not saved.');
+    $deploy_section = $row['id'];
   }
 }
 
@@ -322,13 +329,14 @@ UPDATE '.USER_INFOS_TABLE.'
     
     // update sections array
     $conf['all_sections'][ $_POST['id'] ] = array(
-                                              'id' => $_POST['id'],
-                                              'name' => $_POST['name'],
-                                              'directory' => $_POST['directory'],
-                                              'files' => $_POST['files'],
-                                              'rank' => $_POST['rank'],
-                                              'category_id' => $_POST['category_id'],
-                                              );
+                                            'id' => $_POST['id'],
+                                            'name' => $_POST['name'],
+                                            'directory' => $_POST['directory'],
+                                            'files' => $_POST['files'],
+                                            'rank' => $_POST['rank'],
+                                            'category_id' => $_POST['category_id'],
+                                            'url' => null,
+                                            );
     ksort($conf['all_sections']);
 
     // generate stats
@@ -345,7 +353,6 @@ UPDATE '.USER_INFOS_TABLE.'
 // +-----------------------------------------------------------------------+
 // default search
 $search = array(
-  'id' =>          array('%', ''),
   'name' =>        array('%', ''),
   'rank' =>        array('=', ''),
   'category_id' => array('=', -1),
@@ -356,7 +363,7 @@ $search = array(
 if (isset($_GET['section_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'] = array('%', $_GET['section_id'], '');
+  $search['name'] = array('%', get_section_name($_GET['section_id']), '');
   unset($_GET['section_id']);
 }
 
@@ -391,6 +398,8 @@ SELECT x.pos
         @rownum := @rownum+1 AS pos
       FROM '.SECTIONS_TABLE.'
         JOIN (SELECT @rownum := 0) AS r
+      WHERE 
+        '.implode("\n    AND ", $where_clauses).'
       ORDER BY rank DESC, id ASC
   ) AS x
   WHERE x.id = "'.$highlight_section.'"
@@ -472,7 +481,6 @@ echo '
   
   <table class="search">
     <tr>
-      <th>Id.</th>
       <th>Name</th>
       <th>Priority</th>
       <th>Category</th>
@@ -480,7 +488,6 @@ echo '
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.get_search_value('id').'"></td>
       <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
       <td><input type="text" name="rank" size="2" value="'.get_search_value('rank').'"></td>
       <td>
@@ -513,55 +520,41 @@ echo '
     <thead>
       <tr>
         <th class="chkb"></th>
-        <th class="id">Id.</th>
         <th class="name">Name</th>
-        <th class="dir">Directory</th>
-        <th class="files">Files</th>
         <th class="rank">Priority</th>
         <th class="category">Category</th>
         <th class="users">Translators</th>
-        <th class="actions"></th>
+        <th class="actions">Actions</th>
       </tr>
     </thead>
     <tbody>';
     foreach ($_DIRS as $row)
     {
       echo '
-      <tr class="'.($highlight_section==$row['id'] ? 'highlight' : null).'">
+      <tr class="main '.($highlight_section==$row['id'] ? 'highlight' : null).'">
         <td class="chkb">
           <input type="checkbox" name="select[]" value="'.$row['id'].'">
         </td>
-        <td class="id">
-          <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">'.$row['id'].'</a>
-        </td>
         <td class="name">
-          <span style="display:none;">'.$row['name'].'</span>
-          <input type="text" name="sections['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
-        </td>
-        <td class="dir">
-          <span style="display:none;">'.$row['directory'].'</span>
-          <input type="text" name="sections['.$row['id'].'][directory]" value="'.$row['directory'].'" size="35">
-        </td>
-        <td class="files">
-          <a href="#" class="show-files" data="'.$row['id'].'">Edit</a>
-          <div id="textarea-'.$row['id'].'" title="'.$row['name'].' files :">
-            <textarea name="sections['.$row['id'].'][files]" style="width:370px;height:145px;">'.$row['files'].'</textarea>
-          </div>    
+          <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">'.$row['name'].'</a>
         </td>
         <td class="rank">
-          <span style="display:none;">'.$row['rank'].'</span>
-          <input type="text" name="sections['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
+          '.$row['rank'].'
         </td>
         <td class="category">
-          <input type="text" name="sections['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
+          '.(!empty($row['category_id']) ? get_category_name($row['category_id']) : null).'
         </td>
         <td class="users">
           <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
-          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
-          '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');">
-            <img src="template/images/cross.png" alt="[x]"></a>' : null).'
+          <a href="#" class="expand" data="'.$row['id'].'" title="Edit this project"><img src="template/images/page_white_edit.png" alt="edit"></a>
+          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png" alt="refresh"></a>';
+          if ( is_admin() || $user['manage_perms']['can_delete_projects'] )
+          {
+            echo ' <a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="delete"></a>';
+          }
+        echo '
         </td>
       </tr>';
     }
@@ -569,7 +562,7 @@ echo '
     {
       echo '
       <tr>
-        <td colspan="9"><i>No results</i></td>
+        <td colspan="6"><i>No results</i></td>
       </tr>';
     }
     echo '
@@ -577,10 +570,6 @@ echo '
   </table>
   <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
   <div class="pagination">'.display_pagination($paging, 'nav').'</div>
-  
-  <div class="centered">
-    <input type="submit" name="save_section" class="blue big" value="Save">
-  </div>
 </fieldset>
 
 <fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
@@ -621,9 +610,64 @@ echo '
 load_jquery('tablesorter');
 load_jquery('tokeninput');
 
+$page['header'].= '
+<script type="text/javascript" src="template/js/functions.js"></script>';
+
 $page['script'].= '
+/* perform ajax request for section edit */
+$("a.expand").click(function() {
+  $trigger = $(this);
+  section_id = $trigger.attr("data");
+  $parent_row = $trigger.parents("tr.main");
+  $details_row = $parent_row.next("tr.details");
+  
+  if (!$details_row.length) {
+    $("a.expand img").attr("src", "template/images/page_white_edit.png");
+    $("tr.details").remove();
+    
+    $trigger.children("img").attr("src", "template/images/page_edit.png");
+    $parent_row.after(\'<tr class="details" id="details\'+ section_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
+    
+    $container = $parent_row.next("tr.details").children("td:last-child");
+
+    $.ajax({
+      type: "POST",
+      url: "admin/ajax.php",
+      data: { "action":"get_section_form", "section_id": section_id }
+    }).done(function(msg) {
+      msg = $.parseJSON(msg);
+      
+      if (msg.errcode == "success") {
+        $container.html(msg.data);
+        $container.find("input.category").tokenInput(json_categories, {
+          tokenLimit: 1,
+          allowCreation: true,
+          hintText: ""
+        });
+      }  else {
+        overlayMessage(msg.data, msg.errcode, $trigger);
+      }
+    });
+  } else {
+    $details_row.remove();
+    $trigger.children("img").attr("src", "template/images/page_white_edit.png");
+  }
+  
+  return false;
+});
+
+/* linked table rows follow hover state */
+$("tr.main").hover(
+  function() { $(this).next("tr.details").addClass("hover"); },
+  function() { $(this).next("tr.details").removeClass("hover"); }
+);
+// this is a live version of above trigger, as "tr.details" are created on the fly
+$(document).on("mouseenter", "tr.details", function() { $(this).prev("tr.main").addClass("hover"); });
+$(document).on("mouseleave", "tr.details", function() { $(this).prev("tr.main").removeClass("hover"); });
+
 /* token input for categories */
-$("input.category").tokenInput(['.$categories_json.'], {
+var json_categories = ['.$categories_json.'];
+$("input.category").tokenInput(json_categories, {
   tokenLimit: 1,
   allowCreation: true,
   hintText: ""
@@ -631,31 +675,13 @@ $("input.category").tokenInput(['.$categories_json.'], {
 
 /* tablesorter */
 $("#sections table").tablesorter({
-  sortList: [[5,1],[1,0]],
-  headers: { 0: {sorter:false}, 4: {sorter: false}, 8: {sorter: false} },
+  sortList: [[2,1],[1,0]],
+  headers: { 0: {sorter:false}, 5: {sorter: false} },
   widgets: ["zebra"]
-});
-
-/* files dialog */
-$("div[id^=\'textarea\']").dialog({
-  autoOpen: false, resizable: false, modal: true,
-  show: "clip", hide: "clip",
-  height: 250, width: 400,
-  buttons: {
-    "Reset": function() { $(this).html($(this).html()); },
-    "OK": function() { $(this).dialog("close"); }
-  },
-  create: function() { // jQuery.dialog moves the textarea away the form, me must set it back
-    $(this).parent().appendTo($("form#sections"));
-  },
-  open: function(event, ui) { // remove close button
-    $(".ui-dialog-titlebar-close", ui.dialog).hide();
-  }
-});
-
-$("a.show-files").click(function() {
-  $("div#textarea-"+ $(this).attr("data")).dialog("open");
-  return false;
+})
+.bind("sortStart", function() { 
+  $("tr.details").remove();
+  $("a.expand img").attr("src", "template/images/page_white_edit.png");
 });
 
 /* actions */
@@ -713,5 +739,11 @@ $("td.id").click(function() {
   $checkbox = $(this).prev("td.chkb").children("input");
   $checkbox.attr("checked", !$checkbox.attr("checked"));
 });';
+
+if (!empty($deploy_section))
+{
+  $page['script'].= '
+  $("a.expand[data=\''.$deploy_section.'\']").trigger("click");';
+}
 
 ?>

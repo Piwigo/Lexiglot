@@ -118,6 +118,7 @@ CREATE TABLE `lexiglot_sections` (
   `files` text NOT NULL,
   `rank` int(2) NOT NULL DEFAULT '1',
   `category_id` smallint(5) DEFAULT '0',
+  `url` varchar(255),
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 

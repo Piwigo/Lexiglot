@@ -22,6 +22,7 @@
 defined('PATH') or die('Hacking attempt!');
 
 $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
+$deploy_language = null;
 
 // +-----------------------------------------------------------------------+
 // |                         DELETE LANG
@@ -125,58 +126,54 @@ if (isset($_GET['make_stats']))
 // +-----------------------------------------------------------------------+
 // |                         SAVE LANGS
 // +-----------------------------------------------------------------------+
-if (isset($_POST['save_lang']))
+if ( isset($_POST['save_language']) and isset($_POST['active_language']) )
 {
-  foreach ($_POST['langs'] as $id => $row)
+  $row = $_POST['languages'][ $_POST['active_language'] ];
+  $row['id'] = $_POST['active_language'];
+  
+  // check name
+  if (empty($row['name']))
   {
-    $errors = array();
-    // check name
-    if (empty($row['name']))
+    array_push($page['errors'], 'Name is empty.');
+  }
+  // check rank
+  if (!is_numeric($row['rank']) or $row['rank'] < 1)
+  {
+    array_push($page['errors'], 'Rank must be an non null integer.');
+  }
+  // check category
+  if ( !count($page['errors']) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
+  {
+    $row['category_id'] = add_category($row['category_id'], 'language');
+  }
+  if (empty($row['category_id']))
+  {
+    $row['category_id'] = 0;
+  }
+  // check reference
+  if (empty($row['ref_id']))
+  {
+    $row['ref_id'] = null;
+  }
+  
+  // check flag
+  if ( !count($page['errors']) and !empty($_FILES['flags-'.$row['id']]['tmp_name']) )
+  {
+    $row['flag'] = upload_flag($_FILES['flags-'.$row['id']], $row['id']);
+    if (is_array($row['flag']))
     {
-      array_push($errors, 'Name is empty for language &laquo;'.$id.'&raquo;.');
+      $page['errors'] = array_merge($page['errors'], $row['flag']);
     }
-    // check rank
-    if (!is_numeric($row['rank']) or $row['rank'] < 1)
+    else
     {
-      array_push($errors, 'Rank must be an non null integer for language &laquo;'.$id.'&raquo;.');
+      @unlink($conf['flags_dir'].$conf['all_languages'][ $row['id'] ]['flag']);
     }
-    // check category
-    if ( !count($errors) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
-    {
-      $row['category_id'] = add_category($row['category_id'], 'language');
-    }
-    if (empty($row['category_id']))
-    {
-      $row['category_id'] = 0;
-    }
-    // check reference
-    if ( !empty($row['ref_id']) and $row['ref_id']==$id )
-    {
-      array_push($errors, 'Reference language can\'t be it-self for language &laquo;'.$id.'&raquo;.');
-    }
-    if (empty($row['ref_id']))
-    {
-      $row['ref_id'] = null;
-    }
-    
-    // check flag
-    if ( !count($errors) and !empty($_FILES['flags-'.$id]['tmp_name']) )
-    {
-      $row['flag'] = upload_flag($_FILES['flags-'.$id], $id);
-      if (is_array($row['flag']))
-      {
-        $errors = array_merge($errors, $row['flag']);
-      }
-      else
-      {
-        @unlink($conf['flags_dir'].$conf['all_languages'][ $id ]['flag']);
-      }
-    }
-    
-    // save lang
-    if (count($errors) == 0)
-    {
-      $query = '
+  }
+  
+  // save lang
+  if (count($page['errors']) == 0)
+  {
+    $query = '
 UPDATE '.LANGUAGES_TABLE.'
   SET
     name = "'.$row['name'].'",
@@ -184,24 +181,24 @@ UPDATE '.LANGUAGES_TABLE.'
     category_id = '.$row['category_id'].',
     ref_id = "'.$row['ref_id'].'"
     '.(isset($row['flag']) ? ',flag = "'.$row['flag'].'"' : null).'
-  WHERE id = "'.$id.'"
+  WHERE id = "'.$row['id'].'"
 ;';
-      mysql_query($query);
-    }
-    else
-    {
-      $page['errors'] = array_merge($page['errors'], $errors);
-    }
+    mysql_query($query);
   }
+
+  $highlight_language = $row['id'];
   
-  // reload languages array
-  $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
-  $conf['all_languages'] = hash_from_query($query, 'id');
-  ksort($conf['all_languages']);
-  
+  // update sections array
+  $conf['all_languages'][ $row['id'] ] = array_merge($conf['all_languages'][ $row['id'] ], $row);
+    
   if (count($page['errors']) == 0)
   {
     array_push($page['infos'], 'Modifications saved.');
+  }
+  else
+  {
+    array_push($page['errors'], 'Modifications not saved.');
+    $deploy_language = $row['id'];
   }
 }
 
@@ -327,7 +324,6 @@ UPDATE '.USER_INFOS_TABLE.'
 // +-----------------------------------------------------------------------+
 // default search
 $search = array(
-  'id' =>       array('%', ''),
   'name' =>     array('%', ''),
   'rank' =>     array('%', ''),
   'flag' =>     array('=', -1),
@@ -339,7 +335,7 @@ $search = array(
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
-  $search['id'] = array('%', $_GET['lang_id'], '');
+  $search['name'] = array('%', get_language_name($_GET['lang_id']), '');
   unset($_GET['lang_id']);
 }
 
@@ -376,6 +372,8 @@ SELECT x.pos
         @rownum := @rownum+1 AS pos
       FROM '.LANGUAGES_TABLE.'
         JOIN (SELECT @rownum := 0) AS r
+      WHERE 
+        '.implode("\n    AND ", $where_clauses).'
       ORDER BY rank DESC, id ASC
   ) AS x
   WHERE x.id = "'.$highlight_language.'"
@@ -469,7 +467,6 @@ echo '
   
   <table class="search">
     <tr>
-      <th>Id.</th>
       <th>Name</th>
       <th>Flag</th>
       <th>Priority</th>
@@ -478,7 +475,6 @@ echo '
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15" value="'.get_search_value('id').'"></td>
       <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
       <td>
         <select name="flag">
@@ -518,76 +514,46 @@ echo '
     <thead>
       <tr>
         <th class="chkb"></th>
-        <th class="id">Id.</th>
         <th class="name">Name</th>
-        <th class="flag">Flag</th>
-        <th class="ref">Reference</th>
         <th class="rank">Priority</th>
         <th class="category">Category</th>
         <th class="users">Translators</th>
-        <th class="actions"></th>
+        <th class="actions">Actions</th>
       </tr>
     </thead>
     <tbody>';
     foreach ($_LANGS as $row)
     {
       echo '
-      <tr class="'.($highlight_language==$row['id'] ? 'highlight' : null).'">
+      <tr class="main '.($highlight_language==$row['id'] ? 'highlight' : null).'">
         <td class="chkb">
           <input type="checkbox" name="select[]" value="'.$row['id'].'">
         </td>
-        <td class="id">
-          <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">'.$row['id'].'</a>
-        </td>
         <td class="name">
-          <span style="display:none;">'.$row['name'].'</span>
-          <input type="text" name="langs['.$row['id'].'][name]" value="'.$row['name'].'" size="20">
-        </td>
-        <td class="flag">
-          '.get_language_flag($row['id'], 'default');
-        if (get_language_flag($row['id']) != null)
-        {
-          echo '
-          <a href="'.get_url_string(array('delete_flag'=>$row['id'])).'" title="Delete the flag" style="margin-right:10px;">
-            <img src="template/images/bullet_delete.png" alt="x"></a>';
-        }
-        else
-        {
-          echo '
-          <span style="display:inline-block;margin-right:10px;width:16px;">&nbsp;</span>';
-        }
-        echo '
-          <a href="#" class="show-flag" data="'.$row['id'].'">Change</a>
-          <div id="flag-'.$row['id'].'" title="'.$row['name'].' flag :">
-            <input type="file" name="flags-'.$row['id'].'" size="40">
-          </div>   
-        </td>
-        <td class="ref">
-          <span style="display:none;">'.$row['ref_id'].'</span>
-          <select name="langs['.$row['id'].'][ref_id]">
-            <option value="" '.(null==$row['ref_id']?'selected="selected"':'').'>(default)</option>';
-            foreach ($conf['all_languages'] as $lang)
-            {
-              echo '
-            <option value="'.$lang['id'].'" '.($lang['id']==$row['ref_id']?'selected="selected"':'').'>'.$lang['name'].'</option>';
-            }
-          echo '
-          </select>
+          <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">'.get_language_flag($row['id'], 'default').' '.$row['name'].'</a>
         </td>
         <td class="rank">
-          <span style="display:none;">'.$row['rank'].'</span>
-          <input type="text" name="langs['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2">
+          '.$row['rank'].'
         </td>
         <td class="category">
-          <input type="text" name="langs['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'>
+          '.(!empty($row['category_id']) ? get_category_name($row['category_id']) : null).'
         </td>
         <td class="users">
           <a href="'.get_url_string(array('lang_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
-          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
-          '.($conf['default_language'] != $row['id'] ? '<a href="'.get_url_string(array('delete_lang'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
-            <img src="template/images/cross.png" alt="[x]"></a>' : null).'
+          <a href="#" class="expand" data="'.$row['id'].'" title="Edit this language"><img src="template/images/page_white_edit.png" alt="edit"></a>
+          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>';
+          if ($conf['default_language'] != $row['id'])
+          {
+            echo ' <a href="'.get_url_string(array('delete_lang'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
+            <img src="template/images/cross.png" alt="[x]"></a>';
+          }
+          else
+          {
+            echo ' <span style="display:inline-block;margin-left:5px;width:16px;">&nbsp;</span>';
+          }
+        echo '
         </td>
       </tr>';
     }
@@ -595,7 +561,7 @@ echo '
     {
       echo '
       <tr>
-        <td colspan="9"><i>No results</i></td>
+        <td colspan="6"><i>No results</i></td>
       </tr>';
     }
     echo '
@@ -648,9 +614,55 @@ echo '
 load_jquery('tablesorter');
 load_jquery('tokeninput');
 
+$page['header'].= '
+<script type="text/javascript" src="template/js/functions.js"></script>';
+
 $page['script'].= '
+/* perform ajax request for language edit */
+$("a.expand").click(function() {
+  $trigger = $(this);
+  language_id = $trigger.attr("data");
+  $parent_row = $trigger.parents("tr.main");
+  $details_row = $parent_row.next("tr.details");
+  
+  if (!$details_row.length) {
+    $("a.expand img").attr("src", "template/images/page_white_edit.png");
+    $("tr.details").remove();
+    
+    $trigger.children("img").attr("src", "template/images/page_edit.png");
+    $parent_row.after(\'<tr class="details" id="details\'+ language_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
+    
+    $container = $parent_row.next("tr.details").children("td:last-child");
+
+    $.ajax({
+      type: "POST",
+      url: "admin/ajax.php",
+      data: { "action":"get_language_form", "language_id": language_id }
+    }).done(function(msg) {
+      msg = $.parseJSON(msg);
+      
+      if (msg.errcode == "success") {
+        $container.html(msg.data);
+        $container.find("input.category").tokenInput(json_categories, {
+          tokenLimit: 1,
+          allowCreation: true,
+          hintText: ""
+        });
+      }  else {
+        overlayMessage(msg.data, msg.errcode, $trigger);
+      }
+    });
+  } else {
+    $details_row.remove();
+    $trigger.children("img").attr("src", "template/images/page_white_edit.png");
+  }
+  
+  return false;
+});
+
 /* token input for categories */
-$("input.category").tokenInput(['.$categories_json.'], {
+var json_categories = ['.$categories_json.'];
+$("input.category").tokenInput(json_categories, {
   tokenLimit: 1,
   allowCreation: true,
   hintText: ""
@@ -658,31 +670,13 @@ $("input.category").tokenInput(['.$categories_json.'], {
 
 /* tablesorter */
 $("#langs table").tablesorter({
-  sortList: [[5,1],[1,0]],
-  headers: { 0: {sorter: false}, 3: {sorter: false}, 8: {sorter: false} },
+  sortList: [[2,1],[1,0]],
+  headers: { 0: {sorter: false}, 5: {sorter: false} },
   widgets: ["zebra"]
-});
-
-/* flag dialog */
-$("div[id^=\'flag\']").dialog({
-  autoOpen: false, resizable: false, modal: true,
-  show: "clip", hide: "clip",
-  height: 120, width: 400,
-  buttons: {
-    "Reset": function() { $(this).html($(this).html()); },
-    "OK": function() { $(this).dialog("close"); }
-  },
-  create: function() { // jQuery.dialog moves the textarea away the form, me must set it back
-    $(this).parent().appendTo($("form#langs"));
-  },
-  open: function(event, ui) { // remove close button
-    $(".ui-dialog-titlebar-close", ui.dialog).hide();
-  }
-});
-
-$("a.show-flag").click(function() {
-  $("div#flag-"+ $(this).attr("data")).dialog("open");
-  return false;
+})
+.bind("sortStart", function() { 
+  $("tr.details").remove();
+  $("a.expand img").attr("src", "template/images/page_white_edit.png");
 });
 
 /* actions */
@@ -740,5 +734,11 @@ $("td.id").click(function() {
   $checkbox = $(this).prev("td.chkb").children("input");
   $checkbox.attr("checked", !$checkbox.attr("checked"));
 });';
+
+if (!empty($deploy_language))
+{
+  $page['script'].= '
+  $("a.expand[data=\''.$deploy_language.'\']").trigger("click");';
+}
 
 ?>

@@ -293,7 +293,19 @@ if ($is_translator)
 {
   // search users that can receive notifications (status, persmissions, preferences)
   $where_clauses = array(
-    '( i.status = "admin" OR ( i.sections LIKE "%'.$page['section'].'%" AND (i.languages LIKE "%'.$page['language'].'%" OR i.status = "manager") ) )',
+     '( 
+        i.status = "admin"
+        OR ( 
+          i.sections LIKE "%'.$page['section'].'%" 
+          AND ( 
+            i.languages LIKE "%'.$page['language'].'%" 
+            OR (
+              i.status = "manager" 
+              AND i.sections LIKE "%'.$page['section'].',1%"
+            )
+          )
+        )
+      )',
     'i.status != "guest"',
     );
   if (!is_admin()) array_push($where_clauses, 'i.email_privacy != "private"');

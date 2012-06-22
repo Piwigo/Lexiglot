@@ -353,7 +353,7 @@ if ($conf['use_stats'])
   echo '
   <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
     <p style="margin:10px;">
-      <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
+      <span class="ui-icon ui-icon-signal" style="float: left; margin-right: 0.7em;"></span>
       <b>File progression :</b> '.display_progress_bar($_STATS, 850, true).'
     </p>
   </div>';

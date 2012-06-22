@@ -391,10 +391,20 @@ function get_section_name($section)
  * get section rank
  * @param string section
  */
-function get_section_rank($lang)
+function get_section_rank($section)
 {
   global $conf;
-  return (int)@$conf['all_sections'][$lang]['rank'];
+  return (int)@$conf['all_sections'][$section]['rank'];
+}
+
+/**
+ * get section url
+ * @param string section
+ */
+function get_section_url($section)
+{
+  global $conf;
+  return (string)@$conf['all_sections'][$section]['url'];
 }
 
 /**

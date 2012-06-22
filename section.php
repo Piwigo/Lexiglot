@@ -186,13 +186,24 @@ if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) an
 echo '
 </ul>';
 
+if (get_section_url($page['section']) != '')
+{
+  echo '
+  <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
+    <p style="margin:10px;">
+      <span class="ui-icon ui-icon-extlink" style="float: left; margin-right: 0.7em;"></span>
+      <b>Website :</b> <a href="'.get_section_url($page['section']).'">'.get_section_url($page['section']).'</a>
+    </p>
+  </div>';
+}
+
 // project progression
 if ($use_stats)
 {
   echo '
   <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
     <p style="margin:10px;">
-      <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
+      <span class="ui-icon ui-icon-signal" style="float: left; margin-right: 0.7em;"></span>
       <b>Project progression :</b> '.display_progress_bar($section_stats, 835, true).'
     </p>
   </div>';
