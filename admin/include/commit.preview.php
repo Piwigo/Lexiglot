@@ -36,15 +36,15 @@ echo '
   foreach ($_ROWS as $props => $files)
   {
     // commit infos
-    list($commit['section'], $commit['language']) = explode('||', $props);
-    $commit['path'] = $conf['local_dir'].$commit['section'].'/'.$commit['language'].'/';
+    list($commit['project'], $commit['language']) = explode('||', $props);
+    $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
     $commit['is_new'] = dir_is_empty($commit['path']);
     $commit['users'] = array();
     
     echo '
     <tr><td class="title commit" colspan="2">
-      <b>Section :</b> '.$commit['section'].' — <b>Language :</b> '.$commit['language'].'
-      <span style="float:right;"><label><input type="checkbox" name="exclude[]" value="'.$commit['section'].$commit['language'].'"> Exlude</label></span>
+      <b>Project :</b> '.$commit['project'].' — <b>Language :</b> '.$commit['language'].'
+      <span style="float:right;"><label><input type="checkbox" name="exclude[]" value="'.$commit['project'].$commit['language'].'"> Exlude</label></span>
     </td></tr>
     <tr>
       <td class="marge"></td>
@@ -80,8 +80,8 @@ echo '
         ## array file ##
         else
         {
-          $_LANG =         load_language_file($commit['section'], $commit['language'], $file_infos['name']);
-          $_LANG_default = load_language_file($commit['section'], $conf['default_language'], $file_infos['name']);
+          $_LANG =         load_language_file($commit['project'], $commit['language'], $file_infos['name']);
+          $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file_infos['name']);
           
           echo '
           <tr>
@@ -131,7 +131,7 @@ echo '
     array_walk($commit['users'], 'print_username');
   
     echo '
-    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_section_name($commit['section']).'] '.($commit['is_new']?'Add':'Update').' language '.get_language_name($commit['language']).', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
+    <tr><td class="message" colspan="2"><b>Message :</b> ['.get_project_name($commit['project']).'] '.($commit['is_new']?'Add':'Update').' language '.get_language_name($commit['language']).', thanks to : '.implode(' & ', $commit['users']).'</td></tr>';
     
     unset($commit);
   }
@@ -147,7 +147,7 @@ echo '
     }
     if ($_POST['mode'] != 'all')
     {
-      foreach(array('section','language','user') as $mode)
+      foreach(array('project','language','user') as $mode)
       {
         if ( !empty($_POST['filter_'.$mode]) and $_POST[$mode.'_id'] != '-1' )
         {

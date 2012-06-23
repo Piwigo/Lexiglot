@@ -80,8 +80,8 @@ UPDATE '.ROWS_TABLE.'
 // default search
 $search = array(
   'user_id' =>  array('=', -1),
-  'lang' =>     array('=', -1),
-  'section' =>  array('=', -1),
+  'language' =>     array('=', -1),
+  'project' =>  array('=', -1),
   'status' =>   array('=', -1),
   'limit' =>    array('=', 50),
   );
@@ -104,20 +104,20 @@ $paging = compute_pagination($total, get_search_value('limit'), 'nav');
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], create_permissions_array($user['manage_sections']));
+$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
 
 if (is_manager())
 {
-  array_push($where_clauses, 'l.section IN("'.implode('","', array_keys($displayed_sections)).'")');
+  array_push($where_clauses, 'r.project IN("'.implode('","', array_keys($displayed_projects)).'")');
 }
 
 $query = '
 SELECT 
-    l.*,
+    r.*,
     u.'.$conf['user_fields']['username'].' as username
-  FROM '.ROWS_TABLE.' as l
+  FROM '.ROWS_TABLE.' as r
     INNER JOIN '.USERS_TABLE.' as u
-      ON l.user_id = u.'.$conf['user_fields']['id'].'
+      ON r.user_id = u.'.$conf['user_fields']['id'].'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   ORDER BY last_edit DESC
@@ -162,23 +162,23 @@ echo '
         </select>
       </td>
       <td>
-        <select name="lang">
-          <option value="-1" '.(-1==get_search_value('lang')?'selected="selected"':'').'>-------</option>';
+        <select name="language">
+          <option value="-1" '.(-1==get_search_value('language')?'selected="selected"':'').'>-------</option>';
           foreach ($conf['all_languages'] as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('lang')?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('language')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
       </td>
       <td>
-        <select name="section">
-          <option value="-1" '.(-1==get_search_value('section')?'selected="selected"':'').'>-------</option>';
-          foreach ($displayed_sections as $row)
+        <select name="project">
+          <option value="-1" '.(-1==get_search_value('project')?'selected="selected"':'').'>-------</option>';
+          foreach ($displayed_projects as $row)
           {
             echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('section')?'selected="selected"':'').'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('project')?'selected="selected"':'').'>'.$row['name'].'</option>';
           }
         echo '
         </select>
@@ -213,8 +213,8 @@ echo '
     <thead>
       <tr>
         <th class="chkb"></th>
-        <th class="lang">Lang</th>
-        <th class="section">Project</th>
+        <th class="language">Language</th>
+        <th class="project">Project</th>
         <th class="file">File</th>
         <th class="user">User</th>
         <th class="date">Date</th>
@@ -230,11 +230,11 @@ echo '
         <td class="chkb">
           <input type="checkbox" name="select[]" value="'.$row['id'].'">
         </td>
-        <td class="lang">
-          <a href="'.get_url_string(array('language'=>$row['lang']), true, 'language').'">'.get_language_name($row['lang']).'</a>
+        <td class="language">
+          <a href="'.get_url_string(array('language'=>$row['language']), true, 'language').'">'.get_language_name($row['language']).'</a>
         </td>
-        <td class="section">
-          <a href="'.get_url_string(array('section'=>$row['section']), true, 'section').'">'.get_section_name($row['section']).'</a>
+        <td class="project">
+          <a href="'.get_url_string(array('project'=>$row['project']), true, 'project').'">'.get_project_name($row['project']).'</a>
         </td>
         <td class="file">
           '.$row['file_name'].'

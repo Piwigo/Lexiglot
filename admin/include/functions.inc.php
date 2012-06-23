@@ -191,7 +191,7 @@ function deep_file_put_contents($filename, $data, $flags=0)
 /**
  * add a category if doesn't exist and return its id
  * @param string name
- * @param string type ('section', 'language')
+ * @param string type ('project', 'language')
  * @return int id
  */
 function add_category($name, $type)
@@ -256,41 +256,41 @@ function print_user_languages_tooltip(&$user, $max=3, $my=false)
 }
 
 /**
- * generate the content of the sections tooltip
+ * generate the content of the projects tooltip
  * @param: &array user
- * @param: int max sections to display before generate a tooltip
+ * @param: int max projects to display before generate a tooltip
  * @return: string
  */
-function print_user_sections_tooltip(&$user, $max=1)
+function print_user_projects_tooltip(&$user, $max=1)
 {
   global $conf;
-  $sections = $user['sections'];
+  $projects = $user['projects'];
   
   if ( $conf['use_stats'] and in_array($user['status'], array('translator','manager')) AND !empty($user['main_language']) )
   {
-    $stats = get_cache_stats(null, $user['main_language'], 'section');
+    $stats = get_cache_stats(null, $user['main_language'], 'project');
   }
   $use_stats = !empty($stats);
   
   $out = null;
-  if (count($sections) <= $max)
+  if (count($projects) <= $max)
   {
-    foreach ($sections as $section)
+    foreach ($projects as $project)
     {
-      $out.= get_section_name($section).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section]).';">'.number_format($stats[$section]*100, 0).'%</b>' : null);
+      $out.= get_project_name($project).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$project]).';">'.number_format($stats[$project]*100, 0).'%</b>' : null);
     }
   }
   else
   {
     $out.= '<a class="expand" title=\'<table class="tooltip"><tr>';
-    $i=1; $j=ceil(sqrt(count($sections)/4));
-    foreach ($sections as $section)
+    $i=1; $j=ceil(sqrt(count($projects)/4));
+    foreach ($projects as $project)
     {
-      $out.= '<td>'.get_section_name($section).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$section]).';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'</td>';
+      $out.= '<td>'.get_project_name($project).($use_stats ? ' <b style="color:'.get_gauge_color($stats[$project]).';">'.number_format($stats[$project]*100, 0).'%</b>' : null).'</td>';
       if($i%$j==0)$out.= '</tr><tr>'; $i++;
     }
     $out.= '</tr></table>\'>
-      '.count($sections).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
+      '.count($projects).' <img src="template/images/bullet_toggle_plus.png" style="vertical-align:middle;"></a>';
   }
   
   return $out;

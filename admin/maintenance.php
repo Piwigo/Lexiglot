@@ -57,7 +57,7 @@ DELETE FROM '.CATEGORIES_TABLE.'
   WHERE 
     id NOT IN (
       SELECT category_id as id
-        FROM '.SECTIONS_TABLE.'
+        FROM '.PROJECTS_TABLE.'
         GROUP BY category_id
       )
     AND id NOT IN (
@@ -117,7 +117,7 @@ SELECT COUNT(*) as total
   WHERE 
     id NOT IN (
       SELECT category_id as id
-        FROM '.SECTIONS_TABLE.'
+        FROM '.PROJECTS_TABLE.'
         GROUP BY category_id
       )
     AND id NOT IN (
@@ -146,7 +146,7 @@ echo '
     <li><b>Used space :</b> '.round($db_size/1024,2).' Kio
       '.($db_free != 0 ? '(waste : '.round($db_free/1024,2).' Kio, <a href="'.get_url_string(array('action'=>'optimize_db')).'">Clean</a>)' : null).'</li>
     <li><b>Users :</b> '.$db_tables['user_infos'].'</li>
-    <li><b>Projects :</b> '.$db_tables['sections'].'</li>
+    <li><b>Projects :</b> '.$db_tables['projects'].'</li>
     <li><b>Languages :</b> '.$db_tables['languages'].'</li>
     '.(!$conf['delete_done_rows'] ? '<li><b>Translations :</b> '.$db_tables['rows'].'</li>' : null).'
     <li><b>Categories :</b> '.$db_tables['categories'].'

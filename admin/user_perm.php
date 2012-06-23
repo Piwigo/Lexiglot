@@ -35,15 +35,15 @@ if (isset($_POST['save_perm']))
 {
   $sets = array();
   
-  // sections
-  if (!empty($_POST['available_sections']))
+  // projects
+  if (!empty($_POST['available_projects']))
   {
-    ksort($_POST['available_sections']);
-    $sections = create_permissions_array(array_keys($_POST['available_sections']));
+    ksort($_POST['available_projects']);
+    $projects = create_permissions_array(array_keys($_POST['available_projects']));
   }
   else
   {
-    $sections = array();
+    $projects = array();
   }
   
   // only admin can change language and permissions
@@ -63,10 +63,10 @@ if (isset($_POST['save_perm']))
     // manager permissions
     if (get_user_status($_POST['user_id']) == 'manager')
     {
-      if (!empty($_POST['manage_sections']))
+      if (!empty($_POST['manage_projects']))
       {
-        $manage_sections = create_permissions_array(array_keys($_POST['manage_sections']), 1);
-        $sections = array_merge($sections, $manage_sections);
+        $manage_projects = create_permissions_array(array_keys($_POST['manage_projects']), 1);
+        $projects = array_merge($projects, $manage_projects);
       }
       
       foreach (array_keys(unserialize($conf['default_manager_perms'])) as $perm)
@@ -94,8 +94,8 @@ if (isset($_POST['save_perm']))
     array_push($sets, 'languages = '.(!empty($languages) ? '"'.$languages.'"' : 'NULL').'');
   }
   
-  $sections = implode_array($sections);
-  array_push($sets, 'sections = '.(!empty($sections) ? '"'.$sections.'"' : 'NULL').'');
+  $projects = implode_array($projects);
+  array_push($sets, 'projects = '.(!empty($projects) ? '"'.$projects.'"' : 'NULL').'');
   
   $query = '
 UPDATE '.USER_INFOS_TABLE.'
@@ -116,25 +116,25 @@ $local_user = build_user($_GET['user_id']);
 
 if ( $conf['use_stats'] and !empty($local_user['main_language']) )
 {
-  $stats = get_cache_stats(null, $local_user['main_language'], 'section');
+  $stats = get_cache_stats(null, $local_user['main_language'], 'project');
 }
-$use_section_stats = !empty($stats);
+$use_project_stats = !empty($stats);
 
-$movable_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
+$movable_projects = is_admin() ? array_keys($conf['all_projects']) : $user['manage_projects'];
 
 
 // +-----------------------------------------------------------------------+
 // |                         TEMPLATE
 // +-----------------------------------------------------------------------+
-// sort sections and languages by rank
+// sort projects and languages by rank
 uasort($local_user['languages'], 'cmp_language');
 uasort($conf['all_languages'], 'cmp_default');
-uasort($local_user['sections'], 'cmp_section');
-uasort($conf['all_sections'], 'cmp_default');
+uasort($local_user['projects'], 'cmp_project');
+uasort($conf['all_projects'], 'cmp_default');
 
 // count number of different ranks, if 1, we consider that we don't use ranks
-$use_lang_rank = !(count(array_unique_deep($conf['all_languages'], 'rank')) > 1);
-$use_section_rank = count(array_unique_deep($conf['all_sections'], 'rank')) > 1;
+$use_language_rank = !(count(array_unique_deep($conf['all_languages'], 'rank')) > 1);
+$use_project_rank = count(array_unique_deep($conf['all_projects'], 'rank')) > 1;
 
 echo '
 <p class="caption">Manage permissions for user #'.$local_user['id'].' : '.$local_user['username'].'</p>
@@ -144,7 +144,7 @@ if (is_admin())
 {
   // ellipsis display cant' be "automated" in css so we figure out the size of the name field
   $name_size_1 = $name_size_2 = 140;
-  if ($use_lang_rank)
+  if ($use_language_rank)
   { 
     $name_size_1-= 11; 
     $name_size_2-= 11;
@@ -162,34 +162,34 @@ if (is_admin())
     <legend>Languages</legend>
     '.($local_user['status']!='guest' ? '<p class="caption">Check the main language of this user</p>' : null).'
     
-    <ul id="available_languages" class="lang-container">
-      <h5>Authorized languages <span id="authorizeAllLang" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
+    <ul id="available_languages" class="language-container">
+      <h5>Authorized languages <span id="authorizeAllLanguage" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
     foreach ($local_user['languages'] as $lang)
     {
       if (array_key_exists($lang, $conf['all_languages']))
       {
         echo '
-        <li id="list_'.$lang.'" class="lang">
+        <li id="list_'.$lang.'" class="language">
           '.($local_user['status']!='guest' ? '<input type="radio" name="main_language" value="'.$lang.'" '.($lang==$local_user['main_language']?'checked="checked"':null).'>' : null).'
           '.get_language_flag($lang).' <span style="width:'.$name_size_1.'px;">'.get_language_name($lang).'</span>
-          '.($use_lang_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
+          '.($use_language_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
         </li>';
       }
     }
     echo '
     </ul>
 
-    <ul id="unavailable_languages" class="lang-container">
-      <h5>Forbidden languages <span id="forbidAllLang" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
+    <ul id="unavailable_languages" class="language-container">
+      <h5>Forbidden languages <span id="forbidAllLanguage" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
     foreach ($conf['all_languages'] as $row)
     {
       if (!in_array($row['id'], $local_user['languages']))
       {
         echo '
-        <li id="list_'.$row['id'].'" class="lang">
+        <li id="list_'.$row['id'].'" class="language">
           '.($local_user['status']!='guest' ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
           '.get_language_flag($row['id']).' <span style="width:'.$name_size_2.'px;">'.$row['name'].'</span>
-          '.($use_lang_rank ? '<i>'.$row['rank'].'</i>' : null).'
+          '.($use_language_rank ? '<i>'.$row['rank'].'</i>' : null).'
         </li>';
       }
     }
@@ -200,12 +200,12 @@ if (is_admin())
 
 
 $name_size_1 = $name_size_2 = 140;
-if ($use_section_rank)
+if ($use_project_rank)
 { 
   $name_size_1-= 11; 
   $name_size_2-= 11;
 }
-if ($use_section_stats)
+if ($use_project_stats)
 { 
   $name_size_1-= 27;
   $name_size_2-= 27;
@@ -220,37 +220,37 @@ echo '
     <legend>Projects</legend>
     '.($local_user['status']=='manager' && is_admin() ? '<p class="caption">Check projects this user can manage</p>' : null).'
     
-    <ul id="available_sections" class="section-container">
-      <h5>Authorized projects <span id="authorizeAllSection" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
-    foreach ($local_user['sections'] as $section)
+    <ul id="available_projects" class="project-container">
+      <h5>Authorized projects <span id="authorizeAllProject" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
+    foreach ($local_user['projects'] as $project)
     {
-      if (array_key_exists($section, $conf['all_sections']))
+      if (array_key_exists($project, $conf['all_projects']))
       {
         echo '
-        <li id="list_'.$section.'" class="section" '.(!in_array($section,$movable_sections) ? 'style="display:none;"' : null).' title="'.get_section_name($section).'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$section.']" value="1" '.(in_array($section,$local_user['manage_sections'])?'checked="checked"':null).'>' : null).'
-          <span style="width:'.$name_size_1.'px;">'.get_section_name($section).'</span>
-          '.($use_section_stats ? '<b style="color:'.get_gauge_color($stats[$section],'dark').';">'.number_format($stats[$section]*100, 0).'%</b>' : null).'
-          '.($use_section_rank ? '<i>'.get_section_rank($section).'</i>' : null).'
+        <li id="list_'.$project.'" class="project" '.(!in_array($project,$movable_projects) ? 'style="display:none;"' : null).' title="'.get_project_name($project).'">
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects['.$project.']" value="1" '.(in_array($project,$local_user['manage_projects'])?'checked="checked"':null).'>' : null).'
+          <span style="width:'.$name_size_1.'px;">'.get_project_name($project).'</span>
+          '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$project],'dark').';">'.number_format($stats[$project]*100, 0).'%</b>' : null).'
+          '.($use_project_rank ? '<i>'.get_project_rank($project).'</i>' : null).'
         </li>';
       }
     }
     echo '
     </ul>
 
-    <ul id="unavailable_sections" class="section-container">
-      <h5>Forbidden projects <span id="forbidAllSection" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
+    <ul id="unavailable_projects" class="project-container">
+      <h5>Forbidden projects <span id="forbidAllProject" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
       
-    foreach ($conf['all_sections'] as $row)
+    foreach ($conf['all_projects'] as $row)
     {
-      if (!in_array($row['id'], $local_user['sections']))
+      if (!in_array($row['id'], $local_user['projects']))
       {
         echo '
-        <li id="list_'.$row['id'].'" class="section" '.(!in_array($row['id'],$movable_sections) ? 'style="display:none;"' : null).' title="'.$row['name'].'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_sections['.$row['id'].']" value="1" style="display:none;">' : null).'
+        <li id="list_'.$row['id'].'" class="project" '.(!in_array($row['id'],$movable_projects) ? 'style="display:none;"' : null).' title="'.$row['name'].'">
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects['.$row['id'].']" value="1" style="display:none;">' : null).'
           <span style="width:'.$name_size_2.'px;">'.$row['name'].'</span>
-          '.($use_section_stats ? '<b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
-          '.($use_section_rank ? '<i>'.$row['rank'].'</i>' : null).'
+          '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
+          '.($use_project_rank ? '<i>'.$row['rank'].'</i>' : null).'
         </li>';
       }
     }
@@ -286,17 +286,17 @@ if (is_admin())
 {
   $page['script'].= '
   /* move languages */
-  $("li.lang input").bind("click", function (e) {
+  $("li.language input").bind("click", function (e) {
     e.stopPropagation();
   });
-  $("#available_languages").delegate("li.lang", "click", function() {
+  $("#available_languages").delegate("li.language", "click", function() {
     $(this).fadeOut("fast", function() {
       $(this).children("input").hide();
       $(this).children("span").css("width", $(this).children("span").width() + 15);
       $(this).appendTo("#unavailable_languages").fadeIn("fast");
     });
   });
-  $("#unavailable_languages").delegate("li.lang", "click", function() {
+  $("#unavailable_languages").delegate("li.language", "click", function() {
     $(this).fadeOut("fast", function() {
       $(this).children("input").show();
       $(this).children("span").css("width", $(this).children("span").width() - 15);
@@ -305,7 +305,7 @@ if (is_admin())
   });
   
   /* all languages */
-  $("#authorizeAllLang").click(function() {
+  $("#authorizeAllLanguage").click(function() {
     $("#unavailable_languages li").each(function() {
       $(this).fadeOut("fast", function() {
         $(this).children("input").show();
@@ -316,7 +316,7 @@ if (is_admin())
       update_height("languages");
     });
   });
-  $("#forbidAllLang").click(function() {
+  $("#forbidAllLanguage").click(function() {
     $("#available_languages li").each(function() {
       $(this).fadeOut("fast", function() {
         $(this).children("input").hide();
@@ -332,54 +332,54 @@ if (is_admin())
 }
 
 $page['script'].= '
-/* move sections */
-$("li.section input").bind("click", function (e) {
+/* move projects */
+$("li.project input").bind("click", function (e) {
   e.stopPropagation();
 });
-$("#available_sections").delegate("li.section", "click", function() {
+$("#available_projects").delegate("li.project", "click", function() {
   $(this).fadeOut("fast", function() {
     $(this).children("input").hide();
     '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() + 15);' : null ).'
-    $(this).appendTo("#unavailable_sections").fadeIn("fast");
+    $(this).appendTo("#unavailable_projects").fadeIn("fast");
   });
 });
-$("#unavailable_sections").delegate("li.section", "click", function() {
+$("#unavailable_projects").delegate("li.project", "click", function() {
   $(this).fadeOut("fast", function() {
     $(this).children("input").show();
     '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() - 15);' : null ).'
-    $(this).appendTo("#available_sections").fadeIn("fast");
+    $(this).appendTo("#available_projects").fadeIn("fast");
   });
 });
 
-/* all sections */
-$("#authorizeAllSection").click(function() {
-  $("#unavailable_sections li").each(function() {
+/* all projects */
+$("#authorizeAllProject").click(function() {
+  $("#unavailable_projects li").each(function() {
     if ($(this).css("display") != "none") {
       $(this).fadeOut("fast", function() {
         $(this).children("input").show();
         '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() - 15);' : null ).'
-        $(this).appendTo($("#available_sections")).fadeIn("fast");
+        $(this).appendTo($("#available_projects")).fadeIn("fast");
       });
     }
   }).promise().done(function() { 
-    update_height("sections");
+    update_height("projects");
   });
 });
-$("#forbidAllSection").click(function() {
-  $("#available_sections li").each(function() {
+$("#forbidAllProject").click(function() {
+  $("#available_projects li").each(function() {
     if ($(this).css("display") != "none") {
       $(this).fadeOut("fast", function() {
         $(this).children("input").hide();
         '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() + 15);' : null ).'
-        $(this).appendTo($("#unavailable_sections")).fadeIn("fast");
+        $(this).appendTo($("#unavailable_projects")).fadeIn("fast");
       });
     }
   }).promise().done(function() { 
-    update_height("sections");
+    update_height("projects");
   });
 });
 
-update_height("sections");';
+update_height("projects");';
 
 $page['header'].= '
 <script type="text/javascript">
@@ -387,8 +387,8 @@ $page['header'].= '
     $("#available_languages > li").each(function() {
       $(form).append("<input type=\"hidden\" name=\"available_languages["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
     });
-    $("#available_sections > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_sections["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
+    $("#available_projects > li").each(function() {
+      $(form).append("<input type=\"hidden\" name=\"available_projects["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
     });
   }
   function update_height(row) {
@@ -411,10 +411,10 @@ function cmp_language($a, $b)
   if (get_language_rank($a) == get_language_rank($b)) return strcmp($a, $b);
   return get_language_rank($a) < get_language_rank($b) ? 1 : -1;
 }
-function cmp_section($a, $b)
+function cmp_project($a, $b)
 {
-  if (get_section_rank($a) == get_section_rank($b)) return strcmp($a, $b);
-  return get_section_rank($a) < get_section_rank($b) ? 1 : -1;
+  if (get_project_rank($a) == get_project_rank($b)) return strcmp($a, $b);
+  return get_project_rank($a) < get_project_rank($b) ? 1 : -1;
 }
 
 ?>

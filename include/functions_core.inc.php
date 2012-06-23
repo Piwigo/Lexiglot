@@ -23,18 +23,18 @@ defined('PATH') or die('Hacking attempt!');
 
 /**
  * load a language from file and db
- * @param string section
+ * @param string project
  * @param string language
  * @param string filename
  * @param string row_name
  * @return array
  */
-function load_language($section, $language, $filename, $row_name=null)
+function load_language($project, $language, $filename, $row_name=null)
 {
   global $conf;
   
-  $file = load_language_file($section, $language, $filename);
-  $db = load_language_db($section, $language, $filename, $row_name);
+  $file = load_language_file($project, $language, $filename);
+  $db = load_language_db($project, $language, $filename, $row_name);
   
   if (!empty($row_name))
   {
@@ -52,24 +52,24 @@ function load_language($section, $language, $filename, $row_name=null)
 
 /**
  * load language rows from file
- * @param string section
+ * @param string project
  * @param string language
  * @param string filename
  * @return array
  */
-function load_language_file($section, $language, $filename)
+function load_language_file($project, $language, $filename)
 {
   global $conf;
   
   if (is_plain_file($filename))
   {
-    return load_language_file_plain($section, $language, $filename);
+    return load_language_file_plain($project, $language, $filename);
   }
   
   ${$conf['var_name']} = array();
   $out = array();
   
-  if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
+  if (($file = @file_get_contents($conf['local_dir'].$project.'/'.$language.'/'.$filename)) !== false)
   {
     eval($conf['exec_before_file']);
     $file = preg_replace('#<\?php#', null, $file, 1); // remove first php open tag
@@ -100,12 +100,12 @@ function load_language_file($section, $language, $filename)
   return $out;
 }
 
-function load_language_file_plain($section, $language, $filename)
+function load_language_file_plain($project, $language, $filename)
 {
   global $conf;
   
   $out = array();
-  if (($file = @file_get_contents($conf['local_dir'].$section.'/'.$language.'/'.$filename)) !== false)
+  if (($file = @file_get_contents($conf['local_dir'].$project.'/'.$language.'/'.$filename)) !== false)
   {
     clean_eol($file);
     
@@ -122,13 +122,13 @@ function load_language_file_plain($section, $language, $filename)
 
 /**
  * load language rows from database
- * @param string section
+ * @param string project
  * @param string language
  * @param string filename
  * @param string row_name
  * @return array
  */
-function load_language_db($section, $language, $filename, $row_name=null)
+function load_language_db($project, $language, $filename, $row_name=null)
 {
   // must use imbricated query to order before group
   $query = '
@@ -141,9 +141,9 @@ SELECT * FROM (
       status
     FROM `'.ROWS_TABLE.'`
     WHERE 
-      lang = "'.$language.'" 
+      language = "'.$language.'" 
       AND file_name = "'.$filename.'"
-      AND section = "'.$section.'"
+      AND project = "'.$project.'"
       AND status != "done"
       '.(!empty($row_name) ? 'AND row_name = "'.mres($row_name).'"' : null).'
     ORDER BY last_edit DESC
@@ -374,37 +374,37 @@ function get_language_ref($lang)
 }
 
 /**
- * get section name
- * @param string section
+ * get project name
+ * @param string project
  */
-function get_section_name($section)
+function get_project_name($project)
 {
   global $conf;
-  if (isset($conf['all_sections'][$section]))
+  if (isset($conf['all_projects'][$project]))
   {
-    return $conf['all_sections'][$section]['name'];
+    return $conf['all_projects'][$project]['name'];
   }
-  return $section;
+  return $project;
 }
 
 /**
- * get section rank
- * @param string section
+ * get project rank
+ * @param string project
  */
-function get_section_rank($section)
+function get_project_rank($project)
 {
   global $conf;
-  return (int)@$conf['all_sections'][$section]['rank'];
+  return (int)@$conf['all_projects'][$project]['rank'];
 }
 
 /**
- * get section url
- * @param string section
+ * get project url
+ * @param string project
  */
-function get_section_url($section)
+function get_project_url($project)
 {
   global $conf;
-  return (string)@$conf['all_sections'][$section]['url'];
+  return (string)@$conf['all_projects'][$project]['url'];
 }
 
 /**

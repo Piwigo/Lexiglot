@@ -30,7 +30,7 @@ if (!svn_check_connection())
 // +-----------------------------------------------------------------------+
 // |                        GET DATAS
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], create_permissions_array($user['manage_sections']));
+$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
   
 // get users name
 $_USERS = get_users_list(
@@ -45,15 +45,15 @@ if (isset($_POST['init_commit']))
   
   if ($_POST['mode'] == 'filter')
   {
-    if ( !empty($_POST['filter_section']) and $_POST['section_id'] != '-1' )
+    if ( !empty($_POST['filter_project']) and $_POST['project_id'] != '-1' )
     {
-      array_push($commit_title, 'project : '.get_section_name($_POST['section_id']));
-      array_push($where_clauses, 'section = "'.$_POST['section_id'].'"');
+      array_push($commit_title, 'project : '.get_project_name($_POST['project_id']));
+      array_push($where_clauses, 'project = "'.$_POST['project_id'].'"');
     }
     if ( !empty($_POST['filter_language']) and $_POST['language_id'] != '-1' )
     {
       array_push($commit_title, 'language : '.get_language_name($_POST['language_id']));
-      array_push($where_clauses, 'lang = "'.$_POST['language_id'].'"');
+      array_push($where_clauses, 'language = "'.$_POST['language_id'].'"');
     }
     if ( !empty($_POST['filter_user']) and $_POST['user_id'] != '-1' )
     {
@@ -66,12 +66,12 @@ if (isset($_POST['init_commit']))
   
   if (is_manager())
   {
-    array_push($where_clauses, 'section IN("'.implode('","', array_keys($displayed_sections)).'")');
+    array_push($where_clauses, 'project IN("'.implode('","', array_keys($displayed_projects)).'")');
   }
   
   if (!empty($_POST['exclude']))
   {
-    array_push($where_clauses, 'CONCAT(section, lang) NOT IN ("'.implode('", "', $_POST['exclude']).'")');
+    array_push($where_clauses, 'CONCAT(project, language) NOT IN ("'.implode('", "', $_POST['exclude']).'")');
   }
   
   // must use imbricated query to order before group
@@ -84,13 +84,13 @@ SELECT * FROM (
       AND status != "done"
     ORDER BY
       last_edit DESC,
-      lang ASC,
-      section ASC,
+      language ASC,
+      project ASC,
       user_id ASC,
       file_name ASC,
       row_name ASC
   ) as t
-  GROUP BY CONCAT(t.row_name,t.lang,t.section)
+  GROUP BY CONCAT(t.row_name,t.language,t.project)
 ;';
   $result = mysql_query($query);
   
@@ -98,7 +98,7 @@ SELECT * FROM (
   while ($row = mysql_fetch_assoc($result))
   {
     // complicated array usefull for separate each commit
-    $_ROWS[ $row['section'].'||'.$row['lang'] ][ $row['file_name'] ][ $row['row_name'] ] = $row;
+    $_ROWS[ $row['project'].'||'.$row['language'] ][ $row['file_name'] ][ $row['row_name'] ] = $row;
   }
   
   if (!count($_ROWS))
@@ -141,11 +141,11 @@ else
       <li class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only">
         <span class="ui-button-text">
           <label><span class="ui-icon ui-icon-close" style="float:left;margin:0 5px 0 -5px;"></span>
-          <input type="checkbox" name="filter_section" value="1" style="display:none;"> by project</label>
+          <input type="checkbox" name="filter_project" value="1" style="display:none;"> by project</label>
           
-          <select name="section_id" style="display:none;">
+          <select name="project_id" style="display:none;">
             <option value="-1">--------</option>';
-          foreach ($displayed_sections as $row)
+          foreach ($displayed_projects as $row)
           {
             echo '
             <option value="'.$row['id'].'">'.$row['name'].'</option>';

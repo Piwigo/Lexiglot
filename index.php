@@ -106,7 +106,7 @@ SELECT
   {
     echo '
     <li class="add">
-      <a class="add_lang" href="'.get_url_string(array('request_language'=>null), true, 'misc').'"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
+      <a href="'.get_url_string(array('request_language'=>null), true, 'misc').'"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
     </li>';
   }
   echo '
@@ -114,16 +114,16 @@ SELECT
 }
 
 // +-----------------------------------------------------------------------+
-// |                         AVAILABLE SECTIONS
+// |                         AVAILABLE PROJECTS
 // +-----------------------------------------------------------------------+
-if ( $conf['navigation_type'] == 'both' or $conf['navigation_type'] == 'sections' )
+if ( $conf['navigation_type'] == 'both' or $conf['navigation_type'] == 'projects' )
 {
-  // get ordered sections with categories names (uses a workaround for sections without categories)
+  // get ordered projects with categories names (uses a workaround for projects without categories)
   $query = '
 SELECT 
     s.*,
     IF(s.category_id = 0, "[999]zzz", c.name) as category_name
-  FROM '.SECTIONS_TABLE.' AS s
+  FROM '.PROJECTS_TABLE.' AS s
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
     ON c.id = s.category_id
   ORDER BY
@@ -131,33 +131,33 @@ SELECT
     rank DESC,
     s.name ASC
 ;';
-  $section_translated = hash_from_query($query, 'id');
+  $project_translated = hash_from_query($query, 'id');
   
-  // sections which this user can edit/view
-  foreach ($conf['all_sections'] as $row)
+  // projects which this user can edit/view
+  foreach ($conf['all_projects'] as $row)
   {
-    if (!in_array($row['id'], $user['sections']))
+    if (!in_array($row['id'], $user['projects']))
     {
-      unset($section_translated[ $row['id'] ]);
+      unset($project_translated[ $row['id'] ]);
     }
   }
   
   // statistics
   if ($conf['use_stats'])
   {
-    $stats = get_cache_stats(null, null, 'section');
+    $stats = get_cache_stats(null, null, 'project');
   }
   $use_stats = !empty($stats);
 
   // path
   echo '
   <p class="caption" style="margin-top:15px;">'.($conf['navigation_type']=='both' ? '... or choose a project' : 'Choose a project').'</p>
-  <ul id="sections" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
+  <ul id="projects" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
   
-  // sections list
+  // projects list
   $category_id = null;
-  $use_categories = count(array_unique_deep($section_translated, 'category_id')) > 1;
-  foreach ($section_translated as $row)
+  $use_categories = count(array_unique_deep($project_translated, 'category_id')) > 1;
+  foreach ($project_translated as $row)
   {
     if ($use_categories)
     {
@@ -177,7 +177,7 @@ SELECT
     
     echo '
     <li>
-      <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">
+      <a href="'.get_url_string(array('project'=>$row['id']), true, 'project').'">
         '.$row['name'].'
         '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
       </a>

@@ -31,16 +31,16 @@ if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['al
   array_push($page['errors'], 'Undefined or unknown language. <a href="javascript:history.back();">Go Back</a>');
   print_page();
 }
-// section
-if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_sections']) )
+// project
+if ( !isset($_GET['project']) or !array_key_exists($_GET['project'], $conf['all_projects']) )
 {
   array_push($page['errors'], 'Undefined or unknown project. <a href="javascript:history.back();">Go Back</a>');
   print_page();
 }
 
 $page['language'] = $_GET['language'];
-$page['section'] = $_GET['section'];
-$page['files'] = explode(',', $conf['all_sections'][ $page['section'] ]['files']);
+$page['project'] = $_GET['project'];
+$page['files'] = explode(',', $conf['all_projects'][ $page['project'] ]['files']);
 
 
 // +-----------------------------------------------------------------------+
@@ -83,23 +83,23 @@ else
   $page['ref'] = get_language_ref($page['language']);
 }
 
-$page['file_uri'] = $conf['local_dir'].$page['section'].'/'.$page['language'].'/'.$page['file'];
+$page['file_uri'] = $conf['local_dir'].$page['project'].'/'.$page['language'].'/'.$page['file'];
 
 // title
-$page['window_title'] = get_section_name($page['section']).' &raquo; '.get_language_name($page['language']);
+$page['window_title'] = get_project_name($page['project']).' &raquo; '.get_language_name($page['language']);
 $page['title'] = 'Edit';
 
 
 // +-----------------------------------------------------------------------+
 // |                         LOAD ROWS
 // +-----------------------------------------------------------------------+
-if (!file_exists($conf['local_dir'].$page['section'].'/'.$page['language']))
+if (!file_exists($conf['local_dir'].$page['project'].'/'.$page['language']))
 {
-  array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('section'=>$page['section']), true, 'section').'">project page</a>.');
+  array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('project'=>$page['project']), true, 'project').'">project page</a>.');
   print_page();
 }
 
-if (!file_exists($conf['local_dir'].$page['section'].'/'.$conf['default_language'].'/'.$page['file']))
+if (!file_exists($conf['local_dir'].$page['project'].'/'.$conf['default_language'].'/'.$page['file']))
 {
   array_push($page['errors'], 'Can\'t find this file for default language.');
   print_page();
@@ -117,8 +117,8 @@ if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['file
   }
 }
 
-$_LANG_default = load_language($page['section'], $page['ref'], $page['file']);
-$_LANG =         load_language($page['section'], $page['language'], $page['file']);
+$_LANG_default = load_language($page['project'], $page['ref'], $page['file']);
+$_LANG =         load_language($page['project'], $page['language'], $page['file']);
 
 
 // +-----------------------------------------------------------------------+
@@ -148,13 +148,13 @@ SELECT
     // mail contents
     $current_url = get_absolute_home_url().get_url_string(array('file'=>$page['file']));
 
-    $subject = '['.strip_tags($conf['install_name']).'] '.$user['username'].' notifies you about the translation of '.get_section_name($page['section']).' in '.get_language_name($page['language']);
+    $subject = '['.strip_tags($conf['install_name']).'] '.$user['username'].' notifies you about the translation of '.get_project_name($page['project']).' in '.get_language_name($page['language']);
 
     $content = '
 Hi '.$to['username'].',<br>
 You receive this mail because you are registered as translator on <a href="'.get_absolute_home_url().'">'.strip_tags($conf['install_name']).'</a>.<br>
 <br>
-'.$user['username'].' notifies you about the translation of <b>'.get_section_name($page['section']).'</b> in <b>'.get_language_name($page['language']).'</b> :<br>
+'.$user['username'].' notifies you about the translation of <b>'.get_project_name($page['project']).'</b> in <b>'.get_language_name($page['language']).'</b> :<br>
 <a href="'.$current_url.'">'.$current_url.'</a><br>
 <br>';
     if (!empty($_POST['message']))
@@ -215,7 +215,7 @@ You receive this mail because you are registered as translator on <a href="'.get
     $result = send_mail(
       format_email($to['email'], $to['username']),
       $subject, $content, $args, 
-      'Notification on '.get_section_name($page['section']).' in '.get_language_name($page['language'])
+      'Notification on '.get_project_name($page['project']).' in '.get_language_name($page['language'])
       );
 
     if ($result)
@@ -240,7 +240,7 @@ if ( is_default_language($page['language']) and !$conf['allow_edit_default'] )
   $is_translator = false;
   array_push($page['warnings'], 'The source language can\'t be modified.');
 }
-else if (!is_translator($page['language'], $page['section']))
+else if (!is_translator($page['language'], $page['project']))
 {
   $is_translator = false;
   if (is_guest())
@@ -264,7 +264,7 @@ foreach ($page['files'] as $file)
 // path
 $page['begin'].= '
 <p class="caption">
-  <a href="'.get_url_string(array('section'=>$page['section']), true, 'section').'">'.get_section_name($page['section']).'</a> &raquo; 
+  <a href="'.get_url_string(array('project'=>$page['project']), true, 'project').'">'.get_project_name($page['project']).'</a> &raquo; 
   <a href="'.get_url_string(array('language'=>$page['language']), true, 'language').'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a>
   
   '.($is_translator ? '<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>' : null).'
@@ -272,7 +272,7 @@ $page['begin'].= '
     js_popup(
       get_url_string(
         array(
-          'section'=>$page['section'],
+          'project'=>$page['project'],
           'language'=>$conf['default_language'],
           'file'=>$page['file'],
           ),
@@ -296,12 +296,12 @@ if ($is_translator)
      '( 
         i.status = "admin"
         OR ( 
-          i.sections LIKE "%'.$page['section'].'%" 
+          i.projects LIKE "%'.$page['project'].'%" 
           AND ( 
             i.languages LIKE "%'.$page['language'].'%" 
             OR (
               i.status = "manager" 
-              AND i.sections LIKE "%'.$page['section'].',1%"
+              AND i.projects LIKE "%'.$page['project'].',1%"
             )
           )
         )
@@ -310,13 +310,13 @@ if ($is_translator)
     );
   if (!is_admin()) array_push($where_clauses, 'i.email_privacy != "private"');
   
-  $users = get_users_list($where_clauses, 'i.status, i.nb_rows, i.sections');
+  $users = get_users_list($where_clauses, 'i.status, i.nb_rows, i.projects');
 
   $page['begin'].= '
 <div id="dialog-form" title="Send a notification by mail" style="display:none;">
 	<div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
     <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-    You can only send mails to an admin or a translator of this language/section.
+    You can only send mails to an admin or a translator of this language/project.
   </div>
   <form action="" method="post">
     <table class="login" style="text-align:left;margin:0 auto;">
@@ -328,7 +328,7 @@ if ($is_translator)
         {
           $status = null;
           if ($row['status']=='admin') $status = ' (admin)';
-          if (in_array($page['section'], $row['manage_sections'])) $status = ' (manager)';
+          if (in_array($page['project'], $row['manage_projects'])) $status = ' (manager)';
           $page['begin'].= '
           <option value="'.$row['id'].'" data="'.$row['nb_rows'].'">'.$row['username'].$status.'</option>';
         }

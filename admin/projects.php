@@ -21,56 +21,56 @@
 
 defined('PATH') or die('Hacking attempt!');
 
-$highlight_section = isset($_GET['from_id']) ? $_GET['from_id'] : null;
-$deploy_section = null;
+$highlight_project = isset($_GET['from_id']) ? $_GET['from_id'] : null;
+$deploy_project = null;
 
 // +-----------------------------------------------------------------------+
-// |                         DELETE SECTION
+// |                         DELETE PROJECT
 // +-----------------------------------------------------------------------+
-if ( isset($_GET['delete_section']) and ( is_admin() or (is_manager($_GET['delete_section']) and $user['manage_perms']['can_delete_projects']) ) )
+if ( isset($_GET['delete_project']) and ( is_admin() or (is_manager($_GET['delete_project']) and $user['manage_perms']['can_delete_projects']) ) )
 {
-  if (!array_key_exists($_GET['delete_section'], $conf['all_sections']))
+  if (!array_key_exists($_GET['delete_project'], $conf['all_projects']))
   {
     array_push($page['errors'], 'Unknown project.');
   }
   else
   {
-    // delete sections from user infos
+    // delete projects from user infos
     $users = get_users_list(
-      array('sections LIKE "%'.$_GET['delete_section'].'%"'), 
-      'sections'
+      array('projects LIKE "%'.$_GET['delete_project'].'%"'), 
+      'projects'
       );
     
     foreach ($users as $u)
     {
-      unset($u['sections'][ array_search($_GET['delete_section'], $u['sections']) ]);
-      unset($u['manage_sections'][ array_search($_GET['delete_section'], $u['manage_sections']) ]);
-      $u['sections'] = create_permissions_array($u['sections']);
-      $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
-      $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+      unset($u['projects'][ array_search($_GET['delete_project'], $u['projects']) ]);
+      unset($u['manage_projects'][ array_search($_GET['delete_project'], $u['manage_projects']) ]);
+      $u['projects'] = create_permissions_array($u['projects']);
+      $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
+      $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
       
       $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
   WHERE user_id = '.$u['id'].'
 ;';
       mysql_query($query);
     }
     
     // delete directory
-    @rrmdir($conf['local_dir'].$_GET['delete_section']);  
+    @rrmdir($conf['local_dir'].$_GET['delete_project']);  
       
     // delete from stats table
     $query = '
 DELETE FROM '.STATS_TABLE.'
-  WHERE section = "'.$_GET['delete_section'].'"
+  WHERE project = "'.$_GET['delete_project'].'"
 ;';
     mysql_query($query);
     
-    // delete from sections table
+    // delete from projects table
     $query = '
-DELETE FROM '.SECTIONS_TABLE.' 
-  WHERE id = "'.$_GET['delete_section'].'"
+DELETE FROM '.PROJECTS_TABLE.' 
+  WHERE id = "'.$_GET['delete_project'].'"
 ;';
     mysql_query($query);
     
@@ -91,25 +91,25 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 // +-----------------------------------------------------------------------+
 if (isset($_GET['make_stats']))
 {
-  if (array_key_exists($_GET['make_stats'], $conf['all_sections']))
+  if (array_key_exists($_GET['make_stats'], $conf['all_projects']))
   {
-    make_section_stats($_GET['make_stats']);
-    array_push($page['infos'], 'Stats refreshed for project &laquo; '.get_section_name($_GET['make_stats']).' &raquo;');
-    $highlight_section = $_GET['make_stats'];
+    make_project_stats($_GET['make_stats']);
+    array_push($page['infos'], 'Stats refreshed for project &laquo; '.get_project_name($_GET['make_stats']).' &raquo;');
+    $highlight_project = $_GET['make_stats'];
   }
 }
 
 // +-----------------------------------------------------------------------+
-// |                         SAVE SECTIONS
+// |                         SAVE PROJECTS
 // +-----------------------------------------------------------------------+
-if ( isset($_POST['save_section']) and isset($_POST['active_section']) )
+if ( isset($_POST['save_project']) and isset($_POST['active_project']) )
 {
-  $row = $_POST['sections'][ $_POST['active_section'] ];
-  $row['id'] = $_POST['active_section'];
+  $row = $_POST['projects'][ $_POST['active_project'] ];
+  $row['id'] = $_POST['active_project'];
   
   $query = '
 SELECT id, directory, files
-  FROM '.SECTIONS_TABLE.'
+  FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$row['id'].'"
 ;';
   $old_values = mysql_fetch_assoc(mysql_query($query));
@@ -147,7 +147,7 @@ SELECT id, directory, files
   // check category
   if ( !count($page['errors']) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
   {
-    $row['category_id'] = add_category($row['category_id'], 'section');
+    $row['category_id'] = add_category($row['category_id'], 'project');
   }
   if (empty($row['category_id']))
   {
@@ -173,11 +173,11 @@ SELECT id, directory, files
     }
   }
   
-  // save section
+  // save project
   if (count($page['errors']) == 0)
   {
     $query = '
-UPDATE '.SECTIONS_TABLE.'
+UPDATE '.PROJECTS_TABLE.'
   SET 
     name = "'.$row['name'].'",
     directory = "'.$row['directory'].'",
@@ -190,15 +190,15 @@ UPDATE '.SECTIONS_TABLE.'
     mysql_query($query);
   }
   
-  $highlight_section = $row['id'];
+  $highlight_project = $row['id'];
   
-  // update sections array
-  $conf['all_sections'][ $row['id'] ] = array_merge($conf['all_sections'][ $row['id'] ], $row);
+  // update projects array
+  $conf['all_projects'][ $row['id'] ] = array_merge($conf['all_projects'][ $row['id'] ], $row);
   
   // update stats
   if ($regenerate_stats)
   {
-    make_section_stats($section_id);
+    make_project_stats($project_id);
   }
 
   
@@ -209,14 +209,14 @@ UPDATE '.SECTIONS_TABLE.'
   else
   {
     array_push($page['errors'], 'Modifications not saved.');
-    $deploy_section = $row['id'];
+    $deploy_project = $row['id'];
   }
 }
 
 // +-----------------------------------------------------------------------+
-// |                         ADD SECTION
+// |                         ADD PROJECT
 // +-----------------------------------------------------------------------+
-if ( isset($_POST['add_section']) and ( is_admin() or $user['manage_perms']['can_add_projects'] ) )
+if ( isset($_POST['add_project']) and ( is_admin() or $user['manage_perms']['can_add_projects'] ) )
 {
   // check name and id
   if (empty($_POST['name']))
@@ -228,7 +228,7 @@ if ( isset($_POST['add_section']) and ( is_admin() or $user['manage_perms']['can
     $_POST['id'] = str2url($_POST['name']);
     $query ='
 SELECT id
-  FROM '.SECTIONS_TABLE.'
+  FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$_POST['id'].'"
 ';
     $result = mysql_query($query);
@@ -251,7 +251,7 @@ SELECT id
   // check category
   if ( !count($page['errors']) and !empty($_POST['category_id']) and !is_numeric($_POST['category_id']) )
   {
-    $_POST['category_id'] = add_category($_POST['category_id'], 'section');
+    $_POST['category_id'] = add_category($_POST['category_id'], 'project');
   }
   if (empty($_POST['category_id']))
   {
@@ -285,18 +285,18 @@ SELECT id
   }
   else if (!count($page['errors']))
   {
-    $svn_result = 'section created.';
+    $svn_result = 'project created.';
     if (!file_exists($conf['local_dir'].$_POST['id']))
     {
       mkdir($conf['local_dir'].$_POST['id'], 0777, true);
     }
   }
   
-  // save section
+  // save project
   if (count($page['errors']) == 0)
   {
     $query = '
-INSERT INTO '.SECTIONS_TABLE.'(
+INSERT INTO '.PROJECTS_TABLE.'(
     id, 
     name, 
     directory, 
@@ -315,20 +315,20 @@ INSERT INTO '.SECTIONS_TABLE.'(
 ;';
     mysql_query($query);
     
-    // add section on user infos
+    // add project on user infos
     $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET sections = IF(
-    sections="",
+  SET projects = IF(
+    projects="",
     "'.$_POST['id'].','.(is_manager()?'1':'0').'",
-    CONCAT(sections, ";'.$_POST['id'].','.(is_manager()?'1':'0').'")
+    CONCAT(projects, ";'.$_POST['id'].','.(is_manager()?'1':'0').'")
     )
-  WHERE status IN( "admin"'.($conf['section_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
+  WHERE status IN( "admin"'.($conf['project_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
 ;';
     mysql_query($query);
     
-    // update sections array
-    $conf['all_sections'][ $_POST['id'] ] = array(
+    // update projects array
+    $conf['all_projects'][ $_POST['id'] ] = array(
                                             'id' => $_POST['id'],
                                             'name' => $_POST['name'],
                                             'directory' => $_POST['directory'],
@@ -337,13 +337,13 @@ UPDATE '.USER_INFOS_TABLE.'
                                             'category_id' => $_POST['category_id'],
                                             'url' => null,
                                             );
-    ksort($conf['all_sections']);
+    ksort($conf['all_projects']);
 
     // generate stats
-    make_section_stats($_POST['id']);
+    make_project_stats($_POST['id']);
     
     array_push($page['infos'], '<b>'.$_POST['name'].'</b> : '.$svn_result);
-    $highlight_section = $_POST['id'];
+    $highlight_project = $_POST['id'];
     $_POST['erase_search'] = true;
   }
 }
@@ -360,20 +360,20 @@ $search = array(
   );
 
 // url input
-if (isset($_GET['section_id']))
+if (isset($_GET['project_id']))
 {
   $_POST['erase_search'] = true;
-  $search['name'] = array('%', get_section_name($_GET['section_id']), '');
-  unset($_GET['section_id']);
+  $search['name'] = array('%', get_project_name($_GET['project_id']), '');
+  unset($_GET['project_id']);
 }
 
-$where_clauses = session_search($search, 'section_search', array('limit'));
+$where_clauses = session_search($search, 'project_search', array('limit'));
 
-$displayed_sections = is_admin() ? array_keys($conf['all_sections']) : $user['manage_sections'];
+$displayed_projects = is_admin() ? array_keys($conf['all_projects']) : $user['manage_projects'];
 
 if (is_manager())
 {
-  array_push($where_clauses, 'id IN("'.implode('","', $displayed_sections).'")');
+  array_push($where_clauses, 'id IN("'.implode('","', $displayed_projects).'")');
 }
 
 // +-----------------------------------------------------------------------+
@@ -381,14 +381,14 @@ if (is_manager())
 // +-----------------------------------------------------------------------+
 $query = '
 SELECT COUNT(1)
-  FROM '.SECTIONS_TABLE.'
+  FROM '.PROJECTS_TABLE.'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
 list($total) = mysql_fetch_row(mysql_query($query));
 
 $highlight_pos = null;
-if (!empty($highlight_section))
+if (!empty($highlight_project))
 {
   $query = '
 SELECT x.pos
@@ -396,13 +396,13 @@ SELECT x.pos
     SELECT 
         id,
         @rownum := @rownum+1 AS pos
-      FROM '.SECTIONS_TABLE.'
+      FROM '.PROJECTS_TABLE.'
         JOIN (SELECT @rownum := 0) AS r
       WHERE 
         '.implode("\n    AND ", $where_clauses).'
       ORDER BY rank DESC, id ASC
   ) AS x
-  WHERE x.id = "'.$highlight_section.'"
+  WHERE x.id = "'.$highlight_project.'"
 ;';
   list($highlight_pos) = mysql_fetch_row(mysql_query($query));
 }
@@ -416,9 +416,9 @@ $query = '
 SELECT 
     s.*,
     COUNT(u.user_id) as total_users
-  FROM '.SECTIONS_TABLE.' as s
+  FROM '.PROJECTS_TABLE.' as s
     INNER JOIN '.USER_INFOS_TABLE.' as u
-      ON u.sections LIKE CONCAT("%",s.id,"%") AND u.status != "guest"
+      ON u.projects LIKE CONCAT("%",s.id,"%") AND u.status != "guest"
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY s.id
@@ -431,7 +431,7 @@ $_DIRS = hash_from_query($query, 'id');
 $query = '
 SELECT id, name
   FROM '.CATEGORIES_TABLE.'
-  WHERE type = "section"
+  WHERE type = "project"
 ;';
 $categories = hash_from_query($query, 'id');
 $categories_json = implode(',', array_map(create_function('$row', 'return \'{id: "\'.$row["id"].\'", name: "\'.$row["name"].\'"}\';'), $categories));
@@ -440,7 +440,7 @@ $categories_json = implode(',', array_map(create_function('$row', 'return \'{id:
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// add section
+// add project
 if ( is_admin() or $user['manage_perms']['can_add_projects'] )
 {
 echo '
@@ -463,7 +463,7 @@ echo '
       <td><input type="text" name="files" size="50"></td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>
-      <td><input type="submit" name="add_section" class="blue" value="Add"></td>
+      <td><input type="submit" name="add_project" class="blue" value="Add"></td>
     </tr>
   </table>
   
@@ -471,7 +471,7 @@ echo '
 </form>';
 }
 
-// search sections
+// search projects
 if ( count($_DIRS) or count($where_clauses) > 1 )
 {
 echo '
@@ -511,9 +511,9 @@ echo '
 </fieldset>
 </form>';
 
-// sections list
+// projects list
 echo '
-<form id="sections" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post">
+<form id="projects" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
@@ -531,12 +531,12 @@ echo '
     foreach ($_DIRS as $row)
     {
       echo '
-      <tr class="main '.($highlight_section==$row['id'] ? 'highlight' : null).'">
+      <tr class="main '.($highlight_project==$row['id'] ? 'highlight' : null).'">
         <td class="chkb">
           <input type="checkbox" name="select[]" value="'.$row['id'].'">
         </td>
         <td class="name">
-          <a href="'.get_url_string(array('section'=>$row['id']), true, 'section').'">'.$row['name'].'</a>
+          <a href="'.get_url_string(array('project'=>$row['id']), true, 'project').'">'.$row['name'].'</a>
         </td>
         <td class="rank">
           '.$row['rank'].'
@@ -545,14 +545,14 @@ echo '
           '.(!empty($row['category_id']) ? get_category_name($row['category_id']) : null).'
         </td>
         <td class="users">
-          <a href="'.get_url_string(array('section_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
+          <a href="'.get_url_string(array('project_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
         </td>
         <td class="actions">
           <a href="#" class="expand" data="'.$row['id'].'" title="Edit this project"><img src="template/images/page_white_edit.png" alt="edit"></a>
           <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png" alt="refresh"></a>';
           if ( is_admin() || $user['manage_perms']['can_delete_projects'] )
           {
-            echo ' <a href="'.get_url_string(array('delete_section'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="delete"></a>';
+            echo ' <a href="'.get_url_string(array('delete_project'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="delete"></a>';
           }
         echo '
         </td>
@@ -614,10 +614,10 @@ $page['header'].= '
 <script type="text/javascript" src="template/js/functions.js"></script>';
 
 $page['script'].= '
-/* perform ajax request for section edit */
+/* perform ajax request for project edit */
 $("a.expand").click(function() {
   $trigger = $(this);
-  section_id = $trigger.attr("data");
+  project_id = $trigger.attr("data");
   $parent_row = $trigger.parents("tr.main");
   $details_row = $parent_row.next("tr.details");
   
@@ -626,14 +626,14 @@ $("a.expand").click(function() {
     $("tr.details").remove();
     
     $trigger.children("img").attr("src", "template/images/page_edit.png");
-    $parent_row.after(\'<tr class="details" id="details\'+ section_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
+    $parent_row.after(\'<tr class="details" id="details\'+ project_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
     
     $container = $parent_row.next("tr.details").children("td:last-child");
 
     $.ajax({
       type: "POST",
       url: "admin/ajax.php",
-      data: { "action":"get_section_form", "section_id": section_id }
+      data: { "action":"get_project_form", "project_id": project_id }
     }).done(function(msg) {
       msg = $.parseJSON(msg);
       
@@ -674,7 +674,7 @@ $("input.category").tokenInput(json_categories, {
 });
 
 /* tablesorter */
-$("#sections table").tablesorter({
+$("#projects table").tablesorter({
   sortList: [[2,1],[1,0]],
   headers: { 0: {sorter:false}, 5: {sorter: false} },
   widgets: ["zebra"]
@@ -740,10 +740,10 @@ $("td.id").click(function() {
   $checkbox.attr("checked", !$checkbox.attr("checked"));
 });';
 
-if (!empty($deploy_section))
+if (!empty($deploy_project))
 {
   $page['script'].= '
-  $("a.expand[data=\''.$deploy_section.'\']").trigger("click");';
+  $("a.expand[data=\''.$deploy_project.'\']").trigger("click");';
 }
 
 ?>

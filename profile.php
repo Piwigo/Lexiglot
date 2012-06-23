@@ -254,11 +254,11 @@ if ($local_user)
           <td>Projects assigned :</td>
           <td>';
           $f=1;
-          foreach (array_diff($local_user['sections'], $local_user['manage_sections']) as $section)
+          foreach (array_diff($local_user['projects'], $local_user['manage_projects']) as $project)
           {
             if(!$f)echo ', ';$f=0;
             echo '
-            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+            <a href="'.get_url_string(array('project'=>$project), true, 'project').'" class="clean">'.get_project_name($project).'</a>';
           }
           echo '</td>
         </tr>';
@@ -269,11 +269,11 @@ if ($local_user)
           <td>Projects managed :</td>
           <td>';
           $f=1;
-          foreach ($local_user['manage_sections'] as $section)
+          foreach ($local_user['manage_projects'] as $project)
           {
             if(!$f)echo ', ';$f=0;
             echo '
-            <a href="'.get_url_string(array('section'=>$section), true, 'section').'" class="clean">'.get_section_name($section).'</a>';
+            <a href="'.get_url_string(array('project'=>$project), true, 'project').'" class="clean">'.get_project_name($project).'</a>';
           }
           echo '</td>
         </tr>';
@@ -391,8 +391,8 @@ SELECT
       // foreach ($plot as $row)
       // {
         // list($year, $month, $day) = explode('-', $row['day']);
-        // if (!isset($json[ $row['lang'] ])) $json[ $row['lang'] ] = null;
-        // $json[ $row['lang'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
+        // if (!isset($json[ $row['language'] ])) $json[ $row['language'] ] = null;
+        // $json[ $row['language'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
       // }
       
       load_jquery('highstock');
@@ -454,14 +454,14 @@ SELECT
     
       /*$query = '
 SELECT 
-    lang,
-    section, 
+    language,
+    project, 
     LEFT(last_edit, 10) as date,
-    COUNT(CONCAT(lang, section, LEFT(last_edit, 10))) as count
+    COUNT(CONCAT(language, project, LEFT(last_edit, 10))) as count
   FROM '.ROWS_TABLE.'
   WHERE 
     user_id = '.$local_user['id'].'
-  GROUP BY CONCAT(lang, section, LEFT(last_edit, 10))
+  GROUP BY count
   ORDER BY last_edit DESC
   LIMIT 0,10
 ;';
@@ -477,8 +477,8 @@ SELECT
             <tr>
               <td>'.format_date($row['date'],0,0).'</td>
               <td><b>'.$row['count'].'</b> string(s)</td>
-              <td><i>'.get_section_name($row['section']).'</i></td>
-              <td><i>'.get_language_name($row['lang']).'</i></td>
+              <td><i>'.get_project_name($row['project']).'</i></td>
+              <td><i>'.get_language_name($row['language']).'</i></td>
             </tr>';
           }
           if (!count($recent))

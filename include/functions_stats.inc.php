@@ -22,34 +22,34 @@
 defined('PATH') or die('Hacking attempt!'); 
 
 /**
- * make stats for a language of a section and register it to DB
+ * make stats for a language of a project and register it to DB
  * calculate ratio between the numbers of rows in the default language and the number of existing rows in the current language
  * the value returned is between 0 and 1
  *
- * @param string section
+ * @param string project
  * @param string language
  * @param bool save in database
  * @return float
  */
-function make_stats($section, $language, $save=true)
+function make_stats($project, $language, $save=true)
 {
   global $conf;
   
-  // language/section doesn't exist
-  if (!file_exists($conf['local_dir'].$section.'/'.$language))
+  // language/project doesn't exist
+  if (!file_exists($conf['local_dir'].$project.'/'.$language))
   {
     $stat = 0;
   }
-  // language/section exists, will count rows
+  // language/project exists, will count rows
   else
   {
     $total = $translated = 0;
-    $files = explode(',', $conf['all_sections'][$section]['files']);
+    $files = explode(',', $conf['all_projects'][$project]['files']);
     
     foreach ($files as $file)
     {
-      $_LANG_default = load_language_file($section, $conf['default_language'], $file);
-      $_LANG =         load_language($section, $language, $file);
+      $_LANG_default = load_language_file($project, $conf['default_language'], $file);
+      $_LANG =         load_language($project, $language, $file);
       
       // for plain texts
       if (is_plain_file($file))
@@ -83,20 +83,20 @@ function make_stats($section, $language, $save=true)
     $query = '
 DELETE FROM '.STATS_TABLE.'
   WHERE
-    section = "'.$section.'"
+    project = "'.$project.'"
     AND language = "'.$language.'"
 ;';
     mysql_query($query);
     
     $query = '
 INSERT INTO '.STATS_TABLE.'(
-    section,
+    project,
     language,
     date,
     value
   )
   VALUES (
-    "'.$section.'",
+    "'.$project.'",
     "'.$language.'",
     NOW(),
     '.$stat.'
@@ -109,19 +109,19 @@ INSERT INTO '.STATS_TABLE.'(
 }
 
 /**
- * make stats for a section
- * @param string section
+ * make stats for a project
+ * @param string project
  * @param bool save in database
  * @return array of floats
  */
-function make_section_stats($section, $save=true)
+function make_project_stats($project, $save=true)
 {
   global $conf;
   $stats = array();
   
   foreach (array_keys($conf['all_languages']) as $language)
   {
-    $stats[$language] = make_stats($section, $language, $save);
+    $stats[$language] = make_stats($project, $language, $save);
   }
   
   return $stats;
@@ -138,9 +138,9 @@ function make_language_stats($language, $save=true)
   global $conf;
   $stats = array();
   
-  foreach (array_keys($conf['all_sections']) as $section)
+  foreach (array_keys($conf['all_projects']) as $project)
   {
-    $stats[$section] = make_stats($section, $language, $save);
+    $stats[$project] = make_stats($project, $language, $save);
   }
   
   return $stats;
@@ -156,9 +156,9 @@ function make_full_stats($save=true)
   global $conf;
   $stats = array();
   
-  foreach (array_keys($conf['all_sections']) as $section)
+  foreach (array_keys($conf['all_projects']) as $project)
   {
-    $stats[$section] = make_section_stats($section, $save);
+    $stats[$project] = make_project_stats($project, $save);
   }
   
   return $stats;
@@ -166,12 +166,12 @@ function make_full_stats($save=true)
 
 /**
  * get saved stats
- * @param string section
+ * @param string project
  * @param string language
- * @param string sum stats (take ranks in account) (language|section|all)
+ * @param string sum stats (take ranks in account) (language|project|all)
  * @return float or array of floats
  */
-function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
+function get_cache_stats($Sproject=null, $Slanguage=null, $Ssum=null)
 {
   global $conf;
   
@@ -180,15 +180,15 @@ function get_cache_stats($Ssection=null, $Slanguage=null, $Ssum=null)
   {
     $where_clauses[] = 'language = "'.$Slanguage.'"';
   }
-  if (!empty($Ssection))
+  if (!empty($Sproject))
   {
-    $where_clauses[] = 'section = "'.$Ssection.'"';
+    $where_clauses[] = 'project = "'.$Sproject.'"';
   }
   
   $query = '
 SELECT * FROM (
   SELECT
-      section,
+      project,
       language,
       value
     FROM '.STATS_TABLE.'
@@ -196,40 +196,40 @@ SELECT * FROM (
       '.implode("\n      AND ", $where_clauses).'
     ORDER BY 
       date DESC, 
-      section ASC, 
+      project ASC, 
       language ASC
   ) as t
-  GROUP BY CONCAT(t.section, t.language)
+  GROUP BY CONCAT(t.project, t.language)
 ;';
   $result = mysql_query($query);
   $out = array();
   
   while ($row = mysql_fetch_assoc($result))
   {
-    $out[ $row['section'] ][ $row['language'] ] = $row['value'];
+    $out[ $row['project'] ][ $row['language'] ] = $row['value'];
   }
   
   switch ($Ssum)
   {
-    // sum sections progressions by language
+    // sum projects progressions by language
     case 'language':
       $out = reverse_2d_array($out);
       foreach ($out as $language => $row)
       {
         $num = $denom = 0;
-        $from = !empty($Ssection) ? array_keys($row) : array_keys($conf['all_sections']);
-        foreach ($from as $section)
+        $from = !empty($Sproject) ? array_keys($row) : array_keys($conf['all_projects']);
+        foreach ($from as $project)
         {
-          $num+= @$row[$section] * get_section_rank($section);
-          $denom+= get_section_rank($section);
+          $num+= @$row[$project] * get_project_rank($project);
+          $denom+= get_project_rank($project);
         }
         $out[ $language ] = ($num == 0) ? 0 : $num/$denom;
       }
       break;
       
-    // sum languages progressions by section
-    case 'section':
-      foreach ($out as $section => $row)
+    // sum languages progressions by project
+    case 'project':
+      foreach ($out as $project => $row)
       {
         $num = $denom = 0;
         $from = !empty($Slanguage) ? array_keys($row) : array_keys($conf['all_languages']);
@@ -238,25 +238,25 @@ SELECT * FROM (
           $num+= @$row[$language] * get_language_rank($language);
           $denom+= get_language_rank($language);
         }
-        $out[ $section ] = ($num == 0) ? 0 : $num/$denom;
+        $out[ $project ] = ($num == 0) ? 0 : $num/$denom;
       }
       break;
       
     // sum all progressions
     case 'all' :
       $num = $denom = 0;
-      $from = !empty($Ssection) ? array_keys($out) : array_keys($conf['all_sections']);
-      foreach ($from as $section)
+      $from = !empty($Sproject) ? array_keys($out) : array_keys($conf['all_projects']);
+      foreach ($from as $project)
       {
         $sub_num = $sub_denom = 0;
-        $sub_from = !empty($Slanguage) ? array_keys($out[$section]) : array_keys($conf['all_languages']);
+        $sub_from = !empty($Slanguage) ? array_keys($out[$project]) : array_keys($conf['all_languages']);
         foreach ($sub_from as $language)
         {
-          $sub_num+= @$out[$section][$language] * get_language_rank($language);
+          $sub_num+= @$out[$project][$language] * get_language_rank($language);
           $sub_denom+= get_language_rank($language);
         }
-        $num+= ( ($sub_num == 0) ? 0 : $sub_num/$sub_denom) * get_section_rank($section);
-        $denom+= get_section_rank($section);
+        $num+= ( ($sub_num == 0) ? 0 : $sub_num/$sub_denom) * get_project_rank($project);
+        $denom+= get_project_rank($project);
       }
       $out = ($num == 0) ? 0 : $num/$denom;
       break;
@@ -267,11 +267,11 @@ SELECT * FROM (
 
 /**
  * get the oldest generation date of a set of the cache
- * @param string section
+ * @param string project
  * @param string language
  * @return string
  */
-function get_cache_date($section=null, $language=null)
+function get_cache_date($project=null, $language=null)
 {
   global $conf;
   
@@ -280,9 +280,9 @@ function get_cache_date($section=null, $language=null)
   {
     $where_clauses[] = 'language = "'.$language.'"';
   }
-  if (!empty($section))
+  if (!empty($project))
   {
-    $where_clauses[] = 'section = "'.$section.'"';
+    $where_clauses[] = 'project = "'.$project.'"';
   }
   
   $query = '

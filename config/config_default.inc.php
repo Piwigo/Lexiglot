@@ -72,7 +72,7 @@ $conf['copy_file_to_repo'] = null;
 // email used for send automated mails, can be a dummy email
 $conf['system_email'] = 'Lexiglot <noreply@'.$_SERVER['HTTP_HOST'].'>';
 
-// how to navigate : sections, languages, both
+// how to navigate : projects, languages, both
 $conf['navigation_type'] = 'both';
 
 // cache validation time, in seconds

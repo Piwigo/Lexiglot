@@ -27,9 +27,9 @@ $deploy_language = null;
 // +-----------------------------------------------------------------------+
 // |                         DELETE LANG
 // +-----------------------------------------------------------------------+
-if (isset($_GET['delete_lang']))
+if (isset($_GET['delete_language']))
 {
-  if (!array_key_exists($_GET['delete_lang'], $conf['all_languages']))
+  if (!array_key_exists($_GET['delete_language'], $conf['all_languages']))
   {
     array_push($page['errors'], 'Unknown language.');
   }
@@ -37,17 +37,17 @@ if (isset($_GET['delete_lang']))
   {
     // delete lang from user infos
     $users = get_users_list(
-      array('languages LIKE "%'.$_GET['delete_lang'].'%" OR my_languages LIKE "%'.$_GET['delete_lang'].'%"'), 
+      array('languages LIKE "%'.$_GET['delete_language'].'%" OR my_languages LIKE "%'.$_GET['delete_language'].'%"'), 
       'languages, my_languages'
       );
     
     foreach ($users as $u)
     {
-      unset($u['languages'][ array_search($_GET['delete_lang'], $u['languages']) ]);
-      unset($u['my_languages'][ array_search($_GET['delete_lang'], $u['my_languages']) ]);
+      unset($u['languages'][ array_search($_GET['delete_language'], $u['languages']) ]);
+      unset($u['my_languages'][ array_search($_GET['delete_language'], $u['my_languages']) ]);
       $u['languages'] = create_permissions_array($u['languages']);
       
-      if      ($u['main_language'] == $_GET['delete_lang'])   $u['main_language'] = null;
+      if      ($u['main_language'] == $_GET['delete_language'])   $u['main_language'] = null;
       else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
       
       $u['languages'] = implode_array($u['languages']);
@@ -64,19 +64,19 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     
     // delete flag
-    @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_lang'] ]['flag']);
+    @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_language'] ]['flag']);
     
     // delete from stats table
     $query = '
 DELETE FROM '.STATS_TABLE.'
-  WHERE language = "'.$_GET['delete_lang'].'"
+  WHERE language = "'.$_GET['delete_language'].'"
 ;';
     mysql_query($query);
     
     // delete from languages table
     $query = '
 DELETE FROM '.LANGUAGES_TABLE.' 
-  WHERE id = "'.$_GET['delete_lang'].'"
+  WHERE id = "'.$_GET['delete_language'].'"
 ;';
     mysql_query($query);
     
@@ -188,7 +188,7 @@ UPDATE '.LANGUAGES_TABLE.'
 
   $highlight_language = $row['id'];
   
-  // update sections array
+  // update languages array
   $conf['all_languages'][ $row['id'] ] = array_merge($conf['all_languages'][ $row['id'] ], $row);
     
   if (count($page['errors']) == 0)
@@ -205,7 +205,7 @@ UPDATE '.LANGUAGES_TABLE.'
 // +-----------------------------------------------------------------------+
 // |                         ADD LANG
 // +-----------------------------------------------------------------------+
-if (isset($_POST['add_lang']))
+if (isset($_POST['add_language']))
 {
   // check id
   if (empty($_POST['id']))
@@ -335,8 +335,8 @@ $search = array(
 if (isset($_GET['lang_id']))
 {
   $_POST['erase_search'] = true;
-  $search['name'] = array('%', get_language_name($_GET['lang_id']), '');
-  unset($_GET['lang_id']);
+  $search['name'] = array('%', get_language_name($_GET['language_id']), '');
+  unset($_GET['language_id']);
 }
 
 $where_clauses = session_search($search, 'language_search', array('limit','flag'));
@@ -450,7 +450,7 @@ echo '
       </td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>
-      <td><input type="submit" name="add_lang" class="blue" value="Add"></td>
+      <td><input type="submit" name="add_language" class="blue" value="Add"></td>
     </tr>
   </table>
   
@@ -507,7 +507,7 @@ echo '
 
 // langs list
 echo '
-<form id="langs" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
+<form id="languages" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
@@ -546,7 +546,7 @@ echo '
           <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>';
           if ($conf['default_language'] != $row['id'])
           {
-            echo ' <a href="'.get_url_string(array('delete_lang'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
+            echo ' <a href="'.get_url_string(array('delete_language'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
             <img src="template/images/cross.png" alt="[x]"></a>';
           }
           else
@@ -570,10 +570,7 @@ echo '
   <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
   <div class="pagination">'.display_pagination($paging, 'nav').'</div>
   
-  <div class="centered">
-    <input type="hidden" name="MAX_FILE_SIZE" value="10240">
-    <input type="submit" name="save_lang" class="blue big" value="Save">
-  </div>
+  <input type="hidden" name="MAX_FILE_SIZE" value="10240">
 </fieldset>
 
 <fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
@@ -669,7 +666,7 @@ $("input.category").tokenInput(json_categories, {
 });
 
 /* tablesorter */
-$("#langs table").tablesorter({
+$("#languages table").tablesorter({
   sortList: [[2,1],[1,0]],
   headers: { 0: {sorter: false}, 5: {sorter: false} },
   widgets: ["zebra"]

@@ -46,8 +46,8 @@ if ( isset($_POST['submit']) and $is_translator )
   {
     $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
-    lang,
-    section,
+    language,
+    project,
     file_name,
     row_name,
     row_value,
@@ -57,7 +57,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   )
   VALUES(
     "'.$page['language'].'",
-    "'.$page['section'].'",
+    "'.$page['project'].'",
     "'.$page['file'].'",
     "'.$page['file'].'",
     "'.mres($text).'",
@@ -73,7 +73,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     mysql_query($query);
   }
   
-  make_stats($page['section'], $page['language']);
+  make_stats($page['project'], $page['language']);
   $_SESSION['page_infos'][] = 'File saved';
   redirect();   
 }

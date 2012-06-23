@@ -20,8 +20,7 @@
 // +-----------------------------------------------------------------------+
 
 /**
- * This page is called by jQuery ro perform some AJAX actions
- * an ephemeral key is mandatory for security
+ * This page is called by jQuery ro perform some AJAX admin actions
  */
 
 define('PATH', '../');
@@ -36,13 +35,13 @@ if (!isset($_POST['action']))
 
 switch ($_POST['action'])
 {
-  // GET SECTION EDIT FORM
-  case 'get_section_form':
+  // GET PROJECT EDIT FORM
+  case 'get_project_form':
   {
     $query = '
 SELECT *
-  FROM '.SECTIONS_TABLE.'
-  WHERE id = "'.$_POST['section_id'].'"
+  FROM '.PROJECTS_TABLE.'
+  WHERE id = "'.$_POST['project_id'].'"
 ;';
     $row = mysql_fetch_assoc(mysql_query($query));
     
@@ -50,29 +49,29 @@ SELECT *
 <table class="project_edit">
   <tr>
     <td class="title">Name :</td>
-    <td><input type="text" name="sections['.$row['id'].'][name]" value="'.$row['name'].'" size="20"></td>
+    <td><input type="text" name="projects['.$row['id'].'][name]" value="'.$row['name'].'" size="20"></td>
     <td class="files title">Files :</td>
   </tr>
   <tr>
     <td class="title">Directory :</td>
-    <td><input type="text" name="sections['.$row['id'].'][directory]" value="'.$row['directory'].'" size="55"></td>
-    <td rowspan="5" class="files"><textarea name="sections['.$row['id'].'][files]" style="width:470px;height:120px;">'.$row['files'].'</textarea></td>
+    <td><input type="text" name="projects['.$row['id'].'][directory]" value="'.$row['directory'].'" size="55"></td>
+    <td rowspan="5" class="files"><textarea name="projects['.$row['id'].'][files]" style="width:470px;height:120px;">'.$row['files'].'</textarea></td>
   </tr>
   <tr>
     <td class="title">Rank :</td>
-    <td><input type="text" name="sections['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2"></td>
+    <td><input type="text" name="projects['.$row['id'].'][rank]" value="'.$row['rank'].'" size="2"></td>
   </tr>
   <tr>
     <td class="title">Category :</td>
-    <td><input type="text" name="sections['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'></td>
+    <td><input type="text" name="projects['.$row['id'].'][category_id]" class="category" '.(!empty($row['category_id']) ? 'value=\'[{"id": '.$row['category_id'].'}]\'' : null).'></td>
   </tr>
   <tr>
     <td class="title">URL :</td>
-    <td><input type="text" name="sections['.$row['id'].'][url]" value="'.$row['url'].'" size="55"></td>
+    <td><input type="text" name="projects['.$row['id'].'][url]" value="'.$row['url'].'" size="55"></td>
   </tr>
   <tr>
-    <td><input type="hidden" name="active_section" value="'.$row['id'].'"></td>
-    <td><input type="submit" name="save_section" class="blue" value="Save"></td>
+    <td><input type="hidden" name="active_project" value="'.$row['id'].'"></td>
+    <td><input type="submit" name="save_project" class="blue" value="Save"></td>
   </tr>
 </table>';
 
@@ -113,7 +112,7 @@ SELECT *
   <tr>
     <td class="title">Reference :</td>
     <td>
-      <select name="langs['.$row['id'].'][ref_id]">
+      <select name="languages['.$row['id'].'][ref_id]">
           <option value="" '.(null==$row['ref_id']?'selected="selected"':'').'>(default)</option>';
           foreach ($conf['all_languages'] as $lang)
           {
@@ -131,8 +130,11 @@ SELECT *
   </tr>
 </table>';
 
-      close_ajax('success', $content);
+    close_ajax('success', $content);
   }
+  
+  default:
+    close_ajax('error', 'Bad parameters');
 }
 
 
@@ -141,7 +143,5 @@ function close_ajax($errcode, $data=null)
   echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
   close_page();
 }
-
-close_page();
 
 ?>

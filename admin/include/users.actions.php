@@ -92,7 +92,7 @@ UPDATE '.USER_INFOS_TABLE.'
   }
   
   // ASSIGN LANGUAGE
-  case 'add_lang':
+  case 'add_language':
   {
     $l = $_POST['language_add'];
     if ( $l == '-1' or !array_key_exists($l, $conf['all_languages']) )
@@ -126,7 +126,7 @@ UPDATE '.USER_INFOS_TABLE.'
   }
     
   // UNASSIGN LANGUAGE
-  case 'remove_lang':
+  case 'remove_language':
   {
     $l = $_POST['language_remove'];
     if ( $l == '-1' or !array_key_exists($l, $conf['all_languages']) )
@@ -171,10 +171,10 @@ UPDATE '.USER_INFOS_TABLE.'
   }
   
   // ASSIGN PROJECT
-  case 'add_section':
+  case 'add_project':
   {
-    $s = $_POST['section_add'];
-    if ( $s == '-1' or !array_key_exists($s, $conf['all_sections']) )
+    $s = $_POST['project_add'];
+    if ( $s == '-1' or !array_key_exists($s, $conf['all_projects']) )
     {
       array_push($page['errors'], 'Wrong project !');
     }
@@ -183,13 +183,13 @@ UPDATE '.USER_INFOS_TABLE.'
       $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET 
-    sections = IF( 
-      sections="", 
+    projects = IF( 
+      projects="", 
       "'.$s.',0", 
       IF( 
-        sections LIKE("%'.$s.'%"), 
-        sections, 
-        CONCAT(sections, ";'.$s.',0")
+        projects LIKE("%'.$s.'%"), 
+        projects, 
+        CONCAT(projects, ";'.$s.',0")
       )
     )
   WHERE 
@@ -199,16 +199,16 @@ UPDATE '.USER_INFOS_TABLE.'
 ;';
       mysql_query($query);
       
-      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
+      array_push($page['infos'], 'Project &laquo; '.get_project_name($s).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
     }
     break;
   }
   
   // UNASSIGN PROJECT
-  case 'remove_section':
+  case 'remove_project':
   {
-    $s = $_POST['section_remove'];
-    if ( $s == '-1' or !array_key_exists($s, $conf['all_sections']) )
+    $s = $_POST['project_remove'];
+    if ( $s == '-1' or !array_key_exists($s, $conf['all_projects']) )
     {
       array_push($page['errors'], 'Wrong project !');
     }
@@ -216,33 +216,33 @@ UPDATE '.USER_INFOS_TABLE.'
     {
       $users = get_users_list(
         array(
-          'sections LIKE "%'.$s.'%"',
+          'projects LIKE "%'.$s.'%"',
           'user_id IN('.implode(',', $selection).')',
           'user_id NOT IN ('.implode(',', $forbid_ids).')',
           'status != "visitor"'
           ), 
-        'sections'
+        'projects'
         );
       
       $i = 0;
       foreach ($users as $u)
       {
-        unset($u['sections'][ array_search($s, $u['sections']) ]);
-        unset($u['manage_sections'][ array_search($s, $u['manage_sections']) ]);
-        $u['sections'] = create_permissions_array($u['sections']);
-        $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
-        $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+        unset($u['projects'][ array_search($s, $u['projects']) ]);
+        unset($u['manage_projects'][ array_search($s, $u['manage_projects']) ]);
+        $u['projects'] = create_permissions_array($u['projects']);
+        $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
+        $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
         
         $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
   WHERE user_id = '.$u['id'].'
 ;';
         mysql_query($query);
         $i++;
       }
       
-      array_push($page['infos'], 'Project &laquo; '.get_section_name($s).' &raquo; unassigned from <b>'.$i.'</b> users.');
+      array_push($page['infos'], 'Project &laquo; '.get_project_name($s).' &raquo; unassigned from <b>'.$i.'</b> users.');
     }
     break;
   }

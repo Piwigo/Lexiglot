@@ -10,10 +10,10 @@ tr.highlight td {
   #last_modifs .chkb {
     width: 20px;
   }
-  #last_modifs .lang {
+  #last_modifs .language {
     width: 80px;
   }
-  #last_modifs .section {
+  #last_modifs .project {
     width: 80px;
   }
   #last_modifs .file {
@@ -59,10 +59,10 @@ tr.highlight td {
   #users .date {
     width: 130px;
   }
-  #users .section {
+  #users .project {
     width: 80px;
   }
-  #users .lang {
+  #users .language {
     width: 70px;
   }
   #users .status {
@@ -80,32 +80,32 @@ tr.highlight td {
   }
   
 /* PROJECTS PAGE */
-#sections table td, #sections table th {
+#projects table td, #projects table th {
   text-align:left;
   padding-left:5px;
 }
-#sections table td{
+#projects table td{
   height:27px;
 }
-  #sections .chkb {
+  #projects .chkb {
     width: 20px;
     text-align:center;
   }
-  #sections .rank {
+  #projects .rank {
     width: 100px;
   }
-  #sections .category {
+  #projects .category {
     width: 150px;
   }
-  #sections .users {
+  #projects .users {
     width: 100px;
   }
-  #sections .actions {
+  #projects .actions {
     width: 80px;
     text-align: right;
     padding-right: 10px;
   }
-    #sections .actions a {
+    #projects .actions a {
       margin-left:5px;
     }
   ul.token-input-list, div.token-input-dropdown {
@@ -126,32 +126,32 @@ tr.highlight td {
     }
   
 /* LANGUAGES PAGE */
-#langs table td, #langs table th{
+#languages table td, #languages table th{
   text-align:left;
   padding-left:5px;
 }
-#langs table td{
+#languages table td{
   height:27px;
 }
-  #langs .chkb {
+  #languages .chkb {
     width: 20px;
     text-align:center;
   }
-  #langs .rank {
+  #languages .rank {
     width: 100px;
   }
-  #langs .category {
+  #languages .category {
     width: 150px;
   }
-  #langs .users {
+  #languages .users {
     width: 100px;
   }
-  #langs .actions {
+  #languages .actions {
     width: 80px;
     text-align: right;
     padding-right: 10px;
   }
-    #langs .actions a {
+    #languages .actions a {
       margin-left:5px;
     }
 

@@ -135,7 +135,7 @@ if ( isset($_POST['add_external_user']) and is_admin() )
 $search = array(
   'username' =>  array('%', ''),
   'languages' => array('%', -1),
-  'sections' =>  array('%', -1),
+  'projects' =>  array('%', -1),
   'status' =>    array('=', -1),
   'limit' =>     array('=', 20),
   );
@@ -147,17 +147,17 @@ if (isset($_GET['user_id']))
   $search['username'] = array('%', get_username($_GET['user_id']), '');
   unset($_GET['user_id']);
 }
-if (isset($_GET['lang_id']))
+if (isset($_GET['language_id']))
 {
   $_POST['erase_search'] = true;
-  $search['languages'] = array('%', $_GET['lang_id'], -1);
-  unset($_GET['lang_id']);
+  $search['languages'] = array('%', $_GET['language_id'], -1);
+  unset($_GET['language_id']);
 }
-if (isset($_GET['section_id']))
+if (isset($_GET['project_id']))
 {
   $_POST['erase_search'] = true;
-  $search['sections'] = array('%', $_GET['section_id'], -1);
-  unset($_GET['section_id']);
+  $search['projects'] = array('%', $_GET['project_id'], -1);
+  unset($_GET['project_id']);
 }
 if (isset($_GET['status']))
 {
@@ -166,23 +166,23 @@ if (isset($_GET['status']))
   unset($_GET['status']);
 }
 
-$where_clauses = session_search($search, 'user_search', array('limit','sections','languages'));
+$where_clauses = session_search($search, 'user_search', array('limit','projects','languages'));
 
-// special for 'sections' and 'languages'
-if (get_search_value('sections') != -1) 
+// special for 'projects' and 'languages'
+if (get_search_value('projects') != -1) 
 {
-  if (get_search_value('sections') == 'n/a/m') 
+  if (get_search_value('projects') == 'n/a/m') 
   {
-    foreach ($user['manage_sections'] as $section)
-      array_push($where_clauses, 'sections NOT LIKE "%'.$section.'%"');
+    foreach ($user['manage_projects'] as $project)
+      array_push($where_clauses, 'projects NOT LIKE "%'.$project.'%"');
   }
-  else if (get_search_value('sections') == 'n/a') 
+  else if (get_search_value('projects') == 'n/a') 
   {
-    array_push($where_clauses, '(sections IS NULL OR sections = "")');
+    array_push($where_clauses, '(projects IS NULL OR projects = "")');
   }
   else
   {
-    array_push($where_clauses, 'sections LIKE "%'.get_search_value('sections').'%"');
+    array_push($where_clauses, 'projects LIKE "%'.get_search_value('projects').'%"');
   }
 }
 if (get_search_value('languages') != -1) 
@@ -245,7 +245,7 @@ $_USERS = get_users_list($where_clauses, 'i.*', 'AND', $paging['Start'], $paging
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-$displayed_sections = is_admin() ? $conf['all_sections'] : array_intersect_key($conf['all_sections'], create_permissions_array($user['manage_sections']));
+$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
 
 // create a new user
 if (is_admin())
@@ -344,14 +344,14 @@ echo '
         </select>
       </td>
       <td>
-        <select name="sections">
-          <option value="-1" '.(-1==get_search_value('sections')?'selected="selected"':null).'>-------</option>
-          <option value="n/a" '.('n/a'==get_search_value('sections')?'selected="selected"':null).'>-- none assigned --</option>
-          '.(is_manager() ? '<option value="n/a/m" '.('n/a/m'==get_search_value('sections')?'selected="selected"':null).'>-- none of mine --</option>' : null);
-        foreach ($displayed_sections as $row)
+        <select name="projects">
+          <option value="-1" '.(-1==get_search_value('projects')?'selected="selected"':null).'>-------</option>
+          <option value="n/a" '.('n/a'==get_search_value('projects')?'selected="selected"':null).'>-- none assigned --</option>
+          '.(is_manager() ? '<option value="n/a/m" '.('n/a/m'==get_search_value('projects')?'selected="selected"':null).'>-- none of mine --</option>' : null);
+        foreach ($displayed_projects as $row)
         {
           echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('sections')?'selected="selected"':null).'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('projects')?'selected="selected"':null).'>'.$row['name'].'</option>';
         }
         echo '
         </select>
@@ -378,10 +378,10 @@ echo '
         <th class="user">Username</th>
         <th class="email">Email</th>
         <th class="date">Registration date</th>
-        <th class="lang lang-tip" title="Spoken">Languages</th>
+        <th class="language lang-tip" title="Spoken">Languages</th>
         <th class="status">Status</th>
         <th class="lang lang-tip" title="Assigned">Languages</th>
-        <th class="section">Projects</th>
+        <th class="project">Projects</th>
         <th class="actions"></th>
       </tr>
     </thead>
@@ -402,7 +402,7 @@ echo '
         <td class="date">
           <span style="display:none;">'.strtotime($row['registration_date']).'</span>'.format_date($row['registration_date'], true, false).'
         </td>
-        <td class="lang">';
+        <td class="language">';
         if (count($row['my_languages']) > 0)
         {
           echo print_user_languages_tooltip($row, 3, true);
@@ -428,17 +428,17 @@ echo '
         }
         echo '
         </td>
-        <td class="lang">';
+        <td class="language">';
         if (count($row['languages']) > 0)
         {
           echo print_user_languages_tooltip($row);
         }
         echo '
         </td>
-        <td class="section">';
-        if (count($row['sections']) > 0)
+        <td class="project">';
+        if (count($row['projects']) > 0)
         {
-          echo print_user_sections_tooltip($row);
+          echo print_user_projects_tooltip($row);
         }
         echo '
         </td>  
@@ -482,10 +482,10 @@ echo '
     <option value="send_email">Send email</option>
     '.(is_admin() ? '<option value="delete_users">Delete users</option>
     <option value="change_status">Change status</option>
-    <option value="add_lang">Assign a language</option>
-    <option value="remove_lang">Unassign a language</option>' : null).'
-    <option value="add_section">Assign a project</option>
-    <option value="remove_section">Unassign a project</option>
+    <option value="add_language">Assign a language</option>
+    <option value="remove_language">Unassign a language</option>' : null).'
+    <option value="add_project">Assign a project</option>
+    <option value="remove_project">Unassign a project</option>
   </select>
   
   <span id="action_send_email" class="action-container">
@@ -505,7 +505,7 @@ echo '
     </select>
   </span>
   
-  <span id="action_add_lang" class="action-container">
+  <span id="action_add_language" class="action-container">
     <select name="language_add">
       <option value="-1">-------</option>';
     foreach ($conf['all_languages'] as $row)
@@ -517,7 +517,7 @@ echo '
     </select>
   </span>
   
-  <span id="action_remove_lang" class="action-container">
+  <span id="action_remove_language" class="action-container">
     <select name="language_remove">
       <option value="-1">-------</option>';
     foreach ($conf['all_languages'] as $row)
@@ -529,10 +529,10 @@ echo '
     </select>
   </span>
   
-  <span id="action_add_section" class="action-container">
-    <select name="section_add">
+  <span id="action_add_project" class="action-container">
+    <select name="project_add">
       <option value="-1">-------</option>';
-    foreach ($conf['all_sections'] as $row)
+    foreach ($conf['all_projects'] as $row)
     {
       echo '
       <option value="'.$row['id'].'">'.$row['name'].'</option>';
@@ -541,10 +541,10 @@ echo '
     </select>
   </span>
   
-  <span id="action_remove_section" class="action-container">
-    <select name="section_remove">
+  <span id="action_remove_project" class="action-container">
+    <select name="project_remove">
       <option value="-1">-------</option>';
-    foreach ($conf['all_sections'] as $row)
+    foreach ($conf['all_projects'] as $row)
     {
       echo '
       <option value="'.$row['id'].'">'.$row['name'].'</option>';

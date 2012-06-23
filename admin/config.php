@@ -38,9 +38,9 @@ if (isset($_POST['save_config']))
     'user_can_add_language' =>  set_boolean(isset($_POST['user_can_add_language'])),
     
     'user_default_language' =>  $_POST['user_default_language'],
-    'user_default_section' =>   $_POST['user_default_section'],
+    'user_default_project' =>   $_POST['user_default_project'],
     'language_default_user' =>  $_POST['language_default_user'],
-    'section_default_user' =>   $_POST['section_default_user'],
+    'project_default_user' =>   $_POST['project_default_user'],
     
     'new_file_content' =>       $_POST['new_file_content'],
     );
@@ -57,7 +57,7 @@ if (isset($_POST['save_config']))
       
     if ($new_conf['svn_activated'] == 'true' and $new_conf['svn_server'] != $conf['svn_server'])
     { // we must relocate all working directories
-      foreach ($conf['all_sections'] as $key => $row)
+      foreach ($conf['all_projects'] as $key => $row)
       {
         svn_switch($new_conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id'], $conf['svn_server'].$row['directory']);
       }
@@ -198,8 +198,8 @@ echo '
       <tr>
         <td>A new translator has access to :</td>
         <td>
-          <label><input type="radio" name="user_default_section" value="all" '.($conf['user_default_section']=='all' ? 'checked="checked"':'').'> All projects</label>
-          <label><input type="radio" name="user_default_section" value="none" '.($conf['user_default_section']=='none' ? 'checked="checked"':'').'> No project</label>
+          <label><input type="radio" name="user_default_project" value="all" '.($conf['user_default_project']=='all' ? 'checked="checked"':'').'> All projects</label>
+          <label><input type="radio" name="user_default_project" value="none" '.($conf['user_default_project']=='none' ? 'checked="checked"':'').'> No project</label>
         </td>
       </tr>
       <tr>
@@ -212,8 +212,8 @@ echo '
       <tr>
         <td>A new project is accessible to :</td>
         <td>
-          <label><input type="radio" name="section_default_user" value="all" '.($conf['section_default_user']=='all' ? 'checked="checked"':'').'> All translators</label>
-          <label><input type="radio" name="section_default_user" value="none" '.($conf['section_default_user']=='none' ? 'checked="checked"':'').'> No translator</label>
+          <label><input type="radio" name="project_default_user" value="all" '.($conf['project_default_user']=='all' ? 'checked="checked"':'').'> All translators</label>
+          <label><input type="radio" name="project_default_user" value="none" '.($conf['project_default_user']=='none' ? 'checked="checked"':'').'> No translator</label>
         </td>
       </tr>
     </table>

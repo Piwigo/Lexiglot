@@ -46,8 +46,8 @@ if ( isset($_POST['submit']) and $is_translator )
     {        
       $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
-    lang,
-    section,
+    language,
+    project,
     file_name,
     row_name,
     row_value,
@@ -57,7 +57,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   )
   VALUES(
     "'.$page['language'].'",
-    "'.$page['section'].'",
+    "'.$page['project'].'",
     "'.$page['file'].'",
     "'.mres($key).'",
     "'.mres($text).'",
@@ -74,7 +74,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     }
   }
   
-  make_stats($page['section'], $page['language']);
+  make_stats($page['project'], $page['language']);
   
   $_SESSION['page_infos'][] = 'Strings saved';
   redirect();   
@@ -162,7 +162,7 @@ if ($in_search)
 }
 
 // available for reference
-$stats = get_cache_stats($page['section'], null, 'language');
+$stats = get_cache_stats($page['project'], null, 'language');
 $reference_languages = array();
 foreach ($conf['all_languages'] as $row)
 {
@@ -433,7 +433,7 @@ $("a.expand").click(function() {
       $.ajax({
         type: "POST",
         url: "ajax.php",
-        data: { "action":"row_log", "section":"'.$page['section'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(0).'", "row_name": utf8_encode(row_name) }
+        data: { "action":"row_log", "project":"'.$page['project'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(0).'", "row_name": utf8_encode(row_name) }
       }).done(function(msg) {
         msg = $.parseJSON(msg);
         if (msg.errcode == "success") {
@@ -475,7 +475,7 @@ if ($is_translator)
     $.ajax({
       type: "POST",
       url: "ajax.php",
-      data: { "action":"save_row", "section":"'.$page['section'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(2).'", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) }
+      data: { "action":"save_row", "project":"'.$page['project'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(2).'", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) }
     }).done(function(msg) {
       msg = $.parseJSON(msg);
       if (msg.errcode == "success") {

@@ -90,7 +90,7 @@ SELECT *
     $guest = mysql_fetch_assoc(mysql_query($query));
     
     $user['languages'] = $guest['languages'];
-    $user['sections'] = $guest['sections'];
+    $user['projects'] = $guest['projects'];
   }
   
   // explode languages array
@@ -113,22 +113,22 @@ SELECT *
 
   $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
   
-  // explode sections array
-  if (!empty($user['sections']))
+  // explode projects array
+  if (!empty($user['projects']))
   {
-    $sections = explode_string($user['sections']);
-    $user['sections'] = array();
-    $user['manage_sections'] = array();
-    foreach ($sections as $section => $rank)
+    $projects = explode_string($user['projects']);
+    $user['projects'] = array();
+    $user['manage_projects'] = array();
+    foreach ($projects as $project => $rank)
     {
-      if ($rank == 1) array_push($user['manage_sections'], $section);
-      array_push($user['sections'], $section);
+      if ($rank == 1) array_push($user['manage_projects'], $project);
+      array_push($user['projects'], $project);
     }
   }
   else
   {
-    $user['sections'] = array();
-    $user['manage_sections'] = array();
+    $user['projects'] = array();
+    $user['manage_projects'] = array();
   }
   
   // if the user is manager we must fill management permissions
@@ -143,15 +143,15 @@ SELECT *
       $user['manage_perms'] = unserialize($conf['default_manager_perms']);
     }
     
-    // manager have access to all languages in its sections (must find a better way to do that)
-    if ( isset($_GET['section']) and in_array($_GET['section'], $user['manage_sections']) )
+    // manager have access to all languages in its projects (must find a better way to do that)
+    if ( isset($_GET['project']) and in_array($_GET['project'], $user['manage_projects']) )
     {
       $user['languages'] = array_keys($conf['all_languages']);
     }
   }
   else
   {
-    $user['manage_sections'] = array();
+    $user['manage_projects'] = array();
   }
 
   return $user;
@@ -228,7 +228,7 @@ SELECT
     /*if ( $user['status'] == 'visitor' and isset($users[ $conf['guest_id'] ]) )
     {
       $user['languages'] = $users[ $conf['guest_id'] ]['languages'];
-      $user['sections'] =  $users[ $conf['guest_id'] ]['sections'];
+      $user['projects'] =  $users[ $conf['guest_id'] ]['projects'];
     }*/
   
     // explode languages array
@@ -251,22 +251,22 @@ SELECT
 
     $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
     
-    // explode sections array
-    if (!empty($user['sections']))
+    // explode projects array
+    if (!empty($user['projects']))
     {
-      $sections = explode_string($user['sections']);
-      $user['sections'] = array();
-      $user['manage_sections'] = array();
-      foreach ($sections as $section => $rank)
+      $projects = explode_string($user['projects']);
+      $user['projects'] = array();
+      $user['manage_projects'] = array();
+      foreach ($projects as $project => $rank)
       {
-        if ($rank == 1) array_push($user['manage_sections'], $section);
-        array_push($user['sections'], $section);
+        if ($rank == 1) array_push($user['manage_projects'], $project);
+        array_push($user['projects'], $project);
       }
     }
     else
     {
-      $user['sections'] = array();
-      $user['manage_sections'] = array();
+      $user['projects'] = array();
+      $user['manage_projects'] = array();
     }
     
     // if the user is manager we must fill management permissions
@@ -283,7 +283,7 @@ SELECT
     }
     else if ($user['status'] != 'manager')
     {
-      $user['manage_sections'] = array();
+      $user['manage_projects'] = array();
     }
   }
 
@@ -685,10 +685,10 @@ function is_visitor()
  *   - admins are always translators
  *   - managers have same rights of translators
  * @param string language
- * @param string section
+ * @param string project
  * @return bool
  */
-function is_translator($lang=null, $section=null)
+function is_translator($lang=null, $project=null)
 {
   if (is_admin()) return true;
   
@@ -699,9 +699,9 @@ function is_translator($lang=null, $section=null)
   {
     $cond = $cond && in_array($lang, $user['languages']);
   }
-  if ($section != null) // access to section
+  if ($project != null) // access to project
   {
-    $cond = $cond && in_array($section, $user['sections']);
+    $cond = $cond && in_array($project, $user['projects']);
   }
   
   return $cond;
@@ -709,17 +709,17 @@ function is_translator($lang=null, $section=null)
 
 /**
  * search if current user is manager
- * @param string section
+ * @param string project
  * @return bool
  */
-function is_manager($section=null)
+function is_manager($project=null)
 {
   global $user;
   
   $cond = get_user_status() == 'manager'; // status
-  if ($section != null) // access to section
+  if ($project != null) // access to project
   {
-    $cond = $cond && in_array($section, $user['manage_sections']);
+    $cond = $cond && in_array($project, $user['manage_projects']);
   }
   
   return $cond;

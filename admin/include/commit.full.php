@@ -29,8 +29,8 @@ defined('PATH') or die('Hacking attempt!');
 foreach ($_ROWS as $props => $files)
 {
   // commit infos
-  list($commit['section'], $commit['language']) = explode('||', $props);
-  $commit['path'] = $conf['local_dir'].$commit['section'].'/'.$commit['language'].'/';
+  list($commit['project'], $commit['language']) = explode('||', $props);
+  $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
   $commit['is_new'] = dir_is_empty($commit['path']);
   $commit['users'] = $commit['done_rows'] = $commit['errors'] = array();
   
@@ -63,8 +63,8 @@ foreach ($_ROWS as $props => $files)
     else
     {
       // load language files
-      $_LANG =         load_language_file($commit['section'], $commit['language'], $file_infos['name']);
-      $_LANG_default = load_language_file($commit['section'], $conf['default_language'], $file_infos['name']);
+      $_LANG =         load_language_file($commit['project'], $commit['language'], $file_infos['name']);
+      $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file_infos['name']);
       
       // update the file
       if (!$file_infos['is_new'])
@@ -242,7 +242,7 @@ foreach ($_ROWS as $props => $files)
   if ( count($commit['done_rows']) > 0 and $conf['svn_activated'] )
   {
     $svn_result = svn_commit($commit['path'], 
-      '['.$commit['section'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
+      '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
       );
     
     // error while commit
@@ -250,29 +250,29 @@ foreach ($_ROWS as $props => $files)
     {
       svn_revert($commit['path']);
       $commit['done_rows'] = array();
-      array_push($page['errors'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
+      array_push($page['errors'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
     }
     // commited successfully without files errors
     else if (count($commit['errors']) == 0)
     {
-      array_push($page['infos'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
+      array_push($page['infos'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
     }
   }
   // everything fine, svn not activated
   else if ( count($commit['done_rows']) > 0 and count($commit['errors']) == 0 )
   {
-    array_push($page['infos'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': done');
+    array_push($page['infos'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': done');
   }
   // nothing done
   else if (count($commit['done_rows']) == 0)
   {
-    array_push($page['errors'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': failed<br>'.implode('<br>', $commit['errors']));
+    array_push($page['errors'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': failed<br>'.implode('<br>', $commit['errors']));
   }
   
   // some errors in files creation
   if ( count($commit['done_rows']) > 0 and count($commit['errors']) > 0 )
   {
-    array_push($page['warnings'], '['.get_section_name($commit['section']).'] '.get_language_name($commit['language']).': partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+    array_push($page['warnings'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
   }
   
   // update database
@@ -308,7 +308,7 @@ UPDATE '.ROWS_TABLE.'
     }
   }
   
-  make_stats($commit['section'], $commit['language']);  
+  make_stats($commit['project'], $commit['language']);  
   unset($commit);
 }
 

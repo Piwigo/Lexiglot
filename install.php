@@ -227,7 +227,7 @@ define('DB_PREFIX','".$_POST['dbprefix']."');
 define('ROWS_TABLE',        DB_PREFIX.'rows');
 define('USERS_TABLE',       DB_PREFIX.'users');
 define('USER_INFOS_TABLE',  DB_PREFIX.'user_infos');
-define('SECTIONS_TABLE',    DB_PREFIX.'sections');
+define('PROJECTS_TABLE',    DB_PREFIX.'projects');
 define('STATS_TABLE',       DB_PREFIX.'stats');
 define('LANGUAGES_TABLE',   DB_PREFIX.'languages');
 define('CONFIG_TABLE',      DB_PREFIX.'config');

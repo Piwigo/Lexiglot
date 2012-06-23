@@ -37,12 +37,12 @@ $page['language'] = $_GET['language'];
 $page['window_title'] = get_language_name($page['language']);
 $page['title'] = 'Browse';
 
-// get ordered sections with categories names (uses a workaround for sections without categories)
+// get ordered projects with categories names (uses a workaround for projects without categories)
 $query = '
 SELECT 
     s.*,
     IF(s.category_id = 0, "[999]zzz", c.name) as category_name
-  FROM '.SECTIONS_TABLE.' AS s
+  FROM '.PROJECTS_TABLE.' AS s
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
     ON c.id = s.category_id
   ORDER BY
@@ -50,31 +50,31 @@ SELECT
     rank DESC,
     s.name ASC
 ;';
-$conf['all_sections'] = hash_from_query($query, 'id');
+$conf['all_projects'] = hash_from_query($query, 'id');
 
-// search this language into section directories
-foreach ($conf['all_sections'] as &$row)
+// search this language into project directories
+foreach ($conf['all_projects'] as &$row)
 {
-  $row['lang_exists'] = file_exists($conf['local_dir'].$row['id'].'/'.$page['language']);
+  $row['language_exists'] = file_exists($conf['local_dir'].$row['id'].'/'.$page['language']);
 }
 unset($row);
 
 // +-----------------------------------------------------------------------+
-// |                         ADD A NEW SECTION
+// |                         ADD A NEW PROJECT
 // +-----------------------------------------------------------------------+
-if (isset($_POST['add_section']))
+if (isset($_POST['add_project']))
 {
-  if ( $_POST['section'] == '-1' or !array_key_exists($_POST['section'], $conf['all_sections']) )
+  if ( $_POST['project'] == '-1' or !array_key_exists($_POST['project'], $conf['all_projects']) )
   {
     array_push($page['errors'], 'Undefined or unknown project.');
   }
-  else if ( !$conf['user_can_add_language'] or !is_translator($page['language'], $_POST['section']) )
+  else if ( !$conf['user_can_add_language'] or !is_translator($page['language'], $_POST['project']) )
   {
     array_push($page['errors'], 'You have no rights to add this project.');
   }
-  else if ( create_directory($conf['local_dir'].$_POST['section'].'/'.$page['language']) )
+  else if ( create_directory($conf['local_dir'].$_POST['project'].'/'.$page['language']) )
   {
-    redirect(get_url_string(array('language'=>$page['language'],'section'=>$_POST['section']), true, 'edit'));
+    redirect(get_url_string(array('language'=>$page['language'],'project'=>$_POST['project']), true, 'edit'));
   }
   else
   {
@@ -84,7 +84,7 @@ if (isset($_POST['add_section']))
 
 
 // +-----------------------------------------------------------------------+
-// |                         DISPLAY SECTIONS
+// |                         DISPLAY PROJECTS
 // +-----------------------------------------------------------------------+
 // update statistics
 if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_cache_life'] )
@@ -95,39 +95,39 @@ if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_
 // get statistics
 if ($conf['use_stats'])
 {
-  $stats = get_cache_stats(null, $page['language'], 'section');
+  $stats = get_cache_stats(null, $page['language'], 'project');
   $language_stats = get_cache_stats(null, $page['language'], 'all');
 }
 $use_stats = !empty($stats);
 
-// sections not translated, translated and editable, not translated and editable
-$section_not_translated = $section_translated = $section_available = $conf['all_sections'];
-foreach ($conf['all_sections'] as $row)
+// projects not translated, translated and editable, not translated and editable
+$project_not_translated = $project_translated = $project_available = $conf['all_projects'];
+foreach ($conf['all_projects'] as $row)
 {
-  if ($row['lang_exists'])
+  if ($row['language_exists'])
   {
-    unset($section_not_translated[ $row['id'] ]);
-    unset($section_available[ $row['id'] ]);
+    unset($project_not_translated[ $row['id'] ]);
+    unset($project_available[ $row['id'] ]);
   }
   else
   {
-    unset($section_translated[ $row['id'] ]);
+    unset($project_translated[ $row['id'] ]);
   }
-  if (!in_array($row['id'], $user['sections']))
+  if (!in_array($row['id'], $user['projects']))
   {
-    unset($section_available[ $row['id'] ], $section_translated[ $row['id'] ]);
+    unset($project_available[ $row['id'] ], $project_translated[ $row['id'] ]);
   }
 }
 
 // path
 echo '
 <p class="caption"><a href="'.get_url_string().'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a></p>
-<ul id="sections" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
+<ul id="projects" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
 
-// sections list
+// projects list
 $category_id = null;
-$use_categories = count(array_unique_deep($section_translated, 'category_id')) > 1;
-foreach ($section_translated as $row)
+$use_categories = count(array_unique_deep($project_translated, 'category_id')) > 1;
+foreach ($project_translated as $row)
 {
   if ($use_categories)
   {
@@ -146,20 +146,20 @@ foreach ($section_translated as $row)
   if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
   
   echo '
-  <li '.( !$row['lang_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
-    <a href="'.get_url_string(array('language'=>$page['language'],'section'=>$row['id']), true, 'edit').'">
+  <li '.( !$row['language_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
+    <a href="'.get_url_string(array('language'=>$page['language'],'project'=>$row['id']), true, 'edit').'">
       '.$row['name'].'
       '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
     </a>
   </li>';
 }
 
-// add section button
-if ( $conf['user_can_add_language'] and is_translator($page['language'], null) and count($section_available) > 0 )
+// add project button
+if ( $conf['user_can_add_language'] and is_translator($page['language'], null) and count($project_available) > 0 )
 {
   echo '
   <li class="add">
-    <b>'.count($section_not_translated).' projects not translated</b> <a class="add_section" href="#"><img src="template/images/bullet_add.png" alt="+"> Translate another project</a>
+    <b>'.count($project_not_translated).' projects not translated</b> <a href="#"><img src="template/images/bullet_add.png" alt="+"> Translate another project</a>
   </li>
   
   <div id="dialog-form" title="Translate another project" style="display:none;">
@@ -169,16 +169,16 @@ if ( $conf['user_can_add_language'] and is_translator($page['language'], null) a
     </div>
     <form action="" method="post" style="text-align:center;">
       Select a project : 
-      <select name="section">
+      <select name="project">
         <option value="-1">----------</option>';
-      foreach ($section_available as $row)
+      foreach ($project_available as $row)
       {
         echo '
         <option value="'.$row['id'].'">'.$row['name'].'</option>';
       }
       echo '
       </select>
-      <input type="hidden" name="add_section" value="1">
+      <input type="hidden" name="add_project" value="1">
     </form>
   </div>';
 }
@@ -208,7 +208,7 @@ $("#dialog-form").dialog({
   }
 });
 
-$(".add_section").click(function() {
+$(".add a").click(function() {
   $("#dialog-form").dialog("open");
   return false;
 });';

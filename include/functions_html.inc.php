@@ -404,8 +404,7 @@ function encode_mail_header($str)
 
   // Replace every spaces to _ (more readable than =20)
   $str = str_replace(" ", "_", $str);
-
-  global $lang_info;
+  
   return '=?UTF-8?Q?'.$str.'?=';
 }
 

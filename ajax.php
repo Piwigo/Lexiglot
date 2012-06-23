@@ -49,7 +49,7 @@ switch ($_POST['action'])
       close_ajax('error', 'String is empty');
     }
     
-    if ( empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']) )
+    if ( empty($_POST['row_name']) or empty($_POST['project']) or empty($_POST['language']) or empty($_POST['file']) )
     {
       close_ajax('error', 'Bad parameters');
     }
@@ -57,14 +57,14 @@ switch ($_POST['action'])
     $key = utf8_decode($_POST['row_name']);
     $text = utf8_decode($_POST['row_value']);
     
-    $_LANG = load_language($_POST['section'], $_POST['language'], $_POST['file'], $key);
+    $_LANG = load_language($_POST['project'], $_POST['language'], $_POST['file'], $key);
     
     if ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
     {
       $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
-    lang,
-    section,
+    language,
+    project,
     file_name,
     row_name,
     row_value,
@@ -74,7 +74,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
   )
   VALUES(
     "'.mres($_POST['language']).'",
-    "'.mres($_POST['section']).'",
+    "'.mres($_POST['project']).'",
     "'.mres($_POST['file']).'",
     "'.mres($key).'",
     "'.mres($text).'",
@@ -100,10 +100,12 @@ INSERT INTO `'.ROWS_TABLE.'`(
   // HISTORY OF A ROW
   case 'row_log':
   {
-    if ( empty($_POST['row_name']) or empty($_POST['section']) or empty($_POST['language']) or empty($_POST['file']) )
+    if ( empty($_POST['row_name']) or empty($_POST['project']) or empty($_POST['language']) or empty($_POST['file']) )
     {
       close_ajax('error', 'Bad parameters');
     }
+    
+    $key = utf8_decode($_POST['row_name']);
     
     $query = '
 SELECT
@@ -116,9 +118,9 @@ SELECT
     INNER JOIN '.USERS_TABLE.' AS u
       ON u.id = r.user_id
   WHERE
-    row_name = "'.mres(utf8_decode($_POST['row_name'])).'"
-    AND section = "'.mres($_POST['section']).'"
-    AND lang = "'.mres($_POST['language']).'"
+    row_name = "'.mres($key).'"
+    AND project = "'.mres($_POST['project']).'"
+    AND language = "'.mres($_POST['language']).'"
     AND file_name = "'.mres($_POST['file']).'"
   ORDER BY last_edit DESC
 ;';
@@ -139,6 +141,9 @@ SELECT
       '.implode('', $out).'
     </ul>');
   }
+  
+  default:
+    close_ajax('error', 'Bad parameters');
 }
 
 
@@ -147,7 +152,5 @@ function close_ajax($errcode, $data=null)
   echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
   close_page();
 }
-
-close_page();
 
 ?>

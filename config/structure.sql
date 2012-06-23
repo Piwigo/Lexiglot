@@ -34,9 +34,9 @@ INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 ('user_can_add_language', 'true'),
 
 ('user_default_language', 'own'),
-('user_default_section', 'all'),
+('user_default_project', 'all'),
 ('language_default_user', 'all'),
-('section_default_user', 'all'),
+('project_default_user', 'all'),
 
 ('new_file_content', ''),
 ('intro_message', 'Welcome on your new installation of Lexiglot!');
@@ -50,7 +50,7 @@ INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 CREATE TABLE `lexiglot_categories` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT,
   `name` varchar(32) NOT NULL,
-  `type` enum('section','language') NOT NULL,
+  `type` enum('project','language') NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -93,8 +93,8 @@ CREATE TABLE `lexiglot_mail_history` (
 
 CREATE TABLE `lexiglot_rows` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `lang` varchar(32) NOT NULL,
-  `section` varchar(32) NOT NULL,
+  `language` varchar(32) NOT NULL,
+  `project` varchar(32) NOT NULL,
   `file_name` varchar(32) NOT NULL,
   `row_name` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `row_value` text CHARACTER SET utf8 COLLATE utf8_bin,
@@ -102,16 +102,16 @@ CREATE TABLE `lexiglot_rows` (
   `last_edit` datetime NOT NULL,
   `status` enum('new','edit','done') NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `UNIQUE` (`user_id`,`lang`,`section`,`file_name`,`row_name`(128))
+  UNIQUE KEY `UNIQUE` (`user_id`,`language`,`project`,`file_name`,`row_name`(128))
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
 --
--- Structure of the table `lexiglot_sections`
+-- Structure of the table `lexiglot_projects`
 --
 
-CREATE TABLE `lexiglot_sections` (
+CREATE TABLE `lexiglot_projects` (
   `id` varchar(32) NOT NULL,
   `name` varchar(64) NOT NULL,
   `directory` varchar(256),
@@ -129,11 +129,11 @@ CREATE TABLE `lexiglot_sections` (
 --
 
 CREATE TABLE `lexiglot_stats` (
-  `section` varchar(32) NOT NULL,
+  `project` varchar(32) NOT NULL,
   `language` varchar(32) NOT NULL,
   `date` datetime NOT NULL,
   `value` float DEFAULT NULL,
-  UNIQUE KEY `UNIQUE` (`section`,`language`,`date`)
+  UNIQUE KEY `UNIQUE` (`project`,`language`,`date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -161,7 +161,7 @@ CREATE TABLE `lexiglot_user_infos` (
   `registration_date` datetime NOT NULL,
   `status` varchar(16) NOT NULL,
   `languages` text DEFAULT '',
-  `sections` text DEFAULT '',
+  `projects` text DEFAULT '',
   `my_languages` text DEFAULT '',
   `manage_perms` text DEFAULT '',
   `nb_rows` smallint(5) NOT NULL DEFAULT '15',

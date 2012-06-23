@@ -34,15 +34,15 @@ switch ($_POST['selectAction'])
     }
     else
     {
-      // delete sections from user infos
+      // delete projects from user infos
       $where_clauses = array('1=1');
       foreach ($selection as $s)
       {
-        array_push($where_clauses, 'sections LIKE "%'.$s.'%"');
+        array_push($where_clauses, 'projects LIKE "%'.$s.'%"');
       }
       $users = get_users_list(
         $where_clauses, 
-        'sections',
+        'projects',
         'OR'
         );
       
@@ -50,38 +50,38 @@ switch ($_POST['selectAction'])
       {
         foreach ($selection as $s)
         {
-          unset($u['sections'][ array_search($s, $u['sections']) ]);
-          unset($u['manage_sections'][ array_search($s, $u['manage_sections']) ]);
+          unset($u['projects'][ array_search($s, $u['projects']) ]);
+          unset($u['manage_projects'][ array_search($s, $u['manage_projects']) ]);
         }
         
-        $u['sections'] = create_permissions_array($u['sections']);
-        $u['manage_sections'] = create_permissions_array($u['manage_sections'], 1);    
-        $u['sections'] = implode_array(array_merge($u['sections'], $u['manage_sections']));
+        $u['projects'] = create_permissions_array($u['projects']);
+        $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
+        $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
         
         $query = '
 UPDATE '.USER_INFOS_TABLE.'
-  SET sections = '.(!empty($u['sections']) ? '"'.$u['sections'].'"' : 'NULL').'
+  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
   WHERE user_id = '.$u['id'].'
 ;';
         mysql_query($query);
       }
       
       // delete directories
-      foreach ($selection as $section)
+      foreach ($selection as $project)
       {
-        @rrmdir($conf['local_dir'].$section);
+        @rrmdir($conf['local_dir'].$project);
       }
       
       // delete from stats table
       $query = '
 DELETE FROM '.STATS_TABLE.'
-  WHERE section IN("'.implode('","', $selection).'")
+  WHERE project IN("'.implode('","', $selection).'")
 ;';
       mysql_query($query);
       
-      // delete from sections table
+      // delete from projects table
       $query = '
-DELETE FROM '.SECTIONS_TABLE.' 
+DELETE FROM '.PROJECTS_TABLE.' 
   WHERE id IN("'.implode('","', $selection).'")
 ;';
       mysql_query($query);
@@ -94,9 +94,9 @@ DELETE FROM '.SECTIONS_TABLE.'
   // REFRESH STATS
   case 'make_stats':
   {
-    foreach ($selection as $section)
+    foreach ($selection as $project)
     {
-      make_section_stats($section);
+      make_project_stats($project);
     }
     
     array_push($page['infos'], 'Stats refreshed for <b>'.count($selection).'</b> projects.');
@@ -108,12 +108,12 @@ DELETE FROM '.SECTIONS_TABLE.'
   {
     if (!is_numeric(@$_POST['batch_rank']) or @$_POST['batch_rank'] < 1)
     {
-      array_push($errors, 'Rank must be an non null integer for project &laquo;'.$section_id.'&raquo;.');
+      array_push($errors, 'Rank must be an non null integer for project &laquo;'.$project_id.'&raquo;.');
     }
     else
     {
       $query = '
-UPDATE '.SECTIONS_TABLE.'
+UPDATE '.PROJECTS_TABLE.'
   SET rank = '.$_POST['batch_rank'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
@@ -129,7 +129,7 @@ UPDATE '.SECTIONS_TABLE.'
   {
     if ( !empty($_POST['batch_category_id']) and !is_numeric($_POST['batch_category_id']) )
     {
-      $_POST['batch_category_id'] = add_category($_POST['batch_category_id'], 'section');
+      $_POST['batch_category_id'] = add_category($_POST['batch_category_id'], 'project');
     }
     if (empty($_POST['batch_category_id']))
     {
@@ -137,7 +137,7 @@ UPDATE '.SECTIONS_TABLE.'
     }
     
     $query = '
-UPDATE '.SECTIONS_TABLE.'
+UPDATE '.PROJECTS_TABLE.'
   SET category_id = '.$_POST['batch_category_id'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';

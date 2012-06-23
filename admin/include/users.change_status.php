@@ -24,7 +24,7 @@ isset($local_user) or die('Hacking attempt!');
 
 $my_languages =  !empty($local_user['my_languages']) ? '"'.implode_array(create_permissions_array($local_user['my_languages'])).'"' : 'NULL';
 $all_languages = implode_array(create_permissions_array(array_keys($conf['all_languages'])));
-$all_sections =  implode_array(create_permissions_array(array_keys($conf['all_sections'])));
+$all_projects =  implode_array(create_permissions_array(array_keys($conf['all_projects'])));
 
 switch ($local_user['status'].'->'.$new_status)
 {
@@ -34,11 +34,11 @@ switch ($local_user['status'].'->'.$new_status)
     array_push($sets, 'manage_perms = IFNULL(manage_perms, \''.$conf['default_manager_perms'].'\')');
     break;
     
-  // visitor to manager (languages/sections depend on config & check manage_perms)
+  // visitor to manager (languages/projects depend on config & check manage_perms)
   case 'visitor->manager':
     array_push($sets, 'manage_perms = \''.$conf['default_manager_perms'].'\'');
     
-  // visitor to translator (languages/sections depend on config)
+  // visitor to translator (languages/projects depend on config)
   case 'visitor->translator':
     if ($conf['user_default_language'] == 'all')
     {
@@ -48,27 +48,27 @@ switch ($local_user['status'].'->'.$new_status)
     {
       array_push($sets, 'languages = '.$my_languages .'');
     }
-    if ($conf['user_default_section'] == 'all')
+    if ($conf['user_default_project'] == 'all')
     {
-      array_push($sets, 'sections = "'.$all_sections.'"');
+      array_push($sets, 'projects = "'.$all_projects.'"');
     }
     break;
     
-  // * to admin (all languages/sections)
+  // * to admin (all languages/projects)
   case 'visitor->admin':
   case 'translator->admin':
   case 'manager->admin':
     array_push($sets, 'languages = "'.$all_languages.'"');
-    array_push($sets, 'sections = "'.$all_sections.'"');
+    array_push($sets, 'projects = "'.$all_projects.'"');
     break;
     
-  // * to visitor (none languages/sections)
+  // * to visitor (none languages/projects)
   case 'translator->visitor':
   case 'manager->visitor':
   case 'admin->visitor':
     array_push($sets, 'manage_perms = NULL');
     array_push($sets, 'languages = NULL');
-    array_push($sets, 'sections = NULL');
+    array_push($sets, 'projects = NULL');
     break;
     
   // others, do nothing

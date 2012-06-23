@@ -23,18 +23,18 @@ define('PATH', './');
 include(PATH.'include/common.inc.php');
 
 // +-----------------------------------------------------------------------+
-// |                         SECTION PROPERTIES
+// |                         PROJECT PROPERTIES
 // +-----------------------------------------------------------------------+
-if ( !isset($_GET['section']) or !array_key_exists($_GET['section'], $conf['all_sections']) )
+if ( !isset($_GET['project']) or !array_key_exists($_GET['project'], $conf['all_projects']) )
 {
-  array_push($page['errors'], 'Undefined or unknown section. <a href="'.get_home_url().'">Go Back</a>');
+  array_push($page['errors'], 'Undefined or unknown project. <a href="'.get_home_url().'">Go Back</a>');
   print_page();
 }
 
-$page['section'] = $_GET['section'];
+$page['project'] = $_GET['project'];
 
 // page title
-$page['window_title'] = get_section_name($page['section']);
+$page['window_title'] = get_project_name($page['project']);
 $page['title'] = 'Browse';
 
 // get ordered languages with categories names (uses a workaround for languages without categories)
@@ -52,29 +52,29 @@ SELECT
 ;';
 $conf['all_languages'] = hash_from_query($query, 'id');
 
-// search languages into this section
+// search languages into this project
 foreach ($conf['all_languages'] as &$row)
 {
-  $row['section_exists'] = file_exists($conf['local_dir'].$page['section'].'/'.$row['id']);
+  $row['project_exists'] = file_exists($conf['local_dir'].$page['project'].'/'.$row['id']);
 }
 unset($row);
 
 // +-----------------------------------------------------------------------+
 // |                         ADD A NEW LANG
 // +-----------------------------------------------------------------------+
-if (isset($_POST['add_lang']))
+if (isset($_POST['add_language']))
 {
   if ( $_POST['language'] == '-1' or !array_key_exists($_POST['language'], $conf['all_languages']) )
   {
     array_push($page['errors'], 'Undefined or unknown language.');
   }
-  else if ( !$conf['user_can_add_language'] or !is_translator($_POST['language'], $page['section']) )
+  else if ( !$conf['user_can_add_language'] or !is_translator($_POST['language'], $page['project']) )
   {
     array_push($page['errors'], 'You have no rights to add this language.');
   }
-  else if ( create_directory($conf['local_dir'].$page['section'].'/'.$_POST['language']) )
+  else if ( create_directory($conf['local_dir'].$page['project'].'/'.$_POST['language']) )
   {
-    redirect(get_url_string(array('language'=>$_POST['language'],'section'=>$page['section']), true, 'edit'));
+    redirect(get_url_string(array('language'=>$_POST['language'],'project'=>$page['project']), true, 'edit'));
   }
   else
   {
@@ -86,16 +86,16 @@ if (isset($_POST['add_lang']))
 // |                         DISPLAY LANGUAGES
 // +-----------------------------------------------------------------------+
 // update statistics
-if ( time() - strtotime(get_cache_date($page['section'], null)) > $conf['stats_cache_life'] )
+if ( time() - strtotime(get_cache_date($page['project'], null)) > $conf['stats_cache_life'] )
 {
-  make_section_stats($page['section']);
+  make_project_stats($page['project']);
 }
   
 // get statistics (must be computed with a clean rank)
 if ($conf['use_stats'])
 {
-  $stats = get_cache_stats($page['section'], null, 'language');
-  $section_stats = get_cache_stats($page['section'], null, 'all');
+  $stats = get_cache_stats($page['project'], null, 'language');
+  $project_stats = get_cache_stats($page['project'], null, 'all');
 }
 $use_stats = !empty($stats);
 
@@ -103,7 +103,7 @@ $use_stats = !empty($stats);
 $language_not_translated = $language_translated = $language_available = $conf['all_languages'];
 foreach ($conf['all_languages'] as $row)
 {
-  if ($row['section_exists'])
+  if ($row['project_exists'])
   {
     unset($language_not_translated[ $row['id'] ]);
     unset($language_available[ $row['id'] ]);
@@ -120,7 +120,7 @@ foreach ($conf['all_languages'] as $row)
 
 // path
 echo '
-<p class="caption"><a href="'.get_url_string().'">'.get_section_name($page['section']).'</a></p>
+<p class="caption"><a href="'.get_url_string().'">'.get_project_name($page['project']).'</a></p>
 <ul id="languages" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
 
 // languages list
@@ -145,8 +145,8 @@ foreach ($language_translated as $row)
   if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
   
   echo '
-  <li '.( !$row['section_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
-    <a href="'.get_url_string(array('language'=>$row['id'],'section'=>$page['section']), true, 'edit').'">
+  <li '.( !$row['project_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
+    <a href="'.get_url_string(array('language'=>$row['id'],'project'=>$page['project']), true, 'edit').'">
       '.$row['name'].' '.get_language_flag($row['id']).'
       '.(is_default_language($row['id']) ? '<i>(source)</i>': null).'
       '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
@@ -155,11 +155,11 @@ foreach ($language_translated as $row)
 }
 
 // add language button
-if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) and count($language_available) > 0 )
+if ( $conf['user_can_add_language'] and is_translator(null, $page['project']) and count($language_available) > 0 )
 {
   echo '
   <li class="add">
-    <b>'.count($language_not_translated).' languages not translated</b> <a class="add_lang" href="#"><img src="template/images/bullet_add.png" alt="+"> Add a new language</a>
+    <b>'.count($language_not_translated).' languages not translated</b> <a href="#"><img src="template/images/bullet_add.png" alt="+"> Add a new language</a>
   </li>
   
   <div id="dialog-form" title="Add a new language" style="display:none;">
@@ -179,20 +179,20 @@ if ( $conf['user_can_add_language'] and is_translator(null, $page['section']) an
       }
       echo '
       </select>
-      <input type="hidden" name="add_lang" value="1">
+      <input type="hidden" name="add_language" value="1">
     </form>
   </div>';
 }
 echo '
 </ul>';
 
-if (get_section_url($page['section']) != '')
+if (get_project_url($page['project']) != '')
 {
   echo '
   <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
     <p style="margin:10px;">
       <span class="ui-icon ui-icon-extlink" style="float: left; margin-right: 0.7em;"></span>
-      <b>Website :</b> <a href="'.get_section_url($page['section']).'">'.get_section_url($page['section']).'</a>
+      <b>Website :</b> <a href="'.get_project_url($page['project']).'">'.get_project_url($page['project']).'</a>
     </p>
   </div>';
 }
@@ -204,7 +204,7 @@ if ($use_stats)
   <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
     <p style="margin:10px;">
       <span class="ui-icon ui-icon-signal" style="float: left; margin-right: 0.7em;"></span>
-      <b>Project progression :</b> '.display_progress_bar($section_stats, 835, true).'
+      <b>Project progression :</b> '.display_progress_bar($project_stats, 835, true).'
     </p>
   </div>';
 }
@@ -221,7 +221,7 @@ $("#dialog-form").dialog({
   }
 });
 
-$(".add_lang").click(function() {
+$(".add a").click(function() {
   $("#dialog-form").dialog("open");
   return false;
 });';

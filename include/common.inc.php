@@ -76,10 +76,10 @@ include(PATH.'config/config_default.inc.php');
 @include(PATH.'config/config_local.inc.php');
 load_conf_db($conf);
 
-// available sections and langs
-$query = 'SELECT * FROM '.SECTIONS_TABLE.' ORDER BY id;';
-$conf['all_sections'] = hash_from_query($query, 'id');
-ksort($conf['all_sections']);
+// available projects and langs
+$query = 'SELECT * FROM '.PROJECTS_TABLE.' ORDER BY id;';
+$conf['all_projects'] = hash_from_query($query, 'id');
+ksort($conf['all_projects']);
 
 $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
 $conf['all_languages'] = hash_from_query($query, 'id');
