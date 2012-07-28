@@ -455,15 +455,15 @@ if ($is_translator)
 {
   $page['script'].= '
   // check saves before close page
-  var handlers = new Array();
+  var handlers = 0;
   $("textarea[name$=\'[row_value]\']").change(function() {
-    handlers.push( $(this).prev("textarea[name$=\'[row_name]\']").val() );
+    handlers++;
   });
   $("input[name=\'submit\']").click(function() {
-    handlers.length = 0;
+    handlers = 0;
   });
   $(window).bind("beforeunload", function() {
-    if (handlers.length > 0) return false;
+    if (handlers > 0) return false;
   });
   
   // perform ajax request to save string value
@@ -485,7 +485,7 @@ if ($is_translator)
         overlayMessage(msg.data, msg.errcode, $trigger);
       }
       
-      handlers = unset(handlers, row_name);
+      handlers--;
     });
     
     return false;

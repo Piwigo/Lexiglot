@@ -357,6 +357,12 @@ function array_unique_deep(&$array, $key)
   return array_unique($values);
 }
 
+function array_merge_ref(&$array, $pushes)
+{
+  if (!is_array($pushes)) return;
+  $array = array_merge($array, $pushes);
+}
+
 /**
  * recursively merge two arrays with overwrites (Arr2 overwrites Arr1)
  * http://www.php.net/manual/en/function.array-merge-recursive.php#102379

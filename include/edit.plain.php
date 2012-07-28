@@ -146,15 +146,15 @@ if ($is_translator)
 {
   $page['script'].= '
   // check saves before close page
-  var handler = false;
+  var handlers = 0;
   $("textarea[name=\'row_value\']").change(function() {
-    handler = true;
+    handlers++;
   });
   $("input[name=\'submit\']").click(function() {
-    handler = false;
+    handlers = 0;
   });
   $(window).bind("beforeunload", function() {
-    if (handler == true) return false;
+    if (handlers > 0) return false;
   });';
 }
 

@@ -64,14 +64,15 @@ echo '
         if (is_plain_file($file_infos['name']))
         {
           $row = $file_content[ $file_infos['name'] ];
-          array_push($commit['users'], $row['user_id']);
+          array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
+          $row[0]['status'] = $row[ count($row)-1 ]['status'];
           
           echo '
           <tr>
             <td class="marge"></td>
             <td><table class="rows">
-              <tr class="'.$row['status'].' '.($i%2==0?'odd':'even').'">
-                <td colspan="2"><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
+              <tr class="'.$row[0]['status'].' '.($i%2==0?'odd':'even').'">
+                <td colspan="2"><pre>'.htmlspecialchars($row[0]['row_value']).'</pre></td>
               </tr>
             </table></td>
           </tr>';
@@ -92,12 +93,13 @@ echo '
             {
               if (!isset($_LANG_default[$key])) continue;
               
-              array_push($commit['users'], $row['user_id']);
+              array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
+              $row[0]['status'] = $row[ count($row)-1 ]['status'];
               
               echo '
-              <tr class="'.$row['status'].' '.($i%2==0?'odd':'even').'">
+              <tr class="'.$row[0]['status'].' '.($i%2==0?'odd':'even').'">
                 <td><pre>'.htmlspecialchars($key).'</pre></td>
-                <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
+                <td><pre>'.htmlspecialchars($row[0]['row_value']).'</pre></td>
               </tr>';
               $i++;
             }

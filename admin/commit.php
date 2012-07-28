@@ -83,14 +83,15 @@ SELECT * FROM (
       '.implode("\n      AND ", $where_clauses).'
       AND status != "done"
     ORDER BY
-      last_edit DESC,
       language ASC,
       project ASC,
-      user_id ASC,
       file_name ASC,
-      row_name ASC
+      row_name ASC,
+      last_edit DESC,
+      user_id ASC
   ) as t
-  GROUP BY CONCAT(t.row_name,t.language,t.project)
+  GROUP BY CONCAT(t.row_name,t.language,t.project,t.user_id)
+  ORDER BY last_edit DESC
 ;';
   $result = mysql_query($query);
   
@@ -98,7 +99,7 @@ SELECT * FROM (
   while ($row = mysql_fetch_assoc($result))
   {
     // complicated array usefull for separate each commit
-    $_ROWS[ $row['project'].'||'.$row['language'] ][ $row['file_name'] ][ $row['row_name'] ] = $row;
+    $_ROWS[ $row['project'].'||'.$row['language'] ][ $row['file_name'] ][ $row['row_name'] ][] = $row;
   }
   
   if (!count($_ROWS))

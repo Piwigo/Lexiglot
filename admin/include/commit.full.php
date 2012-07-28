@@ -49,10 +49,10 @@ foreach ($_ROWS as $props => $files)
       $row = $file_content[ $file_infos['name'] ];
       
       // try to put the content in the file
-      if (deep_file_put_contents($file_infos['path'], $row['row_value']))
+      if (deep_file_put_contents($file_infos['path'], $row[0]['row_value']))
       {
-        array_push($file_infos['done_rows'], $row['id']);
-        array_push($file_infos['users'], $row['user_id']);
+        array_merge_ref($file_infos['done_rows'], array_unique_deep($row, 'id'));
+        array_merge_ref($file_infos['users'], array_unique_deep($row, 'user_id'));
       }
       else
       {
@@ -105,24 +105,24 @@ foreach ($_ROWS as $props => $files)
         {
           case "'":
             if ($sub_string !== false)
-              $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+              $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
             else
-              $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
-            $row['content'] = $row['search']." = '".str_replace("'","\'",$row['row_value'])."';";
+              $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+            $row[0]['content'] = $row[0]['search']." = '".str_replace("'","\'",$row[0]['row_value'])."';";
             break;
           case '"':
             if ($sub_string !== false)
-              $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+              $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
             else
-              $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
-            $row['content'] = $row['search'].' = "'.str_replace('"','\"',$row['row_value']).'";';
+              $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+            $row[0]['content'] = $row[0]['search'].' = "'.str_replace('"','\"',$row[0]['row_value']).'";';
             break;
         }
         
         // remove obsolete row, and continue to the next
         if (!isset($_LANG_default[$key]))
         {
-          if ( 
+          /*if ( 
             !$file_infos['is_new'] and
             isset($_POST['delete_obsolete']) and
             ($i = array_pos($row['search'], $_FILE)) !== false
@@ -134,14 +134,14 @@ foreach ($_ROWS as $props => $files)
               unset_to_eor($_FILE, $i);
             }
             unset($_FILE[$i]);
-          }
+          }*/
           continue;
         }
         
         // update existing line
         if (
           !$file_infos['is_new'] and 
-          ($i = array_pos($row['search'], $_FILE)) !== false
+          ($i = array_pos($row[0]['search'], $_FILE)) !== false
         )
         {
           // if the end of the line is not the end of the row, we search the end into lines bellow
@@ -149,16 +149,16 @@ foreach ($_ROWS as $props => $files)
           {
             unset_to_eor($_FILE, $i);
           }
-          $_FILE[$i] = $row['content'];
+          $_FILE[$i] = $row[0]['content'];
         }
         // add new line at the end
         else
         {
-          $_FILE[] = $row['content'];
+          $_FILE[] = $row[0]['content'];
         }
         
-        array_push($file_infos['done_rows'], $row['id']);
-        array_push($file_infos['users'], $row['user_id']);
+        array_merge_ref($file_infos['done_rows'], array_unique_deep($row, 'id'));
+        array_merge_ref($file_infos['users'], array_unique_deep($row, 'user_id'));
       }
       
       // obsolete rows from file
@@ -167,7 +167,7 @@ foreach ($_ROWS as $props => $files)
         foreach ($_LANG as $key => $row)
         {
           // here we skip rows that were in the database, already deleted
-          if ( !isset($_LANG_default[$key]) and !isset($file_content[$key]) )
+          if ( !isset($_LANG_default[$key]) /*and !isset($file_content[$key])*/ )
           {
             $sub_string = is_sub_string($key);
             
@@ -205,6 +205,7 @@ foreach ($_ROWS as $props => $files)
       if (!deep_file_put_contents($file_infos['path'], implode($conf['eol'], $_FILE)))
       {
         $file_infos['done_rows'] = array();
+        $file_infos['users'] = array();
         array_push($file_infos['errors'], 'Can\'t update/create file\''.$file_infos['path'].'\'');
       }
     }
@@ -224,17 +225,18 @@ foreach ($_ROWS as $props => $files)
     // if the file was successfully modified/created
     if (count($file_infos['done_rows']) > 0)
     {
-      $commit['done_rows'] = array_merge($commit['done_rows'], $file_infos['done_rows']);
-      $commit['users'] = array_merge($commit['users'], $file_infos['users']);
+      array_merge_ref($commit['done_rows'], $file_infos['done_rows']);
+      array_merge_ref($commit['users'], $file_infos['users']);
     }
     else
     {
-      $commit['errors'] = array_merge($commit['errors'], $file_infos['errors']);
+      array_merge_ref($commit['errors'], $file_infos['errors']);
     }
     
     unset($file_infos);
   }
   
+  // users
   $commit['users'] = array_unique($commit['users']);
   array_walk($commit['users'], 'print_username');
   

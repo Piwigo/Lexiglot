@@ -1,12 +1,3 @@
-function unset(myArray, value) {
-  for (var key in myArray) {
-      if (myArray[key] == value) {
-          myArray.splice(key, 1);
-      }
-  }
-  return myArray;
-}
-
 function overlayMessage(msg, msg_class, $trigger) {
     if (msg_class == "highlight") icon = "info";
     else                          icon = "alert";
