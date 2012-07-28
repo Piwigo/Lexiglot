@@ -47,7 +47,7 @@ SELECT
     ON c.id = l.category_id
   ORDER BY
     category_name ASC,
-    rank DESC,
+    l.rank DESC,
     l.id ASC
 ;';
 $conf['all_languages'] = hash_from_query($query, 'id');

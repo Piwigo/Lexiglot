@@ -47,7 +47,7 @@ SELECT
     ON c.id = s.category_id
   ORDER BY
     category_name ASC,
-    rank DESC,
+    s.rank DESC,
     s.name ASC
 ;';
 $conf['all_projects'] = hash_from_query($query, 'id');

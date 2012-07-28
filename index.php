@@ -46,7 +46,7 @@ SELECT
       ON c.id = l.category_id
   ORDER BY
     category_name ASC,
-    rank DESC,
+    l.rank DESC,
     l.id ASC
 ;';
   $language_translated = hash_from_query($query, 'id');
@@ -128,7 +128,7 @@ SELECT
     ON c.id = s.category_id
   ORDER BY
     category_name ASC,
-    rank DESC,
+    s.rank DESC,
     s.name ASC
 ;';
   $project_translated = hash_from_query($query, 'id');

@@ -154,6 +154,21 @@ tr.highlight td {
     #languages .actions a {
       margin-left:5px;
     }
+    
+/* MAIL PAGE */
+#mail_history table {
+  table-layout:fixed
+}
+  #mail_history .from {
+    width:250px;overflow:hidden;
+  }
+  #mail_history .to {
+    width:250px;overflow:hidden;
+  }
+  #mail_history .date {
+    width: 100px;
+    font-size: 0.9em;
+  }
 
 /* PERMISSIONS PAGE */
 #permissions {}

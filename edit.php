@@ -135,13 +135,13 @@ if ( isset($_POST['send_notification']) and $_POST['user_id'] != '-1' )
     // get user infos
     $query = '
 SELECT
-    '.$conf['user_fields']['email'].' as email,
-    '.$conf['user_fields']['username'].' as username,
-    nb_rows
+    u.'.$conf['user_fields']['email'].' as email,
+    u.'.$conf['user_fields']['username'].' as username,
+    i.nb_rows
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
       ON i.user_id = u.'.$conf['user_fields']['id'].'
-  WHERE '.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
+  WHERE u.'.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
 ;';
     $to = mysql_fetch_assoc(mysql_query($query));
 

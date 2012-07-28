@@ -120,7 +120,7 @@ SELECT
       ON r.user_id = u.'.$conf['user_fields']['id'].'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
-  ORDER BY last_edit DESC
+  ORDER BY r.last_edit DESC
   LIMIT '.$paging['Entries'].'
   OFFSET '.$paging['Start'].'
 ;';

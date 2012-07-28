@@ -617,8 +617,8 @@ function get_admin_email()
   
   $query = '
 SELECT
-  '.$conf['user_fields']['email'].' as email,
-  '.$conf['user_fields']['username'].' as username
+  u.'.$conf['user_fields']['email'].' as email,
+  u.'.$conf['user_fields']['username'].' as username
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
       ON u.'.$conf['user_fields']['id'].' = i.user_id

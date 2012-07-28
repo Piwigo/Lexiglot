@@ -109,20 +109,19 @@ INSERT INTO `'.ROWS_TABLE.'`(
     
     $query = '
 SELECT
-    row_value,
-    user_id,
-    '.$conf['user_fields']['username'].' AS username,
-    last_edit,
-    status
+    r.row_value,
+    r.user_id,
+    u.'.$conf['user_fields']['username'].' AS username,
+    r.last_edit
   FROM '.ROWS_TABLE.' AS r
     INNER JOIN '.USERS_TABLE.' AS u
       ON u.id = r.user_id
   WHERE
-    row_name = "'.mres($key).'"
-    AND project = "'.mres($_POST['project']).'"
-    AND language = "'.mres($_POST['language']).'"
-    AND file_name = "'.mres($_POST['file']).'"
-  ORDER BY last_edit DESC
+    r.row_name = "'.mres($key).'"
+    AND r.project = "'.mres($_POST['project']).'"
+    AND r.language = "'.mres($_POST['language']).'"
+    AND r.file_name = "'.mres($_POST['file']).'"
+  ORDER BY r.last_edit DESC
 ;';
     $result = mysql_query($query);
     
