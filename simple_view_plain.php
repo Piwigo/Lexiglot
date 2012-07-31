@@ -66,7 +66,7 @@ $page['file'] = $_GET['file'];
 // +-----------------------------------------------------------------------+
 // |                         GET FILE
 // +-----------------------------------------------------------------------+
-$_LANG = load_language_file($page['project'], $page['language'], $page['file']);
+$_LANG = load_language($page['project'], $page['language'], $page['file']);
 $_LANG = $_LANG[ $page['file'] ];
 
 

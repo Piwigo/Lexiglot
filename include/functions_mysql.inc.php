@@ -138,4 +138,332 @@ function load_conf_db(&$conf)
   }
 }
 
+/**
+ * updates multiple lines in a table
+ *
+ * @param string table_name
+ * @param array dbfields
+ * @param array datas
+ * @param bool empty values do not overwrite existing ones
+ * @return void
+ */
+function mass_updates($tablename, $dbfields, $datas, $skip_empty=false)
+{
+  if (count($datas) == 0)
+  {
+    return;
+  }
+  
+  // depending the number of updates, we use the multi table update or N update queries
+  if (count($datas) < 10)
+  {
+    foreach ($datas as $data)
+    {
+      $query = '
+UPDATE '.$tablename.'
+  SET ';
+      $is_first = true;
+      foreach ($dbfields['update'] as $key)
+      {
+        $separator = $is_first ? '' : ",\n    ";
+
+        if (isset($data[$key]) and $data[$key] != '')
+        {
+          $query.= $separator.$key.' = \''.$data[$key].'\'';
+        }
+        else
+        {
+          if ($skip_empty) continue; // next field
+          $query.= $separator.$key.' = NULL';
+        }
+        $is_first = false;
+      }
+      if (!$is_first)
+      {// only if one field at least updated
+        $query.= '
+  WHERE ';
+        $is_first = true;
+        foreach ($dbfields['primary'] as $key)
+        {
+          if (!$is_first)
+          {
+            $query.= ' AND ';
+          }
+          if ( isset($data[$key]) )
+          {
+            $query.= $key.' = \''.$data[$key].'\'';
+          }
+          else
+          {
+            $query.= $key.' IS NULL';
+          }
+          $is_first = false;
+        }
+        mysql_query($query);
+      }
+    } // foreach update
+  } // if count<X
+  else
+  {
+    // creation of the temporary table
+    $query = '
+SHOW FULL COLUMNS FROM '.$tablename;
+    $result = mysql_query($query);
+    $columns = array();
+    $all_fields = array_merge($dbfields['primary'], $dbfields['update']);
+    
+    while ($row = mysql_fetch_assoc($result))
+    {
+      if (in_array($row['Field'], $all_fields))
+      {
+        $column = $row['Field'];
+        $column.= ' '.$row['Type'];
+
+        $nullable = true;
+        if (!isset($row['Null']) or $row['Null'] == '' or $row['Null']=='NO')
+        {
+          $column.= ' NOT NULL';
+          $nullable = false;
+        }
+        if (isset($row['Default']))
+        {
+          $column.= " default '".$row['Default']."'";
+        }
+        elseif ($nullable)
+        {
+          $column.= " default NULL";
+        }
+        if (isset($row['Collation']) and $row['Collation'] != 'NULL')
+        {
+          $column.= " collate '".$row['Collation']."'";
+        }
+        array_push($columns, $column);
+      }
+    }
+
+    $temporary_tablename = $tablename.'_'.micro_seconds();
+
+    // fill temporary table
+    $query = '
+CREATE TABLE '.$temporary_tablename.'
+(
+  '.implode(",\n  ", $columns).',
+  UNIQUE KEY the_key ('.implode(',', $dbfields['primary']).')
+)';
+
+    mysql_query($query);
+    mass_inserts($temporary_tablename, $all_fields, $datas);
+    
+    if ($skip_empty)
+      $func_set = create_function('$s', 'return "t1.$s = IFNULL(t2.$s, t1.$s)";');
+    else
+      $func_set = create_function('$s', 'return "t1.$s = t2.$s";');
+
+    // update of table by joining with temporary table
+    $query = '
+UPDATE '.$tablename.' AS t1, '.$temporary_tablename.' AS t2
+  SET '.
+      implode(
+        "\n    , ",
+        array_map($func_set, $dbfields['update'])
+        ).'
+  WHERE '.
+      implode(
+        "\n    AND ",
+        array_map(
+          create_function('$s', 'return "t1.$s = t2.$s";'),
+          $dbfields['primary']
+          )
+        );
+    mysql_query($query);
+    
+    // delete temporary table
+    $query = '
+DROP TABLE '.$temporary_tablename;
+    mysql_query($query);
+  }
+}
+
+/**
+ * updates one line in a table
+ *
+ * @param string table_name
+ * @param array set_fields
+ * @param array where_fields
+ * @param bool empty values do not overwrite existing ones
+ * @return void
+ */
+function single_update($tablename, $set_fields, $where_fields, $skip_empty=false)
+{
+  if (count($set_fields) == 0)
+  {
+    return;
+  }
+
+  $query = '
+UPDATE '.$tablename.'
+  SET ';
+  $is_first = true;
+  foreach ($set_fields as $key => $value)
+  {
+    $separator = $is_first ? '' : ",\n    ";
+
+    if (isset($value) and $value !== '')
+    {
+      $query.= $separator.$key.' = \''.$value.'\'';
+    }
+    else
+    {
+      if ($skip_empty) continue; // next field
+      $query.= $separator.$key.' = NULL';
+    }
+    $is_first = false;
+  }
+  if (!$is_first)
+  {// only if one field at least updated
+    $query.= '
+  WHERE ';
+    $is_first = true;
+    foreach ($where_fields as $key => $value)
+    {
+      if (!$is_first)
+      {
+        $query.= ' AND ';
+      }
+      if ( isset($value) )
+      {
+        $query.= $key.' = \''.$value.'\'';
+      }
+      else
+      {
+        $query.= $key.' IS NULL';
+      }
+      $is_first = false;
+    }
+    mysql_query($query);
+  }
+}
+
+
+/**
+ * inserts multiple lines in a table
+ *
+ * @param string table_name
+ * @param array dbfields
+ * @param array inserts
+ * @return void
+ */
+function mass_inserts($table_name, $dbfields, $datas, $options=array())
+{
+  $ignore = '';
+  if (isset($options['ignore']) and $options['ignore'])
+  {
+    $ignore = 'IGNORE';
+  }
+  
+  if (count($datas) != 0)
+  {
+    $first = true;
+
+    $query = 'SHOW VARIABLES LIKE \'max_allowed_packet\'';
+    list(, $packet_size) = mysql_fetch_row(mysql_query($query));
+    $packet_size = $packet_size - 2000; // The last list of values MUST not exceed 2000 character*/
+    $query = '';
+
+    foreach ($datas as $insert)
+    {
+      if (strlen($query) >= $packet_size)
+      {
+        mysql_query($query);
+        $first = true;
+      }
+
+      if ($first)
+      {
+        $query = '
+INSERT '.$ignore.' INTO '.$table_name.'
+  ('.implode(',', $dbfields).')
+  VALUES';
+        $first = false;
+      }
+      else
+      {
+        $query .= '
+  , ';
+      }
+
+      $query .= '(';
+      foreach ($dbfields as $field_id => $dbfield)
+      {
+        if ($field_id > 0)
+        {
+          $query .= ',';
+        }
+
+        if (!isset($insert[$dbfield]) or $insert[$dbfield] === '')
+        {
+          $query .= 'NULL';
+        }
+        else
+        {
+          $query .= "'".$insert[$dbfield]."'";
+        }
+      }
+      $query .= ')';
+    }
+    mysql_query($query);
+  }
+}
+
+/**
+ * inserts one line in a table
+ *
+ * @param string table_name
+ * @param array dbfields
+ * @param array insert
+ * @return void
+ */
+function single_insert($table_name, $data, $options=array())
+{
+  $ignore = '';
+  if (isset($options['ignore']) and $options['ignore'])
+  {
+    $ignore = 'IGNORE';
+  }
+  
+  if (count($data) != 0)
+  {
+    $query = '
+INSERT '.$ignore.' INTO '.$table_name.'
+  ('.implode(',', array_keys($data)).')
+  VALUES';
+
+    $query .= '(';
+    $is_first = true;
+    foreach ($data as $key => $value)
+    {
+      if (!$is_first)
+      {
+        $query .= ',';
+      }
+      else
+      {
+        $is_first = false;
+      }
+      
+      if ($value === '')
+      {
+        $query .= 'NULL';
+      }
+      else
+      {
+        $query .= "'".$value."'";
+      }
+    }
+    $query .= ')';
+    
+    mysql_query($query);
+  }
+}
+
 ?>

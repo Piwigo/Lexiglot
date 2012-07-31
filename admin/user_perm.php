@@ -36,38 +36,82 @@ if (isset($_POST['save_perm']))
   $sets = array();
   
   // projects
+  $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.'
+  WHERE
+    user_id = '.$_POST['user_id'].'
+    AND type = "translate"
+;';
+  mysql_query($query);
+  
+  $inserts = array();
   if (!empty($_POST['available_projects']))
   {
-    ksort($_POST['available_projects']);
-    $projects = create_permissions_array(array_keys($_POST['available_projects']));
-  }
-  else
-  {
-    $projects = array();
+    foreach ($_POST['available_projects'] as $p)
+    {
+      array_push($inserts, array('user_id'=>$_POST['user_id'], 'project'=>$p, 'type'=>'translate'));
+    }
   }
   
-  // only admin can change language and permissions
+  mass_inserts(
+    USER_PROJECTS_TABLE,
+    array('user_id', 'project', 'type'),
+    $inserts
+    );
+  
+  // only admin can change languages and manage permissions
   if (is_admin())
   {
     // languages
+    $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE
+    user_id = '.$_POST['user_id'].'
+    AND type = "translate"
+;';
+    mysql_query($query);
+    
+    $inserts = array();
+    
     if (!empty($_POST['available_languages']))
     {
-      ksort($_POST['available_languages']);
-      $languages = create_permissions_array(array_keys($_POST['available_languages']));
+      foreach ($_POST['available_languages'] as $l)
+      {
+        array_push($inserts, array('user_id'=>$_POST['user_id'], 'language'=>$l, 'type'=>'translate'));
+      }
     }
-    else
-    {
-      $languages = array();
-    }
+    
+    mass_inserts(
+      USER_LANGUAGES_TABLE,
+      array('user_id', 'language', 'type'),
+      $inserts
+      );
 
     // manager permissions
     if (get_user_status($_POST['user_id']) == 'manager')
     {
+      $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.'
+  WHERE
+    user_id = '.$_POST['user_id'].'
+    AND type = "manage"
+;';
+      mysql_query($query);
+      
+      $inserts = array();
       if (!empty($_POST['manage_projects']))
       {
-        $manage_projects = create_permissions_array(array_keys($_POST['manage_projects']), 1);
-        $projects = array_merge($projects, $manage_projects);
+        foreach ($_POST['manage_projects'] as $p)
+        {
+          array_push($inserts, array('user_id'=>$_POST['user_id'], 'project'=>$p, 'type'=>'manage'));
+        }
       }
+      
+      mass_inserts(
+        USER_PROJECTS_TABLE,
+        array('user_id', 'project', 'type'),
+        $inserts
+        );
       
       foreach (array_keys(unserialize($conf['default_manager_perms'])) as $perm)
       {
@@ -79,32 +123,45 @@ if (isset($_POST['save_perm']))
     // translator main language
     if (get_user_status($_POST['user_id']) != 'guest')
     {
-      if ( !empty($_POST['main_language']) and array_key_exists($_POST['main_language'], $languages) )
+      $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE
+    user_id = '.$_POST['user_id'].'
+    AND type = "main"
+;';
+      mysql_query($query);
+      
+      if ( !empty($_POST['main_language']) and in_array($_POST['main_language'], @$_POST['available_languages']) )
       {
-        $languages[ $_POST['main_language'] ] = 1;
+        $main = $_POST['main_language'];
       }
-      else if (count($languages) == 1)
+      else if (count(@$_POST['available_languages']) == 1)
       {
-        $temp_lang = array_keys($languages);
-        $languages[ $temp_lang[0] ] = 1;
+        $main = $_POST['available_languages'][0];
+      }
+      
+      if (isset($main))
+      {
+        single_insert(
+          USER_LANGUAGES_TABLE,
+          array('user_id'=>$_POST['user_id'], 'language'=>$main, 'type'=>'main'),
+          $inserts
+          );
       }
     }
-    
-    $languages = implode_array($languages);
-    array_push($sets, 'languages = '.(!empty($languages) ? '"'.$languages.'"' : 'NULL').'');
   }
   
-  $projects = implode_array($projects);
-  array_push($sets, 'projects = '.(!empty($projects) ? '"'.$projects.'"' : 'NULL').'');
-  
-  $query = '
+  if (count($sets))
+  {
+    $query = '
 UPDATE '.USER_INFOS_TABLE.'
   SET
     '.implode(",    \n", $sets).'
   WHERE
     user_id = '.$_POST['user_id'].'
 ;';
-  mysql_query($query);
+    mysql_query($query);
+  }
   
   redirect(get_url_string(array('page'=>'users','from_id'=>$_POST['user_id']), true));
 }
@@ -228,7 +285,7 @@ echo '
       {
         echo '
         <li id="list_'.$project.'" class="project" '.(!in_array($project,$movable_projects) ? 'style="display:none;"' : null).' title="'.get_project_name($project).'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects['.$project.']" value="1" '.(in_array($project,$local_user['manage_projects'])?'checked="checked"':null).'>' : null).'
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects[]" value="'.$project.'" '.(in_array($project,$local_user['manage_projects'])?'checked="checked"':null).'>' : null).'
           <span style="width:'.$name_size_1.'px;">'.get_project_name($project).'</span>
           '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$project],'dark').';">'.number_format($stats[$project]*100, 0).'%</b>' : null).'
           '.($use_project_rank ? '<i>'.get_project_rank($project).'</i>' : null).'
@@ -247,7 +304,7 @@ echo '
       {
         echo '
         <li id="list_'.$row['id'].'" class="project" '.(!in_array($row['id'],$movable_projects) ? 'style="display:none;"' : null).' title="'.$row['name'].'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects['.$row['id'].']" value="1" style="display:none;">' : null).'
+          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects[]" value="'.$row['id'].'" style="display:none;">' : null).'
           <span style="width:'.$name_size_2.'px;">'.$row['name'].'</span>
           '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
           '.($use_project_rank ? '<i>'.$row['rank'].'</i>' : null).'
@@ -293,14 +350,18 @@ if (is_admin())
     $(this).fadeOut("fast", function() {
       $(this).children("input").hide();
       $(this).children("span").css("width", $(this).children("span").width() + 15);
-      $(this).appendTo("#unavailable_languages").fadeIn("fast");
+      $(this).appendTo("#unavailable_languages").fadeIn("fast", function(){
+        update_height("languages");
+      });
     });
   });
   $("#unavailable_languages").delegate("li.language", "click", function() {
     $(this).fadeOut("fast", function() {
       $(this).children("input").show();
       $(this).children("span").css("width", $(this).children("span").width() - 15);
-      $(this).appendTo("#available_languages").fadeIn("fast");
+      $(this).appendTo("#available_languages").fadeIn("fast", function(){
+        update_height("languages");
+      });
     });
   });
   
@@ -340,14 +401,18 @@ $("#available_projects").delegate("li.project", "click", function() {
   $(this).fadeOut("fast", function() {
     $(this).children("input").hide();
     '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() + 15);' : null ).'
-    $(this).appendTo("#unavailable_projects").fadeIn("fast");
+    $(this).appendTo("#unavailable_projects").fadeIn("fast", function(){
+      update_height("projects");
+    });
   });
 });
 $("#unavailable_projects").delegate("li.project", "click", function() {
   $(this).fadeOut("fast", function() {
     $(this).children("input").show();
     '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() - 15);' : null ).'
-    $(this).appendTo("#available_projects").fadeIn("fast");
+    $(this).appendTo("#available_projects").fadeIn("fast", function(){
+      update_height("projects");
+    }); 
   });
 });
 
@@ -385,10 +450,10 @@ $page['header'].= '
 <script type="text/javascript">
   function save_datas(form) {    
     $("#available_languages > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_languages["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
+      $(form).append("<input type=\"hidden\" name=\"available_languages[]\" value=\""+ $(this).attr("id").replace("list_","") +"\">");
     });
     $("#available_projects > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_projects["+ $(this).attr("id").replace("list_","") +"]\" value=\"1\">");
+      $(form).append("<input type=\"hidden\" name=\"available_projects[]\" value=\""+ $(this).attr("id").replace("list_","") +"\">");
     });
   }
   function update_height(row) {

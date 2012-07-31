@@ -115,7 +115,7 @@ SELECT
     r.last_edit
   FROM '.ROWS_TABLE.' AS r
     INNER JOIN '.USERS_TABLE.' AS u
-      ON u.id = r.user_id
+    ON u.id = r.user_id
   WHERE
     r.row_name = "'.mres($key).'"
     AND r.project = "'.mres($_POST['project']).'"

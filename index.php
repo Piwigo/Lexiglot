@@ -43,7 +43,7 @@ SELECT
     IF(l.category_id = 0, "[999]zzz", c.name) as category_name
   FROM '.LANGUAGES_TABLE.' AS l
     LEFT JOIN '.CATEGORIES_TABLE.' AS c
-      ON c.id = l.category_id
+    ON c.id = l.category_id
   ORDER BY
     category_name ASC,
     l.rank DESC,

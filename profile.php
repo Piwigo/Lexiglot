@@ -122,16 +122,35 @@ if (isset($_POST['save_profile']))
   }
   
   // save my languages
+  $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE
+    user_id = '.$user['id'].'
+    AND type = "my"
+;';
+  mysql_query($query);
+  
   if (!empty($_POST['my_languages']))
   {
-    array_push($sets_infos, 'my_languages = "'.mres(implode(',', $_POST['my_languages'])).'"');
+    $inserts = array();
+    foreach ($_POST['my_languages'] as $l)
+    {
+      array_push($inserts, array('user_id'=>$user['id'], 'language'=>$l, 'type'=>'my'));
+    }
+    
+    mass_inserts(
+      USER_LANGUAGES_TABLE,
+      array('user_id','language','type'),
+      $inserts
+      );
+    
     $user['my_languages'] = $_POST['my_languages'];
   }
   else
   {
-    array_push($sets_infos, 'my_languages = NULL');
     $user['my_languages'] = array();
   }
+  
   // save number of rows
   if ( empty($_POST['nb_rows']) or !preg_match('#^[0-9]+$#', $_POST['nb_rows']) )
   {

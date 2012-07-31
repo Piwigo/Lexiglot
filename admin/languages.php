@@ -36,32 +36,11 @@ if (isset($_GET['delete_language']))
   else
   {
     // delete lang from user infos
-    $users = get_users_list(
-      array('languages LIKE "%'.$_GET['delete_language'].'%" OR my_languages LIKE "%'.$_GET['delete_language'].'%"'), 
-      'languages, my_languages'
-      );
-    
-    foreach ($users as $u)
-    {
-      unset($u['languages'][ array_search($_GET['delete_language'], $u['languages']) ]);
-      unset($u['my_languages'][ array_search($_GET['delete_language'], $u['my_languages']) ]);
-      $u['languages'] = create_permissions_array($u['languages']);
-      
-      if      ($u['main_language'] == $_GET['delete_language'])   $u['main_language'] = null;
-      else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
-      
-      $u['languages'] = implode_array($u['languages']);
-      $u['my_languages'] = implode(',', $u['my_languages']);
-      
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET
-    languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').',
-    my_languages = '.(!empty($u['my_languages']) ? '"'.$u['my_languages'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+    $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE language = "'.$_GET['delete_language'].'"
 ;';
-      mysql_query($query);
-    }
+    mysql_query($query);
     
     // delete flag
     @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_language'] ]['flag']);
@@ -287,17 +266,27 @@ INSERT INTO '.LANGUAGES_TABLE.'(
 ;';
     mysql_query($query);
     
-    // add lang on user infos
+    // add project on user infos
     $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET languages = IF(
-    languages="",
-    "'.$_POST['id'].',0",
-    CONCAT(languages, ";'.$_POST['id'].',0")
-    )
-  WHERE status IN ( "admin"'.($conf['language_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
+SELECT user_id 
+  FROM '.USER_INFOS_TABLE.' 
+  WHERE status IN("admin"'.($conf['project_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).')
 ;';
-    mysql_query($query);
+    $user_ids = array_from_query($query, 'user_id');
+    
+    $inserts = array();
+    foreach ($user_ids as $uid)
+    {
+      array_push($inserts, array('user_id'=>$uid, 'language'=>$_POST['id'], 'type'=>'translate'));
+    }
+    
+    mass_inserts(
+      USER_LANGUAGES_TABLE,
+      array('user_id', 'language', 'type'),
+      $inserts,
+      array('ignore'=>true)
+      );
+    
     
     // update languages array
     $conf['all_languages'][ $_POST['id'] ] = array(
@@ -344,8 +333,8 @@ $where_clauses = session_search($search, 'language_search', array('limit','flag'
 // special for 'flag'
 if (get_search_value('flag') != -1)
 {
-  if (get_search_value('flag') == 'with') array_push($where_clauses, 'flag != "" AND flag IS NOT NULL');
-  if (get_search_value('flag') == 'without') array_push($where_clauses, 'flag = "" OR flag IS NULL');
+  if (get_search_value('flag') == 'with') array_push($where_clauses, '(flag != "" AND flag IS NOT NULL)');
+  if (get_search_value('flag') == 'without') array_push($where_clauses, '(flag = "" OR flag IS NULL)');
 }
 
 set_session_var('language_search', serialize($search));
@@ -389,17 +378,19 @@ $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highligh
 $query = '
 SELECT 
     l.*,
-    COUNT(u.user_id) as total_users
+    COUNT(DISTINCT(u.user_id)) as total_users
   FROM '.LANGUAGES_TABLE.' as l
-    INNER JOIN '.USER_INFOS_TABLE.' as u
-      ON u.languages LIKE CONCAT("%",l.id,"%") AND u.status != "guest"
+    LEFT JOIN '.USER_LANGUAGES_TABLE.' as u
+    ON u.language = l.id
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY l.id
-  ORDER BY l.rank DESC, l.id ASC
+  ORDER BY 
+    l.rank DESC, 
+    l.id ASC
   LIMIT '.$paging['Entries'].'
   OFFSET '.$paging['Start'].'
-;';
+;';echo $query;
 $_LANGS = hash_from_query($query, 'id');
 
 $query = '
@@ -656,6 +647,15 @@ $("a.expand").click(function() {
   
   return false;
 });
+
+/* linked table rows follow hover state */
+$("tr.main").hover(
+  function() { $(this).next("tr.details").addClass("hover"); },
+  function() { $(this).next("tr.details").removeClass("hover"); }
+);
+// this is a live version of above trigger, as "tr.details" are created on the fly
+$(document).on("mouseenter", "tr.details", function() { $(this).prev("tr.main").addClass("hover"); });
+$(document).on("mouseleave", "tr.details", function() { $(this).prev("tr.main").removeClass("hover"); });
 
 /* token input for categories */
 var json_categories = ['.$categories_json.'];

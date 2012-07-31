@@ -80,7 +80,7 @@ UPDATE '.ROWS_TABLE.'
 // default search
 $search = array(
   'user_id' =>  array('=', -1),
-  'language' =>     array('=', -1),
+  'language' => array('=', -1),
   'project' =>  array('=', -1),
   'status' =>   array('=', -1),
   'limit' =>    array('=', 50),
@@ -117,7 +117,7 @@ SELECT
     u.'.$conf['user_fields']['username'].' as username
   FROM '.ROWS_TABLE.' as r
     INNER JOIN '.USERS_TABLE.' as u
-      ON r.user_id = u.'.$conf['user_fields']['id'].'
+    ON r.user_id = u.'.$conf['user_fields']['id'].'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   ORDER BY r.last_edit DESC

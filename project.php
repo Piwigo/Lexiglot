@@ -114,7 +114,8 @@ foreach ($conf['all_languages'] as $row)
   }
   if (!in_array($row['id'], $user['languages']))
   {
-    unset($language_available[ $row['id'] ], $language_translated[ $row['id'] ]);
+    unset($language_available[ $row['id'] ]);
+    unset($language_translated[ $row['id'] ]);
   }
 }
 

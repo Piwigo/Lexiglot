@@ -72,6 +72,8 @@ UPDATE '.USER_INFOS_TABLE.'
 ;';
   mysql_query($query);
   
+  unset($local_user);
+  
   array_push($page['infos'], 'Status saved.');
   $highlight_user = $_POST['save_status'];
 }
@@ -134,8 +136,8 @@ if ( isset($_POST['add_external_user']) and is_admin() )
 // default search
 $search = array(
   'username' =>  array('%', ''),
-  'languages' => array('%', -1),
-  'projects' =>  array('%', -1),
+  'language' => array('%', -1),
+  'project' =>  array('%', -1),
   'status' =>    array('=', -1),
   'limit' =>     array('=', 20),
   );
@@ -150,13 +152,13 @@ if (isset($_GET['user_id']))
 if (isset($_GET['language_id']))
 {
   $_POST['erase_search'] = true;
-  $search['languages'] = array('%', $_GET['language_id'], -1);
+  $search['language'] = array('%', $_GET['language_id'], -1);
   unset($_GET['language_id']);
 }
 if (isset($_GET['project_id']))
 {
   $_POST['erase_search'] = true;
-  $search['projects'] = array('%', $_GET['project_id'], -1);
+  $search['project'] = array('%', $_GET['project_id'], -1);
   unset($_GET['project_id']);
 }
 if (isset($_GET['status']))
@@ -166,34 +168,34 @@ if (isset($_GET['status']))
   unset($_GET['status']);
 }
 
-$where_clauses = session_search($search, 'user_search', array('limit','projects','languages'));
+$where_clauses = session_search($search, 'user_search', array('limit','project','language'));
 
 // special for 'projects' and 'languages'
-if (get_search_value('projects') != -1) 
+if (get_search_value('project') != -1) 
 {
-  if (get_search_value('projects') == 'n/a/m') 
+  if (get_search_value('project') == 'n/a/m') 
   {
     foreach ($user['manage_projects'] as $project)
-      array_push($where_clauses, 'projects NOT LIKE "%'.$project.'%"');
+      array_push($where_clauses, 'p.project != "'.$project.'"');
   }
-  else if (get_search_value('projects') == 'n/a') 
+  else if (get_search_value('project') == 'n/a') 
   {
-    array_push($where_clauses, '(projects IS NULL OR projects = "")');
+    array_push($where_clauses, 'p.project IS NULL');
   }
   else
   {
-    array_push($where_clauses, 'projects LIKE "%'.get_search_value('projects').'%"');
+    array_push($where_clauses, 'p.project = "'.get_search_value('project').'"');
   }
 }
-if (get_search_value('languages') != -1) 
+if (get_search_value('language') != -1) 
 {
-  if (get_search_value('languages') == 'n/a') 
+  if (get_search_value('language') == 'n/a') 
   {
-    array_push($where_clauses, '(languages IS NULL OR languages = "")');
+    array_push($where_clauses, 'l.language IS NULL');
   }
   else
   {
-    array_push($where_clauses, 'languages LIKE "%'.get_search_value('languages').'%"');
+    array_push($where_clauses, 'l.language = "'.get_search_value('language').'"');
   }
 }
 
@@ -202,11 +204,26 @@ set_session_var('user_search', serialize($search));
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
+$join = null;
+if (array_pos('l.language', $where_clauses) !== false)
+{
+  $join.= '
+  LEFT JOIN '.USER_LANGUAGES_TABLE.' AS l
+  ON u.'.$conf['user_fields']['id'].' = l.user_id';
+}
+if (array_pos('p.project', $where_clauses) !== false)
+{
+  $join.= '
+  LEFT JOIN '.USER_PROJECTS_TABLE.' AS p
+  ON u.'.$conf['user_fields']['id'].' = p.user_id';
+}
+  
 $query = '
 SELECT COUNT(1)
   FROM '.USER_INFOS_TABLE.' AS i
     INNER JOIN '.USERS_TABLE.' AS u
-      ON u.'.$conf['user_fields']['id'].' = i.user_id
+    ON u.'.$conf['user_fields']['id'].' = i.user_id
+    '.$join.'
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
@@ -223,7 +240,8 @@ SELECT x.pos
         @rownum := @rownum+1 AS pos
       FROM '.USER_INFOS_TABLE.' AS i
         INNER JOIN '.USERS_TABLE.' AS u
-          ON u.'.$conf['user_fields']['id'].' = i.user_id
+        ON u.'.$conf['user_fields']['id'].' = i.user_id
+        '.$join.'
         JOIN (SELECT @rownum := 0) AS r
       WHERE 
         '.implode("\n    AND ", $where_clauses).'
@@ -239,7 +257,7 @@ $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highligh
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
-$_USERS = get_users_list($where_clauses, 'i.*', 'AND', $paging['Start'], $paging['Entries']);
+$_USERS = get_users_list($where_clauses, array(), 'AND', $paging['Start'], $paging['Entries']);
 
 
 // +-----------------------------------------------------------------------+
@@ -332,26 +350,26 @@ echo '
         </select>
       </td>
       <td>
-        <select name="languages">
-          <option value="-1" '.(-1==get_search_value('languages')?'selected="selected"':null).'>-------</option>
-          <option value="n/a" '.('n/a'==get_search_value('languages')?'selected="selected"':null).'>-- none assigned --</option>';
+        <select name="language">
+          <option value="-1" '.(-1==get_search_value('language')?'selected="selected"':null).'>-------</option>
+          <option value="n/a" '.('n/a'==get_search_value('language')?'selected="selected"':null).'>-- none assigned --</option>';
         foreach ($conf['all_languages'] as $row)
         {
           echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('languages')?'selected="selected"':null).'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('language')?'selected="selected"':null).'>'.$row['name'].'</option>';
         }
         echo '
         </select>
       </td>
       <td>
-        <select name="projects">
-          <option value="-1" '.(-1==get_search_value('projects')?'selected="selected"':null).'>-------</option>
-          <option value="n/a" '.('n/a'==get_search_value('projects')?'selected="selected"':null).'>-- none assigned --</option>
-          '.(is_manager() ? '<option value="n/a/m" '.('n/a/m'==get_search_value('projects')?'selected="selected"':null).'>-- none of mine --</option>' : null);
+        <select name="project">
+          <option value="-1" '.(-1==get_search_value('project')?'selected="selected"':null).'>-------</option>
+          <option value="n/a" '.('n/a'==get_search_value('project')?'selected="selected"':null).'>-- none assigned --</option>
+          '.(is_manager() ? '<option value="n/a/m" '.('n/a/m'==get_search_value('project')?'selected="selected"':null).'>-- none of mine --</option>' : null);
         foreach ($displayed_projects as $row)
         {
           echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('projects')?'selected="selected"':null).'>'.$row['name'].'</option>';
+          <option value="'.$row['id'].'" '.($row['id']==get_search_value('project')?'selected="selected"':null).'>'.$row['name'].'</option>';
         }
         echo '
         </select>
@@ -481,7 +499,7 @@ echo '
     <option disabled="disabled">------------------</option>
     <option value="send_email">Send email</option>
     '.(is_admin() ? '<option value="delete_users">Delete users</option>
-    <option value="change_status">Change status</option>
+    <!--<option value="change_status">Change status</option>-->
     <option value="add_language">Assign a language</option>
     <option value="remove_language">Unassign a language</option>' : null).'
     <option value="add_project">Assign a project</option>

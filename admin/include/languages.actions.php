@@ -35,41 +35,11 @@ switch ($_POST['selectAction'])
     else
     {
       // delete lang from user infos
-      $where_clauses = array('1=1');
-      foreach ($selection as $l)
-      {
-        array_push($where_clauses, 'languages LIKE "%'.$l.'%" OR my_languages LIKE "%'.$l.'%"');
-      }
-      $users = get_users_list(
-        $where_clauses, 
-        'languages, my_languages',
-        'OR'
-        );
-      
-      foreach ($users as $u)
-      {
-        foreach ($selection as $l)
-        {
-          unset($u['languages'][ array_search($l, $u['languages']) ]);
-          unset($u['my_languages'][ array_search($l, $u['my_languages']) ]);
-          if ($u['main_language'] == $l) $u['main_language'] = null;
-        }
-        
-        $u['languages'] = create_permissions_array($u['languages']);
-        if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
-        
-        $u['languages'] = implode_array($u['languages']);
-        $u['my_languages'] = implode(',', $u['my_languages']);
-        
-        $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET
-    languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').',
-    my_languages = '.(!empty($u['my_languages']) ? '"'.$u['my_languages'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+      $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE language IN("'.implode('","', $selection).'")
 ;';
-        mysql_query($query);
-      }
+      mysql_query($query);
   
       // delete flags
       foreach ($selection as $language)

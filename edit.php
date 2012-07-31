@@ -140,7 +140,7 @@ SELECT
     i.nb_rows
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
-      ON i.user_id = u.'.$conf['user_fields']['id'].'
+    ON i.user_id = u.'.$conf['user_fields']['id'].'
   WHERE u.'.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
 ;';
     $to = mysql_fetch_assoc(mysql_query($query));
@@ -292,25 +292,23 @@ include(PATH.'include/edit.'.$page['mode'].'.php');
 if ($is_translator)
 {
   // search users that can receive notifications (status, persmissions, preferences)
-  $where_clauses = array(
-     '( 
-        i.status = "admin"
-        OR ( 
-          i.projects LIKE "%'.$page['project'].'%" 
-          AND ( 
-            i.languages LIKE "%'.$page['language'].'%" 
-            OR (
-              i.status = "manager" 
-              AND i.projects LIKE "%'.$page['project'].',1%"
-            )
-          )
-        )
-      )',
+  $where_clauses = array('( 
+    i.status = "admin"
+    OR ( 
+      p.project = "'.$page['project'].'" 
+      AND ( 
+        ( l.language = "'.$page['language'].'"
+        AND l.type = "translate" )
+        OR (
+          ( p.project = "'.$page['project'].'"
+          AND p.type = "manage" )
+          AND i.status = "manager"
+      ))))',
     'i.status != "guest"',
     );
   if (!is_admin()) array_push($where_clauses, 'i.email_privacy != "private"');
   
-  $users = get_users_list($where_clauses, 'i.status, i.nb_rows, i.projects');
+  $users = get_users_list($where_clauses, array('i.nb_rows', 'projects'));
 
   $page['begin'].= '
 <div id="dialog-form" title="Send a notification by mail" style="display:none;">

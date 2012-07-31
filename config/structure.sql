@@ -160,11 +160,34 @@ CREATE TABLE `lexiglot_user_infos` (
   `user_id` smallint(5) NOT NULL,
   `registration_date` datetime NOT NULL,
   `status` varchar(16) NOT NULL,
-  `languages` text DEFAULT '',
-  `projects` text DEFAULT '',
-  `my_languages` text DEFAULT '',
   `manage_perms` text DEFAULT '',
   `nb_rows` smallint(5) NOT NULL DEFAULT '15',
   `email_privacy` enum('public','hidden','private') NOT NULL DEFAULT 'hidden',
   PRIMARY KEY (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Structure of the table `lexiglot_user_languages`
+--
+
+CREATE TABLE `lexiglot_user_languages` (
+  `user_id` smallint(5) NOT NULL,
+  `language` varchar(32) NOT NULL,
+  `type` enum("translate","main","my") DEFAULT "translate",
+  UNIQUE KEY `UNIQUE` (`user_id`, `language`, `type`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Structure of the table `lexiglot_user_projects`
+--
+
+CREATE TABLE `lexiglot_user_projects` (
+  `user_id` smallint(5) NOT NULL,
+  `project` varchar(32) NOT NULL,
+  `type` enum("translate","manage") DEFAULT "translate",
+  UNIQUE KEY `UNIQUE` (`user_id`, `project`, `type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

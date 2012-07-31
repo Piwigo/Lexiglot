@@ -35,36 +35,11 @@ switch ($_POST['selectAction'])
     else
     {
       // delete projects from user infos
-      $where_clauses = array('1=1');
-      foreach ($selection as $s)
-      {
-        array_push($where_clauses, 'projects LIKE "%'.$s.'%"');
-      }
-      $users = get_users_list(
-        $where_clauses, 
-        'projects',
-        'OR'
-        );
-      
-      foreach ($users as $u)
-      {
-        foreach ($selection as $s)
-        {
-          unset($u['projects'][ array_search($s, $u['projects']) ]);
-          unset($u['manage_projects'][ array_search($s, $u['manage_projects']) ]);
-        }
-        
-        $u['projects'] = create_permissions_array($u['projects']);
-        $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
-        $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
-        
-        $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+      $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.'
+  WHERE project IN("'.implode('","', $selection).'")
 ;';
-        mysql_query($query);
-      }
+      mysql_query($query);
       
       // delete directories
       foreach ($selection as $project)

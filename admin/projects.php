@@ -36,26 +36,11 @@ if ( isset($_GET['delete_project']) and ( is_admin() or (is_manager($_GET['delet
   else
   {
     // delete projects from user infos
-    $users = get_users_list(
-      array('projects LIKE "%'.$_GET['delete_project'].'%"'), 
-      'projects'
-      );
-    
-    foreach ($users as $u)
-    {
-      unset($u['projects'][ array_search($_GET['delete_project'], $u['projects']) ]);
-      unset($u['manage_projects'][ array_search($_GET['delete_project'], $u['manage_projects']) ]);
-      $u['projects'] = create_permissions_array($u['projects']);
-      $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
-      $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
-      
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+    $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.'
+  WHERE project = "'.$_GET['delete_project'].'"
 ;';
-      mysql_query($query);
-    }
+    mysql_query($query);
     
     // delete directory
     @rrmdir($conf['local_dir'].$_GET['delete_project']);  
@@ -315,17 +300,37 @@ INSERT INTO '.PROJECTS_TABLE.'(
 ;';
     mysql_query($query);
     
+    
     // add project on user infos
     $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET projects = IF(
-    projects="",
-    "'.$_POST['id'].','.(is_manager()?'1':'0').'",
-    CONCAT(projects, ";'.$_POST['id'].','.(is_manager()?'1':'0').'")
-    )
-  WHERE status IN( "admin"'.($conf['project_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).' )
+SELECT user_id 
+  FROM '.USER_INFOS_TABLE.' 
+  WHERE status IN("admin"'.($conf['project_default_user'] == 'all' ? ', "translator", "guest", "manager"' : null).')
 ;';
-    mysql_query($query);
+    $user_ids = array_from_query($query, 'user_id');
+    
+    $inserts = array();
+    foreach ($user_ids as $uid)
+    {
+      array_push($inserts, array('user_id'=>$uid, 'project'=>$_POST['id'], 'type'=>'translate'));
+    }
+    
+    mass_inserts(
+      USER_PROJECTS_TABLE,
+      array('user_id', 'project', 'type'),
+      $inserts,
+      array('ignore'=>true)
+      );
+      
+    if (is_manager())
+    {
+      single_insert(
+        USER_PROJECTS_TABLE,
+        array('user_id'=>$user['id'], 'project'=>$_POST['id'], 'type'=>'manage'),
+        array('ignore'=>true)
+        );
+    }
+    
     
     // update projects array
     $conf['all_projects'][ $_POST['id'] ] = array(
@@ -415,17 +420,19 @@ $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highligh
 $query = '
 SELECT 
     s.*,
-    COUNT(u.user_id) as total_users
+    COUNT(DISTINCT(u.user_id)) as total_users
   FROM '.PROJECTS_TABLE.' as s
-    INNER JOIN '.USER_INFOS_TABLE.' as u
-      ON u.projects LIKE CONCAT("%",s.id,"%") AND u.status != "guest"
+    LEFT JOIN '.USER_PROJECTS_TABLE.' as u
+    ON u.project = s.id
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   GROUP BY s.id
-  ORDER BY s.rank DESC, s.id ASC
+  ORDER BY 
+    s.rank DESC, 
+    s.id ASC
   LIMIT '.$paging['Entries'].'
   OFFSET '.$paging['Start'].'
-;'; 
+;';
 $_DIRS = hash_from_query($query, 'id');
 
 $query = '

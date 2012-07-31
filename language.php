@@ -115,7 +115,8 @@ foreach ($conf['all_projects'] as $row)
   }
   if (!in_array($row['id'], $user['projects']))
   {
-    unset($project_available[ $row['id'] ], $project_translated[ $row['id'] ]);
+    unset($project_available[ $row['id'] ]);
+    unset($project_translated[ $row['id'] ]);
   }
 }
 

@@ -224,15 +224,28 @@ define('DB_USER',  '".$_POST['dbuser']."');
 define('DB_PWD',   '".$_POST['dbpwd']."');
 define('DB_PREFIX','".$_POST['dbprefix']."');
 
-define('ROWS_TABLE',        DB_PREFIX.'rows');
-define('USERS_TABLE',       DB_PREFIX.'users');
-define('USER_INFOS_TABLE',  DB_PREFIX.'user_infos');
-define('PROJECTS_TABLE',    DB_PREFIX.'projects');
-define('STATS_TABLE',       DB_PREFIX.'stats');
-define('LANGUAGES_TABLE',   DB_PREFIX.'languages');
-define('CONFIG_TABLE',      DB_PREFIX.'config');
-define('CATEGORIES_TABLE',  DB_PREFIX.'categories');
-define('MAIL_HISTORY_TABLE',DB_PREFIX.'mail_history');
+define('ROWS_TABLE', 
+  DB_PREFIX.'rows');
+define('USERS_TABLE', 
+  DB_PREFIX.'users');
+define('USER_INFOS_TABLE', 
+  DB_PREFIX.'user_infos');
+define('USER_LANGUAGES_TABLE', 
+  DB_PREFIX.'user_languages');
+define('USER_PROJECTS_TABLE', 
+  DB_PREFIX.'user_projects');
+define('PROJECTS_TABLE', 
+  DB_PREFIX.'projects');
+define('STATS_TABLE', 
+  DB_PREFIX.'stats');
+define('LANGUAGES_TABLE', 
+  DB_PREFIX.'languages');
+define('CONFIG_TABLE', 
+  DB_PREFIX.'config');
+define('CATEGORIES_TABLE', 
+  DB_PREFIX.'categories');
+define('MAIL_HISTORY_TABLE', 
+  DB_PREFIX.'mail_history');
 
 define('SALT_KEY', '".$_POST['salt_key']."');
 

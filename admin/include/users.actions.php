@@ -25,12 +25,15 @@ $selection = $_POST['select'];
 
 // to prevent some queries to modify admins and current user properties
 $query = 'SELECT user_id FROM '.USER_INFOS_TABLE.' WHERE status = "admin"';
-$forbid_ids = array_from_query($query, 'user_id');
-array_push($forbid_ids, $user['id']);
+$admin_ids = array_from_query($query, 'user_id');
+$query = 'SELECT user_id FROM '.USER_INFOS_TABLE.' WHERE status = "visitor"';
+$visitor_ids = array_from_query($query, 'user_id');
+if (empty($visitor_ids)) $visitor_ids = array(0);
+array_push($admin_ids, $user['id']);
 
 switch ($_POST['selectAction'])
 {
-  // DELETE USERS (forbid)
+  // DELETE USERS
   case 'delete_users':
   {
     if (!isset($_POST['confirm_deletion']))
@@ -45,17 +48,35 @@ switch ($_POST['selectAction'])
 DELETE FROM '.USERS_TABLE.' 
   WHERE 
     '.$conf['user_fields']['id'].' IN('.implode(',', $selection).') 
-    AND '.$conf['user_fields']['id'].' NOT IN ('.implode(',', $forbid_ids).')
+    AND '.$conf['user_fields']['id'].' NOT IN ('.implode(',', $admin_ids).')
     AND '.$conf['user_fields']['id'].' != '.$conf['guest_id'].'
 ;';
         mysql_query($query);
       }
       
       $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.' 
+  WHERE 
+    user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
+    AND user_id != '.$conf['guest_id'].'
+;';
+      mysql_query($query);  
+      
+      $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.' 
+  WHERE 
+    user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
+    AND user_id != '.$conf['guest_id'].'
+;';
+      mysql_query($query);
+      
+      $query = '
 DELETE FROM '.USER_INFOS_TABLE.' 
   WHERE 
     user_id IN('.implode(',', $selection).')
-    AND user_id NOT IN ('.implode(',', $forbid_ids).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
       mysql_query($query);
@@ -65,11 +86,11 @@ DELETE FROM '.USER_INFOS_TABLE.'
     break;
   }
   
-  // CHANGE STATUS (forbid)
+  // CHANGE STATUS
   case 'change_status':
   {
     $s = $_POST['batch_status'];
-    if ( $s == '-1' )
+    if ($s == '-1')
     {
       array_push($page['errors'], 'Wrong status !');
     }
@@ -81,7 +102,7 @@ UPDATE '.USER_INFOS_TABLE.'
     status = "'.$s.'"
   WHERE 
     user_id IN('.implode(',', $selection).')
-    AND user_id NOT IN ('.implode(',', $forbid_ids).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
       mysql_query($query);
@@ -101,26 +122,21 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     else if (is_admin())
     {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET 
-    languages = IF( 
-      languages="", 
-      "'.$l.',0", 
-      IF( 
-        languages LIKE("%'.$l.'%"), 
-        languages, 
-        CONCAT(languages, ";'.$l.',0")
-      )
-    )
-  WHERE 
-    user_id IN('.implode(',', $selection).')
-    AND user_id NOT IN ('.implode(',', $forbid_ids).')
-    AND status != "visitor"
-;';
-      mysql_query($query);
+      $inserts = array();
+      foreach ($selection as $user_id)
+      {
+        if (in_array($user_id, array_merge($admin_ids,$visitor_ids))) continue;
+        array_push($inserts, array('user_id'=>$user_id, 'language'=>$l, 'type'=>'translate'));
+      }
       
-      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
+      mass_inserts(
+        USER_LANGUAGES_TABLE,
+        array('user_id', 'language', 'type'),
+        $inserts,
+        array('ignore'=>true)
+        );
+      
+      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; assigned to <b>'.count($inserts).'</b> users.');
     }
     break;
   }
@@ -135,37 +151,17 @@ UPDATE '.USER_INFOS_TABLE.'
     }
     else if (is_admin())
     {
-      $users = get_users_list(
-        array(
-          'languages LIKE "%'.$l.'%"',
-          'user_id IN('.implode(',', $selection).')',
-          'user_id NOT IN ('.implode(',', $forbid_ids).')',
-          'status != "visitor"'
-          ), 
-        'languages'
-        );
-      
-      $i = 0;
-      foreach ($users as $u)
-      {
-        unset($u['languages'][ array_search($l, $u['languages']) ]);
-        $u['languages'] = create_permissions_array($u['languages']);
-        
-        if      ($u['main_language'] == $l)   $u['main_language'] = null;
-        else if ($u['main_language'] != null) $u['languages'][ $u['main_language'] ] = 1;
-        
-        $u['languages'] = implode_array($u['languages']);
-        
-        $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET languages = '.(!empty($u['languages']) ? '"'.$u['languages'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+      $query = '
+DELETE FROM '.USER_LANGUAGES_TABLE.'
+  WHERE
+    language = "'.$l.'"
+    AND user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
+    AND user_id NOT IN ('.implode(',', $visitor_ids).')
 ;';
-        mysql_query($query);
-        $i++;
-      }
+      mysql_query($query);
       
-      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.$i.'</b> users.');
+      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
     }
     break;
   }
@@ -173,33 +169,28 @@ UPDATE '.USER_INFOS_TABLE.'
   // ASSIGN PROJECT
   case 'add_project':
   {
-    $s = $_POST['project_add'];
-    if ( $s == '-1' or !array_key_exists($s, $conf['all_projects']) )
+    $p = $_POST['project_add'];
+    if ( $p == '-1' or !array_key_exists($p, $conf['all_projects']) )
     {
       array_push($page['errors'], 'Wrong project !');
     }
     else
     {
-      $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET 
-    projects = IF( 
-      projects="", 
-      "'.$s.',0", 
-      IF( 
-        projects LIKE("%'.$s.'%"), 
-        projects, 
-        CONCAT(projects, ";'.$s.',0")
-      )
-    )
-  WHERE 
-    user_id IN('.implode(',', $selection).')
-    AND user_id NOT IN ('.implode(',', $forbid_ids).')
-    AND status != "visitor"
-;';
-      mysql_query($query);
+      $inserts = array();
+      foreach ($selection as $user_id)
+      {
+        if (in_array($user_id, array_merge($admin_ids,$visitor_ids))) continue;
+        array_push($inserts, array('user_id'=>$user_id, 'project'=>$p, 'type'=>'translate'));
+      }
       
-      array_push($page['infos'], 'Project &laquo; '.get_project_name($s).' &raquo; assigned to <b>'.mysql_affected_rows().'</b> users.');
+      mass_inserts(
+        USER_PROJECTS_TABLE,
+        array('user_id', 'project', 'type'),
+        $inserts,
+        array('ignore'=>true)
+        );
+      
+      array_push($page['infos'], 'Project &laquo; '.get_project_name($p).' &raquo; assigned to <b>'.count($inserts).'</b> users.');
     }
     break;
   }
@@ -207,42 +198,24 @@ UPDATE '.USER_INFOS_TABLE.'
   // UNASSIGN PROJECT
   case 'remove_project':
   {
-    $s = $_POST['project_remove'];
-    if ( $s == '-1' or !array_key_exists($s, $conf['all_projects']) )
+    $p = $_POST['project_remove'];
+    if ( $p == '-1' or !array_key_exists($p, $conf['all_projects']) )
     {
       array_push($page['errors'], 'Wrong project !');
     }
     else
     {
-      $users = get_users_list(
-        array(
-          'projects LIKE "%'.$s.'%"',
-          'user_id IN('.implode(',', $selection).')',
-          'user_id NOT IN ('.implode(',', $forbid_ids).')',
-          'status != "visitor"'
-          ), 
-        'projects'
-        );
-      
-      $i = 0;
-      foreach ($users as $u)
-      {
-        unset($u['projects'][ array_search($s, $u['projects']) ]);
-        unset($u['manage_projects'][ array_search($s, $u['manage_projects']) ]);
-        $u['projects'] = create_permissions_array($u['projects']);
-        $u['manage_projects'] = create_permissions_array($u['manage_projects'], 1);    
-        $u['projects'] = implode_array(array_merge($u['projects'], $u['manage_projects']));
-        
-        $query = '
-UPDATE '.USER_INFOS_TABLE.'
-  SET projects = '.(!empty($u['projects']) ? '"'.$u['projects'].'"' : 'NULL').'
-  WHERE user_id = '.$u['id'].'
+      $query = '
+DELETE FROM '.USER_PROJECTS_TABLE.'
+  WHERE
+    project = "'.$p.'"
+    AND user_id IN('.implode(',', $selection).')
+    AND user_id NOT IN ('.implode(',', $admin_ids).')
+    AND user_id NOT IN ('.implode(',', $visitor_ids).')
 ;';
-        mysql_query($query);
-        $i++;
-      }
+      mysql_query($query);
       
-      array_push($page['infos'], 'Project &laquo; '.get_project_name($s).' &raquo; unassigned from <b>'.$i.'</b> users.');
+      array_push($page['infos'], 'Project &laquo; '.get_project_name($p).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
     }
     break;
   }

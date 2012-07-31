@@ -29,8 +29,6 @@ defined('PATH') or die('Hacking attempt!');
 function build_user($user_id)
 {
   global $conf;
-
-  $user['id'] = $user_id;
   
   // retrieve user data
   $query = '
@@ -58,7 +56,7 @@ SELECT *
   // the user came from an external base, we must register it
   if (!mysql_num_rows($result))
   {
-    create_user_infos($user_id);
+    create_user_infos($user_id, 'visitor');
     
     // redo previous query
     $result = mysql_query($query);
@@ -79,56 +77,62 @@ SELECT *
     }
   }
   
+  $user['languages'] = $user['my_languages'] = $user['projects'] = $user['manage_projects'] = array();
+  $user['main_language'] = null;
+  
   // if the user is visitor we must get guest permissions
   if ($user['status'] == 'visitor')
   {
-    $query = '
-SELECT *
-  FROM '.USER_INFOS_TABLE.'
-  WHERE user_id = '.$conf['guest_id'].'
-;';
-    $guest = mysql_fetch_assoc(mysql_query($query));
-    
-    $user['languages'] = $guest['languages'];
-    $user['projects'] = $guest['projects'];
-  }
-  
-  // explode languages array
-  if (!empty($user['languages']))
-  {
-    $languages = explode_string($user['languages']);
-    $user['languages'] = array();
-    $user['main_language'] = null;
-    foreach ($languages as $lang => $rank)
-    {
-      if ($rank == 1) $user['main_language'] = $lang;
-      array_push($user['languages'], $lang);
-    }
+    $uid_for_lp = $conf['guest_id'];
   }
   else
   {
-    $user['languages'] = array();
-    $user['main_language'] = null;
+    $uid_for_lp = $user['id'];
   }
-
-  $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
   
-  // explode projects array
-  if (!empty($user['projects']))
+  // get languages
+  $query = '
+SELECT language, type
+  FROM '.USER_LANGUAGES_TABLE.'
+  WHERE user_id = '.$uid_for_lp.'
+';
+  $result = mysql_query($query);
+  
+  while ($row = mysql_fetch_assoc($result))
   {
-    $projects = explode_string($user['projects']);
-    $user['projects'] = array();
-    $user['manage_projects'] = array();
-    foreach ($projects as $project => $rank)
+    switch ($row['type'])
     {
-      if ($rank == 1) array_push($user['manage_projects'], $project);
-      array_push($user['projects'], $project);
+      case 'translate':
+        array_push($user['languages'], $row['language']);
+        break;
+      case 'main':
+        $user['main_language'] = $row['language'];
+        break;
+      case 'my':
+        array_push($user['my_languages'], $row['language']);
+        break;
     }
   }
-  else
+  
+  // get projects
+  $query = '
+SELECT project, type
+  FROM '.USER_PROJECTS_TABLE.'
+  WHERE user_id = '.$uid_for_lp.'
+';
+  $result = mysql_query($query);
+  
+  while ($row = mysql_fetch_assoc($result))
   {
-    $user['projects'] = array();
-    $user['manage_projects'] = array();
+    switch ($row['type'])
+    {
+      case 'translate':
+        array_push($user['projects'], $row['project']);
+        break;
+      case 'manage':
+        array_push($user['manage_projects'], $row['project']);
+        break;
+    }
   }
   
   // if the user is manager we must fill management permissions
@@ -188,20 +192,78 @@ VALUES(
  * @param int limit
  * @return array
  */
-function get_users_list($where_clauses=array('1=1'), $select='i.*', $mode='AND', $offset=0, $limit=9999999999999)
+function get_users_list($where_clauses=array(), $select=array(), $mode='AND', $offset=0, $limit=9999999999999)
 {
   global $conf;
   
+  $get_languages = $get_projects = false;
+  if ($select === array())
+  {
+    $select = array('i.*');
+    $get_languages = $get_projects = true;
+  }
+  else if (is_array($select))
+  {
+    if ( ($i = array_search('languages', $select)) !== false)
+    {
+      $get_languages = true;
+      unset($select[$i]);
+    }
+    if ( ($i = array_search('projects', $select)) !== false)
+    {
+      $get_projects = true;
+      unset($select[$i]);
+    }
+  }
+  
+  $join_languages = $join_projects = false;
+  if (array_pos('l.language', $where_clauses) !== false)
+  {
+    $join_languages = true;
+  }
+  if (array_pos('p.project', $where_clauses) !== false)
+  {
+    $join_projects = true;
+  }
+  
   $query = '
 SELECT 
-    i.status, 
-    '.(!empty($select)?$select.',':null).'
+    i.status,';
+    
+  if (!empty($select))
+  {
+    $query.= '
+    '.implode(",\n    ", $select).',';
+  }
+  
+  $query.= '
     '.get_db_user_fields().'
   FROM '.USERS_TABLE.' AS u
     INNER JOIN '.USER_INFOS_TABLE.' AS i
-      ON u.'.$conf['user_fields']['id'].'  = i.user_id
+    ON u.'.$conf['user_fields']['id'].' = i.user_id';
+    
+  if ($join_languages)
+  {
+    $query.= '
+    LEFT JOIN '.USER_LANGUAGES_TABLE.' AS l
+    ON u.'.$conf['user_fields']['id'].' = l.user_id';
+  }
+  if ($join_projects)
+  {
+    $query.= '
+    LEFT JOIN '.USER_PROJECTS_TABLE.' AS p
+    ON u.'.$conf['user_fields']['id'].' = p.user_id';
+  }
+      
+  if (!empty($where_clauses))
+  {
+    $query.= '
   WHERE 
-    '.implode("\n    ".$mode." ", $where_clauses).'
+    '.implode("\n    ".$mode." ", $where_clauses);
+  }
+  
+  $query.= '
+  GROUP BY u.'.$conf['user_fields']['id'].'
   ORDER BY u.'.$conf['user_fields']['username'].' ASC
   LIMIT '.$limit.'
   OFFSET '.$offset.'
@@ -223,51 +285,6 @@ SELECT
         unset($user[$key]);
       }
     }
-  
-    // if the user is visitor we must get guest permissions
-    /*if ( $user['status'] == 'visitor' and isset($users[ $conf['guest_id'] ]) )
-    {
-      $user['languages'] = $users[ $conf['guest_id'] ]['languages'];
-      $user['projects'] =  $users[ $conf['guest_id'] ]['projects'];
-    }*/
-  
-    // explode languages array
-    if (!empty($user['languages']))
-    {
-      $languages = explode_string($user['languages']);
-      $user['languages'] = array();
-      $user['main_language'] = null;
-      foreach ($languages as $lang => $rank)
-      {
-        if ($rank == 1) $user['main_language'] = $lang;
-        array_push($user['languages'], $lang);
-      }
-    }
-    else
-    {
-      $user['languages'] = array();
-      $user['main_language'] = null;
-    }
-
-    $user['my_languages'] = !empty($user['my_languages']) ? explode(',', $user['my_languages']) : array();
-    
-    // explode projects array
-    if (!empty($user['projects']))
-    {
-      $projects = explode_string($user['projects']);
-      $user['projects'] = array();
-      $user['manage_projects'] = array();
-      foreach ($projects as $project => $rank)
-      {
-        if ($rank == 1) array_push($user['manage_projects'], $project);
-        array_push($user['projects'], $project);
-      }
-    }
-    else
-    {
-      $user['projects'] = array();
-      $user['manage_projects'] = array();
-    }
     
     // if the user is manager we must fill management permissions
     if ( $user['status'] == 'manager' and isset($user['manage_perms']) )
@@ -281,9 +298,67 @@ SELECT
         $user['manage_perms'] = unserialize($conf['default_manager_perms']);
       }
     }
-    else if ($user['status'] != 'manager')
+    
+    if ($get_languages)
     {
-      $user['manage_projects'] = array();
+      $user['languages'] = $user['my_languages'] = array();
+      $user['main_language'] = null;
+    }
+    if ($get_projects)
+    {     
+      $user['projects'] = $user['manage_projects'] = array();
+    }
+  }
+  unset($user);
+  
+  // get languages
+  if ($get_languages and !empty($users))
+  {
+    $query = '
+SELECT user_id, language, type
+  FROM '.USER_LANGUAGES_TABLE.'
+  WHERE user_id IN('.implode(',', array_keys($users)).')
+';
+    $result = mysql_query($query);
+    
+    while ($row = mysql_fetch_assoc($result))
+    {
+      switch ($row['type'])
+      {
+        case 'translate':
+          array_push($users[ $row['user_id'] ]['languages'], $row['language']);
+          break;
+        case 'main':
+          $users[ $row['user_id'] ]['main_language'] = $row['language'];
+          break;
+        case 'my':
+          array_push($users[ $row['user_id'] ]['my_languages'], $row['language']);
+          break;
+      }
+    }
+  }
+   
+  // get projects
+  if ($get_projects and !empty($users))
+  {
+    $query = '
+SELECT user_id, project, type
+  FROM '.USER_PROJECTS_TABLE.'
+  WHERE user_id IN('.implode(',', array_keys($users)).')
+';
+    $result = mysql_query($query);
+    
+    while ($row = mysql_fetch_assoc($result))
+    {
+      switch ($row['type'])
+      {
+        case 'translate':
+          array_push($users[ $row['user_id'] ]['projects'], $row['project']);
+          break;
+        case 'manage':
+          array_push($users[ $row['user_id'] ]['manage_projects'], $row['project']);
+          break;
+      }
     }
   }
 
@@ -591,15 +666,10 @@ function register_user($login, $password, $mail_address)
     array_push($insert_names, $conf['user_fields']['username'], $conf['user_fields']['password'], $conf['user_fields']['email']);
     array_push($insert_values, mres($login), $conf['pass_convert']($password), $mail_address);
   
-    $query = '
-INSERT INTO '.USERS_TABLE.'(
-    '.implode(',', $insert_names).'
-    )
-  VALUES(
-    "'.implode('","', $insert_values).'"
-    )
-;';
-    mysql_query($query);
+    single_insert(
+      USERS_TABLE,
+      array_combine($insert_names, $insert_values)
+      );
     
     create_user_infos(mysql_insert_id(), 'visitor');
   }
@@ -621,7 +691,7 @@ SELECT
   u.'.$conf['user_fields']['username'].' as username
   FROM '.USERS_TABLE.' as u
     INNER JOIN '.USER_INFOS_TABLE.' as i
-      ON u.'.$conf['user_fields']['id'].' = i.user_id
+    ON u.'.$conf['user_fields']['id'].' = i.user_id
   WHERE i.status = "admin"
 ;';
   $to = hash_from_query($query);
