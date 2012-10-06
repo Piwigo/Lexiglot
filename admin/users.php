@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 $highlight_user = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 
@@ -49,7 +49,7 @@ if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) and is_adm
 // +-----------------------------------------------------------------------+
 if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty($_POST['select']) )
 {
-  include(PATH.'admin/include/users.actions.php');
+  include(LEXIGLOT_PATH . 'admin/include/users.actions.php');
 }
 
 // +-----------------------------------------------------------------------+
@@ -62,7 +62,7 @@ if ( isset($_POST['save_status']) and is_admin() )
   $sets = array('status = "'.$new_status.'"');
   
   // adapt permissions
-  include(PATH.'admin/include/users.change_status.php');
+  include(LEXIGLOT_PATH . 'admin/include/users.change_status.php');
 
   $query = '
 UPDATE '.USER_INFOS_TABLE.'

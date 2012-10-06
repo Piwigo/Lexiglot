@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
  
-defined('PATH') or die('Hacking attempt!'); 
+defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
 /**
  * generates href and onclick params for a popup link
@@ -38,7 +38,7 @@ function js_popup($url, $title=null, $height=600, $width=480, $top=0, $left=0)
 function load_jquery($name)
 {
   global $page;
-  if (file_exists(PATH.'template/js/jquery.'.$name.'.css')) 
+  if (file_exists(LEXIGLOT_PATH . 'template/js/jquery.'.$name.'.css')) 
   {
     $page['header'].= '
   <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.'.$name.'.css">';

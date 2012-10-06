@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!'); 
+defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
 if (isset($_POST['save_config']))
 {

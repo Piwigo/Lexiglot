@@ -19,8 +19,8 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-define('PATH', './');
-include(PATH.'include/common.inc.php');
+define('LEXIGLOT_PATH', './');
+include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 if ( (isset($_POST['login']) or isset($_POST['reset_password']) or isset($_POST['register']) ) and !verify_ephemeral_key(@$_POST['key']) )
 {

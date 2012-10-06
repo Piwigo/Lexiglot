@@ -19,8 +19,8 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-define('PATH', './');
-include(PATH.'include/common.inc.php');
+define('LEXIGLOT_PATH', './');
+include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS 1 (mandatory)
@@ -286,7 +286,7 @@ $page['begin'].= '
 </p>';
 
 // MAIN PROCESS
-include(PATH.'include/edit.'.$page['mode'].'.php');
+include(LEXIGLOT_PATH . 'include/edit.'.$page['mode'].'.php');
 
 // notification popup
 if ($is_translator)

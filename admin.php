@@ -19,10 +19,10 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-define('PATH', './');
+define('LEXIGLOT_PATH', './');
 define('IN_ADMIN', 1);
-include(PATH.'include/common.inc.php');
-include(PATH.'admin/include/functions.inc.php');
+include(LEXIGLOT_PATH . 'include/common.inc.php');
+include(LEXIGLOT_PATH . 'admin/include/functions.inc.php');
 
 // check rights
 if ( !is_manager() and !is_admin() )
@@ -105,7 +105,7 @@ if ( !array_key_exists($page['page'], $pages) )
 // +-----------------------------------------------------------------------+
 // |                         MAIN
 // +-----------------------------------------------------------------------+
-include(PATH.'admin/'.$page['page'].'.php');
+include(LEXIGLOT_PATH . 'admin/'.$page['page'].'.php');
 
 print_page();
 ?>

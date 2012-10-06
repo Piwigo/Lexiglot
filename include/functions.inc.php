@@ -19,21 +19,21 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
  
-defined('PATH') or die('Hacking attempt!'); 
+defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
-include_once(PATH.'include/functions_core.inc.php');
-include_once(PATH.'include/functions_user.inc.php');
-include_once(PATH.'include/functions_svn.inc.php');
-include_once(PATH.'include/functions_html.inc.php');
-include_once(PATH.'include/functions_mysql.inc.php');
-include_once(PATH.'include/functions_stats.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_core.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_user.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_svn.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_html.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_mysql.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_stats.inc.php');
 
 /**
  * PHP COMPATIBILITIES
  */
 if (!function_exists('json_decode')) // >= 5.2.0
 {
-  include_once(PATH.'include/php_compat/json.class.php');
+  include_once(LEXIGLOT_PATH . 'include/php_compat/json.class.php');
   $json_service = new Services_JSON();
   
   function json_decode($value)
@@ -50,7 +50,7 @@ if (!function_exists('json_decode')) // >= 5.2.0
 
 if (!function_exists('quoted_printable_encode')) // >= 5.3.0
 {
-  include_once(PATH.'include/php_compat/quoted_printable.inc.php');
+  include_once(LEXIGLOT_PATH . 'include/php_compat/quoted_printable.inc.php');
 }
 
 
@@ -304,17 +304,17 @@ function print_page($login_box=true)
   }
 
   // display page
-  include(PATH.'template/header.php');
+  include(LEXIGLOT_PATH . 'template/header.php');
   if (count($tabsheet))
   {
-    include(PATH.'template/tabsheet.php');
+    include(LEXIGLOT_PATH . 'template/tabsheet.php');
   }
   if ( count($page['errors']) or count($page['warnings']) or count($page['infos']) )
   {
-    include(PATH.'template/messages.php');
+    include(LEXIGLOT_PATH . 'template/messages.php');
   }
   echo $page['content'];
-  include(PATH.'template/footer.php');
+  include(LEXIGLOT_PATH . 'template/footer.php');
   
   close_page();
 }

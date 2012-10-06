@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
  
-defined('PATH') or die('Hacking attempt!'); 
+defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
 /**
  * make stats for a language of a project and register it to DB

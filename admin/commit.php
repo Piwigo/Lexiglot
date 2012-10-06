@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 if (!svn_check_connection())
 {
@@ -113,12 +113,12 @@ SELECT * FROM (
   // +-----------------------------------------------------------------------+
   if (isset($_POST['check_commit']))
   {
-    include(PATH.'admin/include/commit.preview.php');
+    include(LEXIGLOT_PATH . 'admin/include/commit.preview.php');
   }
 
   else
   {
-    include(PATH.'admin/include/commit.full.php');
+    include(LEXIGLOT_PATH . 'admin/include/commit.full.php');
   }
 }
 

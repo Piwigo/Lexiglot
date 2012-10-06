@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 $deploy_language = null;
@@ -68,7 +68,7 @@ DELETE FROM '.LANGUAGES_TABLE.'
 // +-----------------------------------------------------------------------+
 if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty($_POST['select']) )
 {
-  include(PATH.'admin/include/languages.actions.php');
+  include(LEXIGLOT_PATH . 'admin/include/languages.actions.php');
 }
 
 // +-----------------------------------------------------------------------+

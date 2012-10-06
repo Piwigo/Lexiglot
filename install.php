@@ -19,13 +19,13 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
  
-define('PATH', './');
+define('LEXIGLOT_PATH', './');
 define('VERSION', '1.0');
 
 // +-----------------------------------------------------------------------+
 // |                         FUNCTIONS
 // +-----------------------------------------------------------------------+
-include_once(PATH.'include/functions.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions.inc.php');
 
 function print_install_page()
 {
@@ -55,10 +55,10 @@ function print_install_page()
 
   if ( count($page['errors']) or count($page['infos']) )
   {
-    include(PATH.'template/messages.php');
+    include(LEXIGLOT_PATH . 'template/messages.php');
   }
   echo $page['content'];
-  include(PATH.'template/footer.php');
+  include(LEXIGLOT_PATH . 'template/footer.php');
   
   exit();
 }
@@ -122,11 +122,11 @@ if ($install_step == 'config')
   }
   
   // configuration files
-  if ( !is_writable(PATH.'config/') and !chmod(PATH.'config/', 0777) ) 
+  if ( !is_writable(LEXIGLOT_PATH . 'config/') and !chmod(LEXIGLOT_PATH . 'config/', 0777) ) 
   {
     array_push($page['errors'], 'The folder <i>config/</i> must be writable, please change the chmod to 0777.');
   }
-  if (file_exists(PATH .'config/database.inc.php'))
+  if (file_exists(LEXIGLOT_PATH .'config/database.inc.php'))
   {
     array_push($page['errors'], 'The tool is already installed. <a href="index.php">Go back</a>');
   }
@@ -216,7 +216,7 @@ else if ($install_step == 'save_config')
   $file_content = "
 <?php
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 define('DB_HOST',  '".$_POST['dbhost']."');
 define('DB_NAME',  '".$_POST['dbname']."');
@@ -251,24 +251,24 @@ define('SALT_KEY', '".$_POST['salt_key']."');
 
 ?>
 ";
-  if (!@file_put_contents(PATH.'config/database.inc.php', $file_content))
+  if (!@file_put_contents(LEXIGLOT_PATH . 'config/database.inc.php', $file_content))
   {
     array_push($page['errors'], 'Unable to create configuration file.');
     print_install_page();
   }
   
   // create blank config file
-  if (!file_exists(PATH.'config/config_local.inc.php'))
+  if (!file_exists(LEXIGLOT_PATH . 'config/config_local.inc.php'))
   {
-    file_put_contents(PATH.'config/config_local.inc.php', "<?php\n\n\?>");
+    file_put_contents(LEXIGLOT_PATH . 'config/config_local.inc.php', "<?php\n\n\?>");
   }
   
   // create tables
-  execute_sqlfile(PATH.'config/structure.sql', 'lexiglot_', $_POST['dbprefix']);
+  execute_sqlfile(LEXIGLOT_PATH . 'config/structure.sql', 'lexiglot_', $_POST['dbprefix']);
   
   // load config
-  include(PATH.'/config/config_default.inc.php');
-  include(PATH.'/config/database.inc.php');
+  include(LEXIGLOT_PATH . '/config/config_default.inc.php');
+  include(LEXIGLOT_PATH . '/config/database.inc.php');
   
   // register guest and admin
   mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');

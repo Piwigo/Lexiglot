@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 // string delimiters
 $conf['quote'] = "'";
@@ -29,10 +29,10 @@ $conf['eol'] = "\n";
 $conf['plain_types'] = array('html', 'htm', 'txt');
 
 // flags dir
-$conf['flags_dir'] = PATH.'flags/';
+$conf['flags_dir'] = LEXIGLOT_PATH . 'flags/';
 
 // local dir
-$conf['local_dir'] = PATH.'local/';
+$conf['local_dir'] = LEXIGLOT_PATH . 'local/';
 
 // guest id in the users_table
 $conf['guest_id'] = 1;

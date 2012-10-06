@@ -19,11 +19,11 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
-if (!file_exists(PATH.'config/database.inc.php'))
+if (!file_exists(LEXIGLOT_PATH . 'config/database.inc.php'))
 {
-  if (!file_exists(PATH.'install.php'))
+  if (!file_exists(LEXIGLOT_PATH . 'install.php'))
   {
     echo 'Unable to load <i>config/database.inc.php</i>';
     exit();
@@ -36,8 +36,8 @@ if (!file_exists(PATH.'config/database.inc.php'))
 }
 
 // includes
-include_once(PATH.'config/database.inc.php');
-include_once(PATH.'include/functions.inc.php');
+include_once(LEXIGLOT_PATH . 'config/database.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions.inc.php');
 
 // protect vars
 header('Content-type: text/html; charset=utf-8');
@@ -72,8 +72,8 @@ mysql_select_db(DB_NAME);
 mysql_query('SET names utf8;');
 
 // configuration (default + local + db)
-include(PATH.'config/config_default.inc.php');
-@include(PATH.'config/config_local.inc.php');
+include(LEXIGLOT_PATH . 'config/config_default.inc.php');
+@include(LEXIGLOT_PATH . 'config/config_local.inc.php');
 load_conf_db($conf);
 
 // available projects and langs

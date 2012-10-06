@@ -19,8 +19,8 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-define('PATH', './');
-include(PATH.'include/common.inc.php');
+define('LEXIGLOT_PATH', './');
+include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 // +-----------------------------------------------------------------------+
 // |                         PROJECT PROPERTIES

@@ -19,7 +19,7 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('PATH') or die('Hacking attempt!');
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 $highlight_project = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 $deploy_project = null;
@@ -68,7 +68,7 @@ DELETE FROM '.PROJECTS_TABLE.'
 // +-----------------------------------------------------------------------+
 if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty($_POST['select']) )
 {
-  include(PATH.'admin/include/projects.actions.php');
+  include(LEXIGLOT_PATH . 'admin/include/projects.actions.php');
 }
 
 // +-----------------------------------------------------------------------+

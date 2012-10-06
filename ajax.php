@@ -24,9 +24,9 @@
  * an ephemeral key is mandatory for security
  */
 
-define('PATH', './');
+define('LEXIGLOT_PATH', './');
 define('IN_AJAX', 1);
-include(PATH.'include/common.inc.php');
+include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 
 if (!isset($_POST['action']))
