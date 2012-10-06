@@ -19,32 +19,45 @@
 // | USA.                                                                  |
 // +-----------------------------------------------------------------------+
 
-defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
+defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
-foreach ($page['errors'] as $msg)
+class Tabsheet
 {
-  echo '
-  <div class="ui-state-error" style="padding: 0.7em;margin-bottom:10px;">
-    <span class="ui-icon ui-icon-alert" style="float: left; margin-right: 0.7em;"></span>
-    '.$msg.'
-  </div>';
+  private $id;
+  private $sheets;
+  private $param_name;
+  
+  function __construct($id, $param)
+  {
+    $this->id = $id;
+    $this->param_name = $param;
+  }
+  
+  function add($id, $name, $title=null, $url_reject=array())
+  {
+    if (!empty($id))
+    {
+      $this->sheets[$id] = array(
+        'NAME' => $name,
+        'TITLE' => $title,
+        'URL' => get_url_string(array($this->param_name=>$id), $url_reject),
+        'SELECTED' => false,
+        );
+    }
+  }
+  
+  function select($id)
+  {
+    $this->sheets[$id]['SELECTED'] = true;
+  }
+  
+  function render()
+  {
+    global $template;
+    $template->set_filename('tabsheet', 'tabsheet.tpl');
+    $template->assign('tabsheet', $this->sheets);
+    $template->assign_var_from_handle('TABSHEET_'.$this->id, 'tabsheet');
+  }
 }
 
-foreach ($page['warnings'] as $msg)
-{
-  echo '
-  <div class="ui-state-warning" style="padding: 0.7em;margin-bottom:10px;">
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-    '.$msg.'
-  </div>';
-}
-
-foreach ($page['infos'] as $msg)
-{
-  echo '
-  <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-    '.$msg.'
-  </div>';
-}
 ?>

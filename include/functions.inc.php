@@ -21,11 +21,11 @@
  
 defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
+include_once(LEXIGLOT_PATH . 'include/functions_mysql.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_core.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_user.inc.php');
-include_once(LEXIGLOT_PATH . 'include/functions_svn.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_html.inc.php');
-include_once(LEXIGLOT_PATH . 'include/functions_mysql.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions_svn.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_stats.inc.php');
 
 /**
@@ -148,7 +148,7 @@ function redirect($url=null)
   header('Request-URI: '.$url);
   header('Content-Location: '.$url);
   header('Location: '.$url);
-  close_page();
+  exit;
 }
 
 /**
@@ -278,60 +278,6 @@ function verify_ephemeral_key($key, $aditionnal_data_to_hash = '', $expiration=t
 	}
   
 	return true;
-}
-
-/**
- * display page content
- * @output to buffer
- *
- * note : the script exits at first call
- */
-function print_page($login_box=true)
-{
-  global $page, $conf, $user, $tabsheet;
-  
-  // get and close buffer
-  $page['content'].= ob_get_clean();
-
-  // messages transmitted through the session
-  foreach (array('infos','warnings','errors') as $state)
-  {
-    if (isset($_SESSION['page_'.$state]))
-    {
-      $page[$state] = array_merge($page[$state], $_SESSION['page_'.$state]);
-      unset($_SESSION['page_'.$state]);
-    }
-  }
-
-  // display page
-  include(LEXIGLOT_PATH . 'template/header.php');
-  if (count($tabsheet))
-  {
-    include(LEXIGLOT_PATH . 'template/tabsheet.php');
-  }
-  if ( count($page['errors']) or count($page['warnings']) or count($page['infos']) )
-  {
-    include(LEXIGLOT_PATH . 'template/messages.php');
-  }
-  echo $page['content'];
-  include(LEXIGLOT_PATH . 'template/footer.php');
-  
-  close_page();
-}
-
-/**
- * clear buffer and close sql connection
- *
- * note : the script exits at first call
- */
-function close_page()
-{
-  if (ob_get_length() !== false)
-  {
-    ob_end_clean();
-  }
-  mysql_close();
-  exit(0);
 }
 
 /**
@@ -529,6 +475,24 @@ function reverse_2d_array(&$array)
 }
 
 /**
+ * create a simple hash from a multi-dimentional array
+ */
+function simple_hash_from_array(&$array, $key, $value)
+{
+  $out = array();
+  
+  foreach ($array as $row)
+  {
+    if (isset($row[$key]))
+    {
+      $out[ $row[$key] ] = @$row[$value];
+    }
+  }
+  
+  return $out;
+}
+
+/**
  * format datetime to english date
  * @param string date
  * @param boolean show time
@@ -567,6 +531,59 @@ function format_date($date, $show_time=false, $show_day=true)
     $formated_date.= ' '.$ymdhms[3].':'.$ymdhms[4];
   }
   return $formated_date;
+}
+
+define('MKGETDIR_NONE', 0);
+define('MKGETDIR_RECURSIVE', 1);
+define('MKGETDIR_DIE_ON_ERROR', 2);
+define('MKGETDIR_PROTECT_INDEX', 4);
+define('MKGETDIR_PROTECT_HTACCESS', 8);
+define('MKGETDIR_DEFAULT', 7);
+/**
+ * creates directory if not exists; ensures that directory is writable
+ * @param string dir
+ * @param int flags combination of MKGETDIR_xxx
+ * @return bool
+ */
+function mkgetdir($dir, $flags=MKGETDIR_DEFAULT)
+{
+  if ( !is_dir($dir) )
+  {    
+    if (substr(PHP_OS, 0, 3) == 'WIN')
+    {
+      $dir = str_replace('/', DIRECTORY_SEPARATOR, $dir);
+    }
+    
+    $umask = umask(0);
+    $mkd = @mkdir($dir, 0755, ($flags&MKGETDIR_RECURSIVE) ? true:false );
+    umask($umask);
+    
+    if ($mkd==false)
+    {
+      !($flags&MKGETDIR_DIE_ON_ERROR) or fatal_error( "$dir ".l10n('no write access'));
+      return false;
+    }
+  }
+  
+  if ( !is_writable($dir) )
+  {
+    !($flags&MKGETDIR_DIE_ON_ERROR) or fatal_error( "$dir ".l10n('no write access'));
+    return false;
+  }
+  
+  if( $flags&MKGETDIR_PROTECT_HTACCESS )
+  {
+    $file = $dir.'/.htaccess';
+    file_exists($file) or @file_put_contents( $file, 'deny from all' );
+  }
+  
+  if( $flags&MKGETDIR_PROTECT_INDEX )
+  {
+    $file = $dir.'/index.htm';
+    file_exists($file) or @file_put_contents( $file, 'Not allowed!' );
+  }
+  
+  return true;
 }
 
 /**

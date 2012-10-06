@@ -28,14 +28,14 @@ include(LEXIGLOT_PATH . 'include/common.inc.php');
 // language
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
-  array_push($page['errors'], 'Undefined or unknown language. <a href="javascript:history.back();">Go Back</a>');
-  print_page();
+  array_push($page['errors'], 'Undefined or unknown language. <a href="javascript:history.back();">Go Back</a>.');
+  $template->close('messages');
 }
 // project
 if ( !isset($_GET['project']) or !array_key_exists($_GET['project'], $conf['all_projects']) )
 {
-  array_push($page['errors'], 'Undefined or unknown project. <a href="javascript:history.back();">Go Back</a>');
-  print_page();
+  array_push($page['errors'], 'Undefined or unknown project. <a href="javascript:history.back();">Go Back</a>.');
+  $template->close('messages');
 }
 
 $page['language'] = $_GET['language'];
@@ -74,8 +74,12 @@ else
   $page['display'] = ( is_guest() || is_visitor() || is_default_language($page['language']) ) ? 'all' : 'missing';
 }
 // reference
-if ( isset($_GET['ref']) and array_key_exists($_GET['ref'], $conf['all_languages']) and !is_default_language($page['language']) and $page['language']!=$_GET['ref'] )
-{
+if ( 
+  isset($_GET['ref']) 
+  and array_key_exists($_GET['ref'], $conf['all_languages']) 
+  and !is_default_language($page['language']) 
+  and $page['language']!=$_GET['ref']
+) {
   $page['ref'] = $_GET['ref'];
 }
 else
@@ -86,8 +90,20 @@ else
 $page['file_uri'] = $conf['local_dir'].$page['project'].'/'.$page['language'].'/'.$page['file'];
 
 // title
-$page['window_title'] = get_project_name($page['project']).' &raquo; '.get_language_name($page['language']);
-$page['title'] = 'Edit';
+$template->assign(array(
+  'WINDOW_TITLE' => get_project_name($page['project']).' &raquo; '.get_language_name($page['language']),
+  'PAGE_TITLE' => 'Edit',
+  'LANGUAGE' => $page['language'],
+  'LANGUAGE_NAME' => get_language_name($page['language']),
+  'LANGUAGE_FLAG' => get_language_flag($page['language']),
+  'LANGUAGE_URL' => get_url_string(array('language'=>$page['language']), true, 'language'),
+  'PROJECT' => $page['project'],
+  'PROJECT_NAME' => get_project_name($page['project']),
+  'PROJECT_URL' => get_url_string(array('project'=>$page['project']), true, 'project'),
+  'MODE' => $page['mode'],
+  'FILE' => $page['file'],
+  'SECRET_KEY' => get_ephemeral_key(0),
+  ));
 
 
 // +-----------------------------------------------------------------------+
@@ -96,13 +112,13 @@ $page['title'] = 'Edit';
 if (!file_exists($conf['local_dir'].$page['project'].'/'.$page['language']))
 {
   array_push($page['errors'], 'This language doesn\'t exist in this project, please create it throught the <a href="'.get_url_string(array('project'=>$page['project']), true, 'project').'">project page</a>.');
-  print_page();
+  $template->close('messages');
 }
 
 if (!file_exists($conf['local_dir'].$page['project'].'/'.$conf['default_language'].'/'.$page['file']))
 {
-  array_push($page['errors'], 'Can\'t find this file for default language.');
-  print_page();
+  array_push($page['errors'], 'Can\'t find this file for default language. <a href="javascript:history.back();">Go Back</a>.');
+  $template->close('messages');
 }
 
 // for php files we check the validity of the file
@@ -113,7 +129,7 @@ if ( $page['mode'] == 'array' and ($fileinfos = verify_language_file($page['file
   if ($fileinfos[0] == 'Parse error')
   {
     array_push($page['errors'], 'The language file is corrupted. Administrators have been notified. <a href="javascript:history.back();">Go back</a>.');
-    print_page();
+    $template->close('messages');
   }
 }
 
@@ -252,24 +268,22 @@ else if (!is_translator($page['language'], $page['project']))
     array_push($page['errors'], 'You don\'t have the necessary rights to edit this file.');
   }
 }
+$template->assign('IS_TRANSLATOR', $is_translator);
 
 // tabsheet
-$tabsheet['param'] = 'file';
-$tabsheet['selected'] = $page['file'];
+include_once(LEXIGLOT_PATH . 'include/tabsheet.inc.php');
+$tabsheet = new Tabsheet('FILES', 'file');
 foreach ($page['files'] as $file)
 {
-  $tabsheet['tabs'][$file] = array(basename($file), "Edit the file '".$file."'", array('page'));
+  $tabsheet->add($file, basename($file), "Edit the file '".$file."'", array('page'));
 }
+$tabsheet->select($page['file']);
+$tabsheet->render();
 
-// path
-$page['begin'].= '
-<p class="caption">
-  <a href="'.get_url_string(array('project'=>$page['project']), true, 'project').'">'.get_project_name($page['project']).'</a> &raquo; 
-  <a href="'.get_url_string(array('language'=>$page['language']), true, 'language').'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a>
-  
-  '.($is_translator ? '<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>' : null).'
-  '.(!is_default_language($page['language']) ? '<a class="floating_link" '.
-    js_popup(
+// popu to reference file
+if (!is_default_language($page['language']))
+{
+  $template->assign('REFERENCE_POPUP_LINK', js_popup(
       get_url_string(
         array(
           'project'=>$page['project'],
@@ -281,12 +295,13 @@ $page['begin'].= '
         ),
       'Reference page', 
       800, 650
-    ).'>
-    View reference file</a>' : null).'
-</p>';
+    ));
+}
+
 
 // MAIN PROCESS
 include(LEXIGLOT_PATH . 'include/edit.'.$page['mode'].'.php');
+
 
 // notification popup
 if ($is_translator)
@@ -296,110 +311,38 @@ if ($is_translator)
     i.status = "admin"
     OR ( 
       p.project = "'.$page['project'].'" 
-      AND ( 
-        ( l.language = "'.$page['language'].'"
-        AND l.type = "translate" )
+      AND (( 
+          l.language = "'.$page['language'].'" 
+          AND l.type = "translate" )
         OR (
-          ( p.project = "'.$page['project'].'"
-          AND p.type = "manage" )
-          AND i.status = "manager"
-      ))))',
+          p.type = "manage"
+          AND i.status = "manager" )
+      )))',
     'i.status != "guest"',
     );
   if (!is_admin()) array_push($where_clauses, 'i.email_privacy != "private"');
   
   $users = get_users_list($where_clauses, array('i.nb_rows', 'projects'));
-
-  $page['begin'].= '
-<div id="dialog-form" title="Send a notification by mail" style="display:none;">
-	<div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
-    <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-    You can only send mails to an admin or a translator of this language/project.
-  </div>
-  <form action="" method="post">
-    <table class="login" style="text-align:left;margin:0 auto;">
-      <tr><td>
-        Send to :
-        <select name="user_id">
-          <option value="-1" data="15">---------</option>';
-        foreach ($users as $row)
-        {
-          $status = null;
-          if ($row['status']=='admin') $status = ' (admin)';
-          if (in_array($page['project'], $row['manage_projects'])) $status = ' (manager)';
-          $page['begin'].= '
-          <option value="'.$row['id'].'" data="'.$row['nb_rows'].'">'.$row['username'].$status.'</option>';
-        }
-        $page['begin'].= '
-        </select>
-      </td></tr>
-      <tr><td>
-        <label><input type="checkbox" name="notification" value="1"> ask for disposition notification</label>
-      </td></tr>
-      <!--<tr><td>';
-      if ($page['mode'] == 'array')
-      {
-        $page['begin'].= '
-        <input type="checkbox" name="send_rows" value="1"> include <input type="text" name="nb_rows" size="2" maxlength="3" value="15"> first missing rows of current file in the mail';
-      }
-      else
-      {
-        $page['begin'].= '
-        <label><input type="checkbox" name="send_rows" value="1"> include the contents of current file in the mail</label>';
-      }
-      $page['begin'].= '
-      </td></tr>-->
-      <tr><td>
-        <textarea name="message" rows="6" cols="50"></textarea>
-        <input type="hidden" name="key" value="'.get_ephemeral_key(3).'">
-        <input type="hidden" name="send_notification" value="1">
-      </td></tr>
-    </table>
-  </form>
-</div>';
-}
-
-
-// +-----------------------------------------------------------------------+
-// |                         SCRIPTS
-// +-----------------------------------------------------------------------+
-if ($is_translator)
-{
-  $page['script'].= '
-  // notification popup
-  $("#dialog-form").dialog({
-    autoOpen: false, modal: true, resizable: false,
-    height: 320, width: 520,
-    show: "clip", hide: "clip",
-    buttons: {
-      "Send": function() { $("#dialog-form form").submit(); },
-      Cancel: function() { $(this).dialog("close"); }
-    }
-  });
-  $(".notification").click(function() {
-    $("#dialog-form").dialog("open");
-  });
-  $("select[name=\'user_id\']").change(function() {
-    $("input[name=\'nb_rows\']").val($(this).children("option:selected").attr("data"));
-  });';
-}
-else
-{
-  $page['script'].= '
-  $("textarea").prop("disabled", true);';
-}
-
-// Can't use autoResize plugin with too many textarea (browser crashes) and incompatible with highlightTextarea
-if ( count($_DIFFS) <= 30 and !isset($block_autoresize) )
-{
-  load_jquery('autoresize');
   
-  $page['script'].= '
-  $("#diffs textarea").autoResize({
-    maxHeight:2000,
-    extraSpace:11
-  });';
+  foreach ($users as $row)
+  {
+    $status = null;
+    if ($row['status']=='admin') $status = ' (admin)';
+    if (in_array($page['project'], $row['manage_projects'])) $status = ' (manager)';
+    
+    $template->append('notifications_users', array(
+      'ID' => $row['id'],
+      'USERNAME' => $row['username'],
+      'STATUS' => $status,
+      'NB_ROWS' => $row['nb_rows'],
+      ));
+  }
 }
 
-print_page();
+
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('edit');
+
 ?>

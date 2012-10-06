@@ -28,14 +28,18 @@ include(LEXIGLOT_PATH . 'include/common.inc.php');
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
   array_push($page['errors'], 'Undefined or unknown language. <a href="'.get_home_url().'">Go Back</a>');
-  print_page();
+  $template->close('messages');
 }
 
 $page['language'] = $_GET['language'];
 
 // page title
-$page['window_title'] = get_language_name($page['language']);
-$page['title'] = 'Browse';
+$template->assign(array(
+  'WINDOWS_TITLE' => get_language_name($page['language']),
+  'PAGE_TITLE' => 'Browse',
+  'LANGUAGE_NAME' => get_language_name($page['language']),
+  'LANGUAGE_FLAG' => get_language_flag($page['language']),
+  ));
 
 // get ordered projects with categories names (uses a workaround for projects without categories)
 $query = '
@@ -97,8 +101,10 @@ if ($conf['use_stats'])
 {
   $stats = get_cache_stats(null, $page['language'], 'project');
   $language_stats = get_cache_stats(null, $page['language'], 'all');
+  $template->assign('PROGRESS_BAR', display_progress_bar($language_stats, 825, true));
 }
 $use_stats = !empty($stats);
+$template->assign('USE_PROJECT_STATS', $use_stats);
 
 // projects not translated, translated and editable, not translated and editable
 $project_not_translated = $project_translated = $project_available = $conf['all_projects'];
@@ -120,99 +126,50 @@ foreach ($conf['all_projects'] as $row)
   }
 }
 
-// path
-echo '
-<p class="caption"><a href="'.get_url_string().'">'.get_language_flag($page['language']).' '.get_language_name($page['language']).'</a></p>
-<ul id="projects" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
 
 // projects list
-$category_id = null;
 $use_categories = count(array_unique_deep($project_translated, 'category_id')) > 1;
+$template->assign('USE_PROJECT_CATS', $use_categories);
+
 foreach ($project_translated as $row)
 {
+  if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
+    
+  $tpl_var = array(
+    'ID' => $row['id'],
+    'NAME' => $row['name'],
+    'URL' => get_url_string(array('language'=>$page['language'],'project'=>$row['id']), true, 'edit'),
+    );
+    
   if ($use_categories)
   {
-    if ( !empty($row['category_id']) and $category_id != $row['category_id'] )
-    {
-      $category_id = $row['category_id'];
-      echo '<h3>'.preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']).' :</h3>';
-    }
-    else if ( empty($row['category_id']) and $category_id != 0 )
-    {
-      $category_id = 0;
-      echo '<h3>Other :</h3>';
-    }
+    $tpl_var['CATEGORY_ID'] = $row['category_id'];
+    $tpl_var['CATEGORY_NAME'] = preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']);
   }
   
-  if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
+  if ($use_stats)
+  {
+    $tpl_var['STATS'] = $stats[ $row['id'] ];
+    $tpl_var['PROGRESS_BAR'] = display_progress_bar($stats[ $row['id'] ], 150);
+  }
   
-  echo '
-  <li '.( !$row['language_exists'] || ($use_stats && empty($stats[ $row['id'] ])) ? 'class="new"' : null).'>
-    <a href="'.get_url_string(array('language'=>$page['language'],'project'=>$row['id']), true, 'edit').'">
-      '.$row['name'].'
-      '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
-    </a>
-  </li>';
+  $template->append('projects', $tpl_var);
 }
+
 
 // add project button
 if ( $conf['user_can_add_language'] and is_translator($page['language'], null) and count($project_available) > 0 )
 {
-  echo '
-  <li class="add">
-    <b>'.count($project_not_translated).' projects not translated</b> <a href="#"><img src="template/images/bullet_add.png" alt="+"> Translate another project</a>
-  </li>
-  
-  <div id="dialog-form" title="Translate another project" style="display:none;">
-    <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
-      <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-      You can only add projects you have permission to translate.
-    </div>
-    <form action="" method="post" style="text-align:center;">
-      Select a project : 
-      <select name="project">
-        <option value="-1">----------</option>';
-      foreach ($project_available as $row)
-      {
-        echo '
-        <option value="'.$row['id'].'">'.$row['name'].'</option>';
-      }
-      echo '
-      </select>
-      <input type="hidden" name="add_project" value="1">
-    </form>
-  </div>';
-}
-echo '
-</ul>';
-
-// language progression
-if ($use_stats)
-{
-  echo '
-  <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
-    <p style="margin:10px;">
-      <span class="ui-icon ui-icon-signal" style="float: left; margin-right: 0.7em;"></span>
-      <b>Language progression :</b> '.display_progress_bar($language_stats, 825, true).'
-    </p>
-  </div>';
+  $template->assign(array(
+    'PROJECT_NOT_TRANSLATED' => count($project_not_translated),
+    'project_available' => simple_hash_from_array($project_available, 'id', 'name'),
+    ));
 }
 
-$page['script'].= '
-$("#dialog-form").dialog({
-  autoOpen: false, modal: true, resizable: false,
-  height: 200, width: 440,
-  show: "clip", hide: "clip",
-  buttons: {
-    "Add": function() { $("#dialog-form form").submit(); },
-    "Cancel": function() { $(this).dialog("close"); }
-  }
-});
 
-$(".add a").click(function() {
-  $("#dialog-form").dialog("open");
-  return false;
-});';
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('language');
 
-print_page();
 ?>

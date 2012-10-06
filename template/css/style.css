@@ -77,7 +77,7 @@ a {
     border-bottom-style: solid;
   }
   a[href^="mailto"] {
-    background: url('images/email_send.png') center left no-repeat;
+    background: url('../images/email_send.png') center left no-repeat;
     padding-left: 20px;
   }
   a.clean {
@@ -100,6 +100,16 @@ div.centered {
 img.flag {
   margin: 0 2px;
 }
+
+.message {
+  padding: 0.7em;
+  margin-bottom:5px;
+  margin-top:5px;
+}
+  .message .ui-icon {
+    float: left;
+    margin-right: 0.7em;
+  }
   
 table.common {
   width: 100%;
@@ -415,7 +425,7 @@ input.tiny {
   top: 5px; 
   width: 51px;
   height: 51px;
-  background: url('js/images/ui.totop.png') no-repeat;
+  background: url('../js/images/ui.totop.png') no-repeat;
   border: none;
 }
 #bottom-link  { 
@@ -424,6 +434,6 @@ input.tiny {
   bottom: 5px; 
   width: 51px;
   height: 51px;
-  background: url('js/images/ui.totop.png') 0 -51px no-repeat;
+  background: url('../js/images/ui.totop.png') 0 -51px no-repeat;
   border: none;
 }

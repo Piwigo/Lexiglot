@@ -268,7 +268,9 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   
   // load config
   include(LEXIGLOT_PATH . '/config/config_default.inc.php');
+  @include(LEXIGLOT_PATH . '/config/config_local.inc.php');
   include(LEXIGLOT_PATH . '/config/database.inc.php');
+  include(LEXIGLOT_PATH . '/include/constants.inc.php');
   
   // register guest and admin
   mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
@@ -279,6 +281,8 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   
   // log admin
   try_log_user($_POST['username'], $_POST['password'], true);
+  
+  mkgetdir(DATA_LOCATION);
   
   // finish
   echo '

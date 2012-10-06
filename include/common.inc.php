@@ -25,7 +25,7 @@ if (!file_exists(LEXIGLOT_PATH . 'config/database.inc.php'))
 {
   if (!file_exists(LEXIGLOT_PATH . 'install.php'))
   {
-    echo 'Unable to load <i>config/database.inc.php</i>';
+    trigger_error('Unable to load "config/database.inc.php"', E_USER_ERROR);
     exit();
   }
   
@@ -34,15 +34,6 @@ if (!file_exists(LEXIGLOT_PATH . 'config/database.inc.php'))
   header('Location: install.php');
   exit();
 }
-
-// includes
-include_once(LEXIGLOT_PATH . 'config/database.inc.php');
-include_once(LEXIGLOT_PATH . 'include/functions.inc.php');
-
-// protect vars
-header('Content-type: text/html; charset=utf-8');
-fix_magic_quotes();
-umask(0);
 
 // default arrays
 $conf = array();
@@ -60,6 +51,21 @@ $page = array(
 $tabsheet = array();
 $user = array();
 
+// includes
+include_once(LEXIGLOT_PATH . 'config/database.inc.php');
+include_once(LEXIGLOT_PATH . 'include/functions.inc.php');
+
+// configuration (default + local + db)
+include(LEXIGLOT_PATH . 'config/config_default.inc.php');
+@include(LEXIGLOT_PATH . 'config/config_local.inc.php');
+
+include_once(LEXIGLOT_PATH . 'include/constants.inc.php');
+
+// protect vars
+header('Content-type: text/html; charset=utf-8');
+fix_magic_quotes();
+umask(0);
+
 // begin with a clean buffer
 if (ob_get_length() !== false)
 {
@@ -70,10 +76,6 @@ if (ob_get_length() !== false)
 mysql_connect(DB_HOST, DB_USER, DB_PWD);
 mysql_select_db(DB_NAME);
 mysql_query('SET names utf8;');
-
-// configuration (default + local + db)
-include(LEXIGLOT_PATH . 'config/config_default.inc.php');
-@include(LEXIGLOT_PATH . 'config/config_local.inc.php');
 load_conf_db($conf);
 
 // available projects and langs
@@ -118,14 +120,14 @@ if (isset($user['is_new']))
 
 if (!defined('IN_AJAX'))
 {
-  // outbut buffer (don't forget to call print_page at the end)
-  ob_start();
-
+  include_once(LEXIGLOT_PATH . 'include/template.inc.php');
+  $template = new Template();
+  
   // is the site private ?
-  if ( is_guest() and !$conf['access_to_guest'] and script_basename() != 'user')
+  if ( is_guest() and !$conf['access_to_guest'] and script_basename() != 'user' )
   {
     array_push($page['errors'], 'Access denied for guests ! <a href="user.php?login">Login</a> '.($conf['allow_registration']?'<i>or</i> <a href="user.php?register">Register</a>':null));
-    print_page();
+    $template->close('messages');
   }
 
   // check if at least the default language is registered
@@ -134,7 +136,7 @@ if (!defined('IN_AJAX'))
     if ( empty($conf['default_language']) or !isset($conf['all_languages'][ $conf['default_language'] ]) )
     {
       array_push($page['errors'], 'Default language not registered.');
-      print_page();
+      $template->close('messages');
     }
   }
   

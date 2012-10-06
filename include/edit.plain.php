@@ -32,18 +32,18 @@ if ( isset($_POST['submit']) and $is_translator )
   if (!verify_ephemeral_key(@$_POST['key'], '', false))
   {
     array_push($page['errors'], 'Invalid/expired form key');
-    print_page();
   }
-  
-  $text = $_POST['row_value'];
-  clean_eol($text);
+  else
+  {  
+    $text = $_POST['row_value'];
+    clean_eol($text);
 
-  // test if the new value is really new (in file and in database)
-  if (  
-    !empty($text) and
-    ( empty($_LANG) or $text != $_LANG['row_value'] )
-  )
-  {
+    // test if the new value is really new (in file and in database)
+    if (  
+      !empty($text) and
+      ( empty($_LANG) or $text != $_LANG['row_value'] )
+    )
+    {
     $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     language,
@@ -70,13 +70,15 @@ INSERT INTO `'.ROWS_TABLE.'`(
     row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
-    mysql_query($query);
+      mysql_query($query);
+    }
+    
+    make_stats($page['project'], $page['language']);
+    $_SESSION['page_infos'][] = 'File saved';
+    redirect();
   }
-  
-  make_stats($page['project'], $page['language']);
-  $_SESSION['page_infos'][] = 'File saved';
-  redirect();   
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         COMPUTE FILES
@@ -97,65 +99,12 @@ if ($_DIFFS)
 // |                         DISPLAY FILE
 // +-----------------------------------------------------------------------+  
 // value, database has priority
-$text = !empty($_LANG) ? $_LANG['row_value'] : null;
+$text = !empty($_LANG) ? htmlspecialchars_utf8($_LANG['row_value']) : null;
 
-echo '
-<form method="post" action="" id="diffs">
-<fieldset class="common">
-  <legend>File content</legend>
-  <textarea name="row_value" style="width:99.5%;height:'. max(count_lines($text, 126)+3, 10)*1.1 .'em;margin-bottom:10px;" tabindex="1">'.htmlspecialchars_utf8($text).'</textarea>
-  <div class="centered">
-    '.($is_translator ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3).'">
-    <input type="submit" name="submit" value="Save" class="blue big" tabindex="2">' : null).'
-  </div>
-</fieldset>
-</form>';
-
-// nav links for big files
-if (count_lines($text, 126) > 40)
-{
-  echo '
-  <a href="#top" id="top-link" title="To top"></a>
-  <a href="#bottom" id="bottom-link" title="To bottom"></a>';
-  
-  load_jquery('scrollTo');
-  
-  $page['script'].= '
-  //smoothscroll
-  $("#top-link")
-    .click(function(e) {
-      e.preventDefault();
-      $.scrollTo("0%", 500);
-    })
-    .hover(
-      function() { $(this).fadeTo(500, 0.70); },
-      function() { $(this).fadeTo(500, 1.00); }
-    );
-  $("#bottom-link")
-    .click(function(e) {
-      e.preventDefault();
-      $.scrollTo("100%", 500);
-    })
-    .hover(
-      function() { $(this).fadeTo(500, 0.70); },
-      function() { $(this).fadeTo(500, 1.00); }
-    );';
-}
-
-if ($is_translator)
-{
-  $page['script'].= '
-  // check saves before close page
-  var handlers = 0;
-  $("textarea[name=\'row_value\']").change(function() {
-    handlers++;
-  });
-  $("input[name=\'submit\']").click(function() {
-    handlers = 0;
-  });
-  $(window).bind("beforeunload", function() {
-    if (handlers > 0) return false;
-  });';
-}
+$template->assign(array(
+  'ROW_VALUE' => $text,
+  'AREA_HEIGHT' => max(count_lines($text, 126)+3, 10)*1.1,
+  'NB_LINES' => count_lines($text, 126),
+  ));
 
 ?>

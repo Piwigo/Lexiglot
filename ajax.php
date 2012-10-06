@@ -149,7 +149,7 @@ SELECT
 function close_ajax($errcode, $data=null)
 {
   echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
-  close_page();
+  exit;
 }
 
 ?>

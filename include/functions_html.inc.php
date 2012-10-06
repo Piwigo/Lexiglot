@@ -32,22 +32,6 @@ function js_popup($url, $title=null, $height=600, $width=480, $top=0, $left=0)
 }
 
 /**
- * add a jquery plugin and its css
- * @param string plugin name
- */
-function load_jquery($name)
-{
-  global $page;
-  if (file_exists(LEXIGLOT_PATH . 'template/js/jquery.'.$name.'.css')) 
-  {
-    $page['header'].= '
-  <link type="text/css" rel="stylesheet" media="screen" href="template/js/jquery.'.$name.'.css">';
-  }
-  $page['header'].= '
-  <script type="text/javascript" src="template/js/jquery.'.$name.'.min.js"></script>';
-}
-
-/**
  * cut a string and add an elipsis and a jQueryUI dialog for full string
  * @param string
  * @param int limit
@@ -248,7 +232,7 @@ function str2url($str)
 }
 
 /**
- * version of htmlspecialchars that checks if teh string is in UTF-8
+ * version of htmlspecialchars that checks if the string is in UTF-8
  */
 function htmlspecialchars_utf8($string)
 {

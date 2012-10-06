@@ -30,21 +30,21 @@ if ( isset($_POST['submit']) and $is_translator )
   if (!verify_ephemeral_key(@$_POST['key'], '', false))
   {
     array_push($page['errors'], 'Invalid/expired form key');
-    print_page();
   }
-  
-  foreach ($_POST['rows'] as $row)
+  else
   {
-    $key = $row['row_name'];
-    $text = $row['row_value'];
-    clean_eol($text);
-    
-    if (
-      !empty($text) and 
-      ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
-    )
-    {        
-      $query = '
+    foreach ($_POST['rows'] as $row)
+    {
+      $key = $row['row_name'];
+      $text = $row['row_value'];
+      clean_eol($text);
+      
+      if (
+        !empty($text) and 
+        ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
+      )
+      {        
+        $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     language,
     project,
@@ -73,11 +73,12 @@ INSERT INTO `'.ROWS_TABLE.'`(
       mysql_query($query);
     }
   }
-  
-  make_stats($page['project'], $page['language']);
-  
-  $_SESSION['page_infos'][] = 'Strings saved';
-  redirect();   
+    
+    make_stats($page['project'], $page['language']);
+    
+    $_SESSION['page_infos'][] = 'Strings saved';
+    redirect();
+  }
 }
 
 
@@ -156,6 +157,11 @@ foreach ($_LANG_default as $key => $row)
 // statistics
 $_STATS = ($total != 0) ? min($translated/$total, 1) : 0;
 
+if ($conf['use_stats'])
+{
+  $template->assign('PROGRESS_BAR', display_progress_bar($_STATS, 850, true));
+}
+
 if ($in_search)
 {
   $_DIFFS = search_fulltext($_DIFFS, $search['needle'], $search['where']);
@@ -168,15 +174,20 @@ foreach ($conf['all_languages'] as $row)
 {
   if ( isset($stats[ $row['id'] ]) and $stats[ $row['id'] ] > $conf['minimum_progress_for_language_reference'] )
   {
+    $row['switch_url'] = get_url_string(array('ref'=>$row['id'],'erase_search'=>null));
+    $row['selected'] = $row['id']==$page['ref'];
     array_push($reference_languages, $row);
   }
 }
+$template->assign('reference_languages', $reference_languages);
   
   
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
 $paging = compute_pagination(count($_DIFFS), isset($_GET['entries'])?intval($_GET['entries']):$user['nb_rows'], 'page');
+$template->assign('PAGINATION', display_pagination($paging));
+
 $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 
 
@@ -184,326 +195,76 @@ $_DIFFS = array_slice($_DIFFS, $paging['Start'], $paging['Entries'], true);
 // |                         DISPLAY ROWS
 // +-----------------------------------------------------------------------+  
 // toolbar
-echo '
-<div class="pagination">
-  '.display_pagination($paging).'
-</div>
-<div id="display_buttons">
-  <a href="'.get_url_string(array('display'=>'all','erase_search'=>null), array('page')).'" 
-    class="all '.($page['display']=='all'?'active display':null).'">All</a>
-  <a href="'.get_url_string(array('display'=>'missing','erase_search'=>null), array('page')).'" 
-    class="missing '.($page['display']=='missing'?'active display':null).'">Untranslated</a>
-  <a href="#" class="search '.($page['display']=='search'?'active display':null).'">Search</a>
-</div>
-<div style="clear:both;"></div>';
-
+$template->assign('DISPLAY', array(
+  'url_all' => get_url_string(array('display'=>'all','erase_search'=>null), array('page')),
+  'url_missing' => get_url_string(array('display'=>'missing','erase_search'=>null), array('page')),
+  'mode' => $page['display'],
+  ));
+  
 // search field
-echo '
-<form method="post" action="'.get_url_string(array(), array('page')).'" id="diffs_search" style="'.(!$in_search ? 'display:none;' : null).'">
-<fieldset class="common">
-  <input type="text" name="needle" size="50" value="'.$search['needle'].'">
-  &nbsp;&nbsp;Where ? 
-    <label><input type="radio" name="where" value="row_value" '.($search['where']=='row_value' ? 'checked="checked"' : null).'> Translations</label> 
-    <label><input type="radio" name="where" value="original" '.($search['where']=='original' ? 'checked="checked"' : null).'> Reference</label>
-  &nbsp;&nbsp;<input type="submit" name="search" value="Search" class="blue">
-</fieldset>
-</form>';
+$template->assign('SEARCH', array_merge( 
+  $search, 
+  array('url' => get_url_string(array(), array('page')))
+  ));
+  
+$template->assign('DISPLAY_REFERENCE_WARNING', !is_default_language($page['ref']));
 
 // strings list
-echo '  
-<form method="post" action="'.get_url_string().'" id="diffs" style="margin-top:10px;">
-<fieldset class="common">
-  <legend></legend>
-  
-  <table class="common">';
-  if (count($_DIFFS) > 0)
-  {
-    echo '
-    <tr>
-      <th colspan="3" style="text-align:left;padding-bottom:5px;">
-        Change reference language to
-        <select onchange="document.location = this.options[this.selectedIndex].value;">';
-        foreach ($reference_languages as $row)
-        {
-          echo '
-          <option value="'.get_url_string(array('ref'=>$row['id'],'erase_search'=>null)).'" 
-            '.($row['id']==$page['ref']?'selected="selected"':null).' 
-            '.(is_default_language($row['id'])?'style="font-weight:bold;background:#222;color:#eee;border-radius:0.6em;"':null).'
-            >'.$row['name'].'</option>';
-        }
-        echo '</select>';
-        if (!is_default_language($page['ref']))
-        {
-          echo '
-          <div class="ui-state-highlight" style="display:inline-block;padding:0.3em;font-weight:normal;">
-            <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
-            Not using the default language ('.$conf['all_languages'][ $conf['default_language'] ]['name'].') as reference may provide incomplete translation table.
-          </div>';
-        }
-        echo '
-      </th>
-    </tr>';
-  }
-  
-  $i=1;
-  foreach ($_DIFFS as $key => $row)
-  {
-    // make sure to initialize the var
-    $text = isset($row['row_value']) ? $row['row_value'] : null;
-    
-    // 'edit' status is displayed as 'new' on front-end
-    $status = !isset($row['row_value'])
-              ? 'missing'
-              : (
-                isset($row['status']) // came from db
-                ? (
-                  $row['status'] == 'edit'
-                  ? 'new'
-                  : $row['status'] // 'new' or 'done'
-                  )
-                : 'done' // came from file
-                );
-    
-    // original value can be highlighted
-    $original = htmlspecialchars($row['original']);
-    $original = ( $in_search && $search['where'] == 'original' )
-             ? highlight_search_result($original, array_merge(array($search['needle']), $search['words'])) 
-             : $original;
-
-    echo '
-    <tr class="main '.($i%2!=0?'odd':'even').' '.$status.'">
-      <td class="original"><pre>'.$original.'</pre></td>
-      <td class="translation">
-        <textarea name="rows['.$i.'][row_name]" style="display:none;">'.htmlspecialchars_utf8($key).'</textarea>';
-        if ($is_translator)
-        { // textarea with dynamic height, highlight is done in javascript
-          $area_lines = count_lines(!empty($text)?$text:$row['original'], 68);
-          echo '
-          <textarea name="rows['.$i.'][row_value]" style="height:'.max($area_lines*1.1, 2.1).'em;" tabindex="'.$i.'">'.htmlspecialchars_utf8($text).'</textarea>';
-        }
-        else if (!empty($text))
-        { // highlight value in case of read-only display
-          $text = htmlspecialchars($text);
-          echo '
-          <pre>'.($in_search && $search['where'] == 'row_value' ? highlight_search_result($text, array_merge(array($search['needle']), $search['words'])) : $text).'</pre>';
-        }
-        else if (is_guest())
-        {
-          echo '
-          <p class="login">You <a href="user.php?login">have to login</a> to add a translation.</p>';
-        }
-        else
-        {
-          echo '
-          <p class="login">Not translated yet.</p>';
-        }
-      echo '
-      </td>
-      <td class="details">
-        '.(!is_default_language($page['language']) || $conf['allow_edit_default'] ? '<a href="#" class="expand tiptip" title="Show details" data="'.$i.'"><img src="template/images/magnifier_zoom_in.png" alt="[+]"></a>' : null).'
-        '.($is_translator ? '<a href="#" class="save tiptip" title="Save this string" data="'.$i.'"><img src="template/images/disk.png" alt="save"></a>' : null).'
-      </td>
-    </tr>
-    <tr class="details '.($i%2!=0?'odd':'even').' '.$status.'" style="display:none;">
-      <td class="original">
-        <h5>String identifier :</h5>
-        <pre>'.htmlspecialchars($key) /* only place where we display $lang keys */.'</pre>
-      </td>
-      <td class="translation"></td>
-      <td class="details"></td>
-    </tr>';
-    
-    $i++;
-  }
-  if (count($_DIFFS) == 0)
-  {
-    echo '
-    <div class="ui-state-warning" style="padding: 0.7em;margin-bottom:10px;">
-      <span class="ui-icon ui-icon-alert" style="float: left; margin-right: 0.7em;"></span>
-      '.($in_search ? 'No result' : 'Translation complete').'
-    </div>';
-  }
-  echo '
-  </table>
-  
-  '.(count($_DIFFS) >= 20 ? '<div class="pagination">'.display_pagination($paging).'</div>' : null).'
-  <div class="centered">
-    '.($is_translator && count($_DIFFS) != 0 ? '<input type="hidden" name="key" value="'.get_ephemeral_key(3).'">
-    <input type="submit" name="submit" class="blue big" value="Save all" tabindex="'.($i+1).'">' : null).'
-  </div>
-</fieldset>
-</form>';
-
-// legend
-if (count($_DIFFS) > 0)
+$i = 1;
+foreach ($_DIFFS as $key => $row)
 {
-  echo '
-  <table class="legend">
-    <tr>
-      <td><span>&nbsp;</span> Up-to-date strings</td>
-      <td><span class="missing">&nbsp;</span> Untranslated strings</td>
-      <td><span class="new">&nbsp;</span> Newly translated strings</td>
-    </tr>
-  </table>';
-}
-
-// statistics
-if ($conf['use_stats'])
-{
-  echo '
-  <div id="displayStats" class="ui-state-highlight" style="padding: 0em;margin-top:10px;">
-    <p style="margin:10px;">
-      <span class="ui-icon ui-icon-signal" style="float: left; margin-right: 0.7em;"></span>
-      <b>File progression :</b> '.display_progress_bar($_STATS, 850, true).'
-    </p>
-  </div>';
-}
-
-
-// +-----------------------------------------------------------------------+
-// |                         JAVASCRIPT
-// +-----------------------------------------------------------------------+
-load_jquery('tiptip');
-
-$page['header'].= '
-<script type="text/javascript" src="template/js/functions.js"></script>';
-
-$page['script'].= '
-// tiptip
-$(".tiptip").tipTip({ 
-  delay:200,
-  defaultPosition:"right"
-});
-
-// linked table rows follow hover state
-$("tr.main").hover(
-  function() { $(this).next("tr").addClass("hover"); },
-  function() { $(this).next("tr").removeClass("hover"); }
-);
-$("tr.details").hover(
-  function() { $(this).prev("tr").addClass("hover"); },
-  function() { $(this).prev("tr").removeClass("hover"); }
-);
-
-// toggle search form
-$("#display_buttons a.search").click(function() {
-  if ("'.$page['display'].'" != "search") {
-    if ($(this).hasClass("active")) {
-      $("#display_buttons a").removeClass("active");
-      $("#display_buttons a.display").addClass("active");
-      $("#diffs_search").hide("slow");
-    } else {
-      $("#display_buttons a").removeClass("active");
-      $(this).addClass("active");
-      $("#diffs_search").show("slow");
-    }
-  }
-  return false;
-});
-
-$("#display_buttons a:not(.search)").click(function() {
-  if ($(this).hasClass("'.$page['display'].'")) {
-    $("#display_buttons a").removeClass("active");
-    $(this).addClass("active");
-    $("#diffs_search").hide("slow");
-    return false;
-  } else {
-    return true;
-  }
-});
-
-// perform ajax request for string details
-$("a.expand").click(function() {
-  $trigger = $(this);
-  $details_row = $(this).parents("tr.main").next("tr.details");
+  $tpl_var = array(
+    'i' => $i,
+    'ROW_VALUE' => isset($row['row_value']) ? htmlspecialchars_utf8($row['row_value']) : null,
+    );
   
-  if ($details_row.css("display") == "none") {
-    $("a.expand img").attr("src", "template/images/magnifier_zoom_in.png");
-    $("tr.details").hide();
-    
-    $trigger.children("img").attr("src", "template/images/magnifier_zoom_out.png");
-    $details_row.show();
-    
-    $container = $details_row.children("td.translation");
-    if ($container.hasClass("loaded") == false)
-    {
-      row_name = $("textarea[name=\'rows["+ $(this).attr("data") +"][row_name]\']").val();
-      $container.html("<p><img src=\"template/images/load16.gif\"> <i>Loading...</i></p>");
-    
-      $.ajax({
-        type: "POST",
-        url: "ajax.php",
-        data: { "action":"row_log", "project":"'.$page['project'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(0).'", "row_name": utf8_encode(row_name) }
-      }).done(function(msg) {
-        msg = $.parseJSON(msg);
-        if (msg.errcode == "success") {
-          $container.addClass("loaded").html("<p>"+ msg.data +"</p>");
-        }  else {
-          overlayMessage(msg.data, msg.errcode, $trigger);
-        }
-      });
-    }
-  } else {
-    $trigger.children("img").attr("src", "template/images/magnifier_zoom_in.png");
-    $details_row.hide();
+  
+  // 'edit' status is displayed as 'new' on front-end
+  $tpl_var['STATUS'] = !isset($row['row_value'])
+                        ? 'missing'
+                        : (
+                          isset($row['status']) // came from db
+                          ? (
+                            $row['status'] == 'edit'
+                            ? 'new'
+                            : $row['status'] // 'new' or 'done'
+                            )
+                          : 'done' // came from file
+                          );
+  
+  // original value can be highlighted
+  $tpl_var['ORIGINAL'] = htmlspecialchars($row['original']);
+  $tpl_var['ORIGINAL'] = ($in_search && $search['where']=='original')
+                         ? highlight_search_result($tpl_var['ORIGINAL'], array_merge(array($search['needle']), $search['words'])) 
+                         : $tpl_var['ORIGINAL'];
+                         
+  $tpl_var['KEY'] = htmlspecialchars_utf8($key);
+  
+  if ($is_translator)
+  { // textarea with dynamic height, highlight is done in javascript
+    $area_lines = count_lines(!empty($text)?$text:$row['original'], 68);
+    $tpl_var['FIELD'] = '<textarea name="rows['.$i.'][row_value]" style="height:'.max($area_lines*1.1, 2.1).'em;" tabindex="'.$i.'">'.$tpl_var['ROW_VALUE'].'</textarea>';
+  }
+  else if (!empty($text))
+  { // highlight value in case of read-only display
+    $tpl_var['FIELD'] = '<pre>'.(($in_search && $search['where']=='row_value') ? highlight_search_result($tpl_var['ROW_VALUE'], array_merge(array($search['needle']), $search['words'])) : $tpl_var['ROW_VALUE']).'</pre>';
+  }
+  else if (is_guest())
+  {
+    $tpl_var['FIELD'] = '<p class="login">You <a href="user.php?login">have to login</a> to add a translation.</p>';
+  }
+  else
+  {
+    $tpl_var['FIELD'] = '<p class="login">Not translated yet.</p>';
   }
   
-  return false;
-});';
-  
-if ($is_translator)
-{
-  $page['script'].= '
-  // check saves before close page
-  var handlers = 0;
-  $("textarea[name$=\'[row_value]\']").change(function() {
-    handlers++;
-  });
-  $("input[name=\'submit\']").click(function() {
-    handlers = 0;
-  });
-  $(window).bind("beforeunload", function() {
-    if (handlers > 0) return false;
-  });
-  
-  // perform ajax request to save string value
-  $("a.save").click(function() {
-    $trigger = $(this);
-    row_name = $("textarea[name=\'rows["+ $(this).attr("data") +"][row_name]\']").val();
-    row_value = $("textarea[name=\'rows["+ $(this).attr("data") +"][row_value]\']").val();
-    
-    $.ajax({
-      type: "POST",
-      url: "ajax.php",
-      data: { "action":"save_row", "project":"'.$page['project'].'", "language":"'.$page['language'].'", "file":"'.$page['file'].'", "key":"'.get_ephemeral_key(2).'", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) }
-    }).done(function(msg) {
-      msg = $.parseJSON(msg);
-      if (msg.errcode == "success") {
-        $trigger.parents("tr.main").removeClass("missing").addClass("new");
-        overlayMessage(msg.data, "highlight", $trigger);
-      }  else {
-        overlayMessage(msg.data, msg.errcode, $trigger);
-      }
-      
-      handlers--;
-    });
-    
-    return false;
-  });';
+  $template->append('DIFFS', $tpl_var);
+  $i++;
 }
 
 if ( $in_search and $search['where'] == 'row_value' )
 {
-  load_jquery('highlighttextarea');
-  
-  $page['script'].= '
-  $("textarea:visible").highlightTextarea({
-    words: ["'.implode('","', array_merge(array($search['needle']), $search['words'])).'"],
-    caseSensitive: false,
-    resizable: true
-  });';
-  
-  $block_autoresize = true; // autoResize must be blocked, incompatible with highlightTextarea
+  $template->assign('NO_AUTORESIZE', true);
 }
 
 ?>

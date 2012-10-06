@@ -22,14 +22,6 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
-if (!empty($conf['intro_message']))
-{
-  echo '
-  <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;">
-    <span class="ui-icon ui-icon-comment" style="float: left; margin-right: 0.7em;"></span>
-    '.$conf['intro_message'].'
-  </div>';
-}
 
 // +-----------------------------------------------------------------------+
 // |                         AVAILABLE LANGUAGES
@@ -66,52 +58,45 @@ SELECT
     $stats = get_cache_stats(null, null, 'language');
   }
   $use_stats = !empty($stats);
+  $template->assign('USE_LANGUAGE_STATS', $use_stats);
 
-  // path
-  echo '
-  <p class="caption">Choose a language'.($conf['navigation_type']=='both' ? '...' : null).'</p>
-  <ul id="languages" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
   
   // languages list
-  $category_id = null;
   $use_categories = count(array_unique_deep($language_translated, 'category_id')) > 1;
+  $template->assign('USE_LANGUAGE_CATS', $use_categories);
+  
   foreach ($language_translated as $row)
   {
+    if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
+    
+    $tpl_var = array(
+      'ID' => $row['id'],
+      'NAME' => $row['name'],
+      'FLAG' => get_language_flag($row['id']),
+      'URL' => get_url_string(array('language'=>$row['id']), true, 'language'),
+      );
+      
     if ($use_categories)
     {
-      if ( !empty($row['category_id']) and $category_id != $row['category_id'] )
-      {
-        $category_id = $row['category_id'];
-        echo '<h3>'.preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']).' :</h3>';
-      }
-      else if ( empty($row['category_id']) and $category_id != 0 )
-      {
-        $category_id = 0;
-        echo '<h3>Other :</h3>';
-      }
+      $tpl_var['CATEGORY_ID'] = $row['category_id'];
+      $tpl_var['CATEGORY_NAME'] = preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']);
     }
-  
-    if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
-  
-    echo '
-    <li '.($use_stats && empty($stats[ $row['id'] ]) ? 'class="new"' : null).'>
-      <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">
-        '.$row['name'].' '.get_language_flag($row['id']).'
-        '.($row['id'] == $conf['default_language'] ? '<i>(source)</i>': null).'
-        '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
-      </a>
-    </li>';
+    
+    if ($use_stats)
+    {
+      $tpl_var['STATS'] = $stats[ $row['id'] ];
+      $tpl_var['PROGRESS_BAR'] = display_progress_bar($stats[ $row['id'] ], 150);
+    }
+    
+    $template->append('languages', $tpl_var);
   }
+  
   if ( $conf['user_can_add_language'] and is_translator() )
   {
-    echo '
-    <li class="add">
-      <a href="'.get_url_string(array('request_language'=>null), true, 'misc').'"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
-    </li>';
+    $template->assign('ADD_LANGUAGE_URL', get_url_string(array('request_language'=>null), true, 'misc'));
   }
-  echo '
-  </ul>';
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         AVAILABLE PROJECTS
@@ -148,44 +133,43 @@ SELECT
     $stats = get_cache_stats(null, null, 'project');
   }
   $use_stats = !empty($stats);
-
-  // path
-  echo '
-  <p class="caption" style="margin-top:15px;">'.($conf['navigation_type']=='both' ? '... or choose a project' : 'Choose a project').'</p>
-  <ul id="projects" class="list-cloud '.($use_stats ? 'w-stats' : null).'">';
+  $template->assign('USE_PROJECT_STATS', $use_stats);
+  
   
   // projects list
-  $category_id = null;
   $use_categories = count(array_unique_deep($project_translated, 'category_id')) > 1;
+  $template->assign('USE_PROJECT_CATS', $use_categories);
+  
   foreach ($project_translated as $row)
   {
-    if ($use_categories)
-    {
-      if ( !empty($row['category_id']) and $category_id != $row['category_id'] )
-      {
-        $category_id = $row['category_id'];
-        echo '<h3>'.preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']).' :</h3>';
-      }
-      else if ( empty($row['category_id']) and $category_id != 0 )
-      {
-        $category_id = 0;
-        echo '<h3>Other :</h3>';
-      }
-    }
-    
     if ( $use_stats and !isset($stats[ $row['id'] ]) ) $stats[ $row['id'] ] = 0;
     
-    echo '
-    <li>
-      <a href="'.get_url_string(array('project'=>$row['id']), true, 'project').'">
-        '.$row['name'].'
-        '.($use_stats ? display_progress_bar($stats[ $row['id'] ], 150) : null).'
-      </a>
-    </li>';
+    $tpl_var = array(
+      'ID' => $row['id'],
+      'NAME' => $row['name'],
+      'URL' => get_url_string(array('project'=>$row['id']), true, 'project'),
+      );
+      
+    if ($use_categories)
+    {
+      $tpl_var['CATEGORY_ID'] = $row['category_id'];
+      $tpl_var['CATEGORY_NAME'] = preg_replace('#^\[([0-9]+)\](.*)#', '$2', $row['category_name']);
+    }
+    
+    if ($use_stats)
+    {
+      $tpl_var['STATS'] = $stats[ $row['id'] ];
+      $tpl_var['PROGRESS_BAR'] = display_progress_bar($stats[ $row['id'] ], 150);
+    }
+    
+    $template->append('projects', $tpl_var);
   }
-  echo '
-  </ul>';
 }
 
-print_page();
+
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('index');
+
 ?>

@@ -115,7 +115,7 @@
     list-style: none;
   }
     ul.row_log li {
-      background: url('images/bullet_blue.png') center left no-repeat;
+      background: url('../images/bullet_blue.png') center left no-repeat;
       padding-left: 20px;
       border-top: 1px solid #aaa;
       margin-bottom: 3px;
@@ -147,7 +147,7 @@ table.login tr td:first-child {
 .progressBar {
   display: inline-block;
   height: 14px;
-  background: #efefef url('images/gauge-gradient.png') repeat-x;
+  background: #efefef url('../images/gauge-gradient.png') repeat-x;
   border-radius: 2px;
   border-color: #aaa;
   border-style: solid;
@@ -157,7 +157,7 @@ table.login tr td:first-child {
   .progressBar .bar {
     display: inline-block;
     height: 14px;
-    background-image: url('images/gauge-gradient.png');
+    background-image: url('../images/gauge-gradient.png');
     background-position: repeat-x;
     border-radius: 2px;
     text-align: right;
