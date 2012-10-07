@@ -30,6 +30,11 @@ function build_user($user_id)
 {
   global $conf;
   
+  if (empty($user_id))
+  {
+    return false;
+  }
+  
   // retrieve user data
   $query = '
 SELECT '.get_db_user_fields().'

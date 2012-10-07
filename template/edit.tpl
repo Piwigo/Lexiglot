@@ -1,9 +1,9 @@
-{combine_css path="template/css/public.css" rank=10}
+{if $IS_TRANSLATOR}<a class="floating_link notification" style="cursor:pointer;">Send a notification</a>{/if}
+{if $IS_TRANSLATOR and $REFERENCE_POPUP_LINK}<span class="floating_link">&nbsp;|&nbsp;</span>{/if}
+{if $REFERENCE_POPUP_LINK}<a class="floating_link" {$REFERENCE_POPUP_LINK}>View reference file</a>{/if}
 
-<p class="caption">
+<p class="legend">
   <a href="{$PROJECT_URL}">{$PROJECT_NAME}</a> &raquo; <a href="{$LANGUAGE_URL}">{$LANGUAGE_FLAG} {$LANGUAGE_NAME}</a>
-  {if $IS_TRANSLATOR}<a class="floating_link notification" style="cursor:pointer;">Send a notification</a> <span class="floating_link">&nbsp;|&nbsp;</span>{/if}
-  {if $REFERENCE_POPUP_LINK}<a class="floating_link" {$REFERENCE_POPUP_LINK}>View reference file</a>{/if}
 </p>
 
 {if $notifications_users}

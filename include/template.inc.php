@@ -58,11 +58,13 @@ class Template
     $this->smarty->register_block('html_head', array(&$this, 'block_html_head') );
     $this->smarty->register_block('html_style', array(&$this, 'block_html_style') );
     $this->smarty->register_block('footer_script', array(&$this, 'block_footer_script') );
+    
     $this->smarty->register_function('combine_script', array(&$this, 'func_combine_script') );
     $this->smarty->register_function('get_combined_scripts', array(&$this, 'func_get_combined_scripts') );
     $this->smarty->register_function('combine_css', array(&$this, 'func_combine_css') );
     $this->smarty->register_function('get_combined_css', array(&$this, 'func_get_combined_css') );
-    $this->smarty->register_function('ui_message', array(&$this, 'function_ui_message') );
+    
+    $this->smarty->register_function('ui_message', array(&$this, 'func_ui_message') );
   }
   
   /**
@@ -392,7 +394,7 @@ class Template
    * param icon - optional - default 'bullet'
    * param style - optional - additional css
    */
-  function function_ui_message($params)
+  function func_ui_message($params)
   {
     if (!isset($params['content']))
     {

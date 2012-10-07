@@ -143,7 +143,7 @@ table.common {
 fieldset.common {
   margin-bottom: 10px;
 }
-  fieldset.common legend {
+  fieldset.common legend, p.legend {
     width: 100%;
     font-size: 1.5em;
     font-style: italic;
@@ -151,6 +151,14 @@ fieldset.common {
     border-bottom: 1px dotted #0080BC;
     margin-bottom: 5px;
     text-shadow:1px 1px 0 #eee;
+  }
+  
+p.legend a {
+  border:none;
+  color: #0080BC;
+}
+  p.legend a:hover {
+    color: #f70;
   }
   
 input.blue  {

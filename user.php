@@ -22,11 +22,12 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
-if ( (isset($_POST['login']) or isset($_POST['reset_password']) or isset($_POST['register']) ) and !verify_ephemeral_key(@$_POST['key']) )
+if ( ( isset($_POST['login']) or isset($_POST['reset_password']) or isset($_POST['register']) ) and !verify_ephemeral_key(@$_POST['key']) )
 {
-  array_push($page['errors'], 'Invalid/expired form key');
-  print_page();
+  array_push($page['errors'], 'Invalid/expired form key. <a href="javascript:history.back();">Go Back</a>.');
+  $template->close('messages');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         PERFORM LOGIN
@@ -53,7 +54,7 @@ if (isset($_POST['login']))
 // +-----------------------------------------------------------------------+
 // |                        RESET PASSWORD
 // +-----------------------------------------------------------------------+
-if (isset($_POST['reset_password']))
+else if (isset($_POST['reset_password']))
 {
   // search user_id
   $query = '
@@ -115,7 +116,7 @@ This is an automated email, please do not answer !';
 // +-----------------------------------------------------------------------+
 // |                         PERFORM REGISTER
 // +-----------------------------------------------------------------------+
-if (isset($_POST['register']))
+else if (isset($_POST['register']))
 {
   $page['errors'] = register_user(
     $_POST['username'],
@@ -131,39 +132,22 @@ if (isset($_POST['register']))
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         LOGIN FORM
 // +-----------------------------------------------------------------------+
 if (isset($_GET['login'])) 
 {
-  $page['window_title'] = $page['title'] = 'Login';
-  $referer = isset($_POST['referer']) ? $_POST['referer'] : ( isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : get_home_url() );
-  
-  echo '
-  <form action="" method="post">
-    <table class="login">
-      <tr>
-        <td><label for="username">Username :</label></td>
-        <td><input type="text" name="username" id="username" size="25" maxlength="32" '.(isset($_POST['username']) ? 'value="'.$_POST['username'].'"':'').'></td>
-      </tr>
-      <tr>
-        <td><label for="password">Password :</label></td>
-        <td><input type="password" name="password" id="password" size="25" maxlength="32"></td>
-      </tr>
-      <tr>
-        <td><label for="remember_me">Remember me :</label></td>
-        <td><input type="checkbox" name="remember_me" id="remember_me" value="1" checked="checked"></td>
-      </tr>
-      <tr>
-        <td><input type="hidden" name="key" value="'.get_ephemeral_key(0).'"></td>
-        <td>
-          <input type="hidden" value="'.$referer.'" name="referer">
-          <input type="submit" name="login" value="Login" class="blue"> <a href="user.php?password" rel="nofollow">Lost your password?</a>
-        </td>
-      </tr>
-    </table>
-
-  </form>';
+  $template->assign(array(
+    'IN_LOGIN' => true,
+    'WINDOW_TITLE' => 'Login',
+    'REFERER' => isset($_POST['referer']) ? $_POST['referer'] : ( isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : get_home_url() ),
+    'KEY' => get_ephemeral_key(0),
+    'user' => array(
+      'USERNAME' => @$_POST['username'],
+      'REMEMBER' => isset($_POST['username']) ? !empty($_POST['remember_me']) : true,
+      ),
+    ));
 }
 
 // +-----------------------------------------------------------------------+
@@ -171,29 +155,15 @@ if (isset($_GET['login']))
 // +-----------------------------------------------------------------------+
 else if (isset($_GET['password'])) 
 {
-  echo '
-  <form action="" method="post">
-    <p class="caption">Password reset</p>
-
-    <table class="login">
-      <tr>
-        <td><label for="username">Username :</label></td>
-        <td><input type="text" name="username" id="username" size="25" maxlength="32" '.(isset($_POST['username']) ? 'value="'.$_POST['username'].'"':'').'></td>
-      </tr>
-      <tr>
-        <td><label for="email">Email address :</label></td>
-        <td><input type="text" name="email" id="email" size="25" maxlength="64" '.(isset($_POST['email']) ? 'value="'.$_POST['email'].'"':'').'></td>
-      </tr>
-      <tr>
-        <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
-        <td>
-          <input type="submit" name="reset_password" value="Submit" class="blue">
-          <span class="red">All fields are required</span>
-        </td>
-      </tr>
-    </table>
-
-  </form>';
+  $template->assign(array(
+    'IN_PASSWORD' => true,
+    'WINDOW_TITLE' => 'Password reset',
+    'KEY' => get_ephemeral_key(2),
+    'user' => array(
+      'USERNAME' => @$_POST['username'],
+      'EMAIL' => @$_POST['email'],
+      ),
+    ));
 }
 
 // +-----------------------------------------------------------------------+
@@ -201,42 +171,25 @@ else if (isset($_GET['password']))
 // +-----------------------------------------------------------------------+
 else if ( isset($_GET['register']) and $conf['allow_registration'] ) 
 {
-  $page['window_title'] = $page['title'] = 'Register';
-  
-  echo '
-  <form action="" method="post">    
-    <table class="login">
-      <tr>
-        <td><label for="username">Username :</label></td>
-        <td><input type="text" name="username" id="username" size="25" maxlength="32" '.(isset($_POST['username']) ? 'value="'.$_POST['username'].'"':'').'></td>
-      </tr>
-      <tr>
-        <td><label for="password">Password :</label></td>
-        <td><input type="password" name="password" id="password" size="25" maxlength="32"></td>
-      </tr>
-      <tr>
-        <td><label for="email">Email address :</label></td>
-        <td><input type="text" name="email" id="email" size="25" maxlength="64" '.(isset($_POST['email']) ? 'value="'.$_POST['email'].'"':'').'></td>
-      </tr>
-      <tr>
-        <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
-        <td>
-          <input type="submit" name="register" value="Submit"  class="blue">
-          <span class="red">All fields are required</span>
-        </td>
-      </tr>
-    </table>
-
-  </form>';
-
+  $template->assign(array(
+    'IN_REGISTER' => true,
+    'WINDOW_TITLE' => 'Register',
+    'KEY' => get_ephemeral_key(2),
+    'user' => array(
+      'USERNAME' => @$_POST['username'],
+      'EMAIL' => @$_POST['email'],
+      ),
+    ));
 }
 else
 {
   redirect('index.php');
 }
 
-$page['script'].= '
-$("input[type=\'text\']:first", document.forms[0]).focus();';
 
-print_page();
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('user');
+
 ?>

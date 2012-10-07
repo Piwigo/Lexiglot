@@ -27,7 +27,22 @@ $template->set_filenames(array(
   'header' => 'header.tpl',
   'footer' => 'footer.tpl',
   ));
-    
+  
+if (defined('IN_ADMIN'))
+{
+  $template->func_combine_css(array(
+    'path' => 'template/css/admin.css',
+    'rank' => '10',
+    ));
+}
+else
+{
+  $template->func_combine_css(array(
+    'path' => 'template/css/public.css',
+    'rank' => '10',
+    ));
+}
+
 $template->assign(array(
   'INSTALL_NAME' => $conf['install_name'],
   'SELF_URL' => get_url_string(),
@@ -47,7 +62,7 @@ foreach (array('infos','warnings','errors') as $state)
     unset($_SESSION['page_'.$state]);
   }
 }
-    
+
 $template->assign(array(
   'page_errors' => $page['errors'],
   'page_warnings' => $page['warnings'],

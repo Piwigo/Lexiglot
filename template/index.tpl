@@ -1,5 +1,3 @@
-{combine_css path="template/css/public.css" rank=10}
-
 {include file="messages.tpl"}
 
 {if $CONF.intro_message}
@@ -33,7 +31,7 @@
   
   {if $ADD_LANGUAGE_URL}
     <li class="add">
-      <a href="{$ADD_URL}"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
+      <a href="{$ADD_LANGUAGE_URL}"><img src="template/images/bullet_add.png" alt="+"> Request a new language</a>
     </li>
   {/if}
   </ul>

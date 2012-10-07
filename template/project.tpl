@@ -1,8 +1,6 @@
-{combine_css path="template/css/public.css" rank=10}
-
 {include file="messages.tpl"}
 
-<p class="caption"><a href="{$SELF_URL}">{$PROJECT_NAME}</a></p>
+<p class="legend"><a href="{$SELF_URL}">{$PROJECT_NAME}</a></p>
 
 <ul id="languages" class="list-cloud {if $USE_LANGUAGE_STATS}w-stats{/if}">
 {assign var=category value=0}

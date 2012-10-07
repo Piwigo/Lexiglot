@@ -22,6 +22,7 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
+
 // +-----------------------------------------------------------------------+
 // |                         SEND REQUEST FOR NEW LANGUAGE
 // +-----------------------------------------------------------------------+
@@ -91,50 +92,27 @@ Here is his message :<br>
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_add_language'] )
 {
-  echo '
-  <form method="post" action="">
-  <fieldset class="common">
-    <legend>Request a new language</legend>
-    
-    <div class="ui-state-highlight" style="padding: 0.7em;margin-bottom:10px;font-weight:bold;">
-      Here is a full list of available languages. If you can\'t find your, feel free to send us a message, we will consider your request as soon as possible.
-    </div>
+  foreach (array_keys($conf['all_languages']) as $lang)
+  {
+    $template->append('all_languages', array(
+      'NAME' => get_language_name($lang),
+      'FLAG' => get_language_flag($lang),
+      ));
+  }
   
-    <ul id="languages" class="list-cloud">';
-
-    // languages list
-    foreach (array_keys($conf['all_languages']) as $lang)
-    {
-      echo '
-      <li>'.get_language_name($lang).' '.get_language_flag($lang).'</li>';
-    }
-    
-    echo '
-    </ul>
-  </fieldset>
+  $template->assign(array(
+    'KEY' => get_ephemeral_key(2),
+    'request' => array(
+      'LANGUAGE' => @$_POST['language'],
+      'CONTENT' => @$_POST['message'],
+      ),
+    ));
   
-  <fieldset>
-    <table class="login">
-      <tr>
-        <td>Language name :</td>
-        <td><input type="text" name="language" value="'.@$_POST['language'].'"></td>
-      </tr>
-      <tr>
-        <td>Message (optional) :</td>
-        <td><textarea name="message" cols="50" rows="5">'.@$_POST['message'].'</textarea></td>
-      </tr>
-      <tr>
-        <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
-        <td><input type="submit" name="request_language" value="Send" class="blue"></td>
-      </tr>
-    </table>
-  </fieldset>
-  </form>';
+  $template->close('lang_request');
 }
 else
 {
   redirect('index.php');
 }
 
-print_page();
 ?>

@@ -22,17 +22,18 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
+if ( ( isset($_POST['send_message']) or isset($_POST['save_profile']) ) and !verify_ephemeral_key(@$_POST['key']) )
+{
+  array_push($page['errors'], 'Invalid/expired form key. <a href="javascript:history.back();">Go Back</a>.');
+  $template->close('messages');
+}
+
+
 // +-----------------------------------------------------------------------+
 // |                         SEND MESSAGE
 // +-----------------------------------------------------------------------+
 if (isset($_POST['send_message']))
-{
-  if (!verify_ephemeral_key(@$_POST['key']))
-  {
-    array_push($page['errors'], 'Invalid/expired form key');
-    print_page();
-  }
-  
+{ 
   if (strlen($_POST['subject']) < 10) array_push($page['errors'], 'Subject is too short');
   if (strlen($_POST['message']) < 10) array_push($page['errors'], 'Message is too short');
   if (strlen($_POST['message']) > 2000) array_push($page['errors'], 'Message is too long. max: 2000 chars');
@@ -80,14 +81,8 @@ Lexiglot - A PHP based translation tool';
 // +-----------------------------------------------------------------------+
 // |                         SAVE PROFILE
 // +-----------------------------------------------------------------------+
-if (isset($_POST['save_profile']))
+else if (isset($_POST['save_profile']))
 {
-  if (!verify_ephemeral_key(@$_POST['key']))
-  {
-    array_push($page['errors'], 'Invalid/expired form key');
-    print_page();
-  }
-  
   $sets_user = $sets_infos = array();
   
   if ($conf['allow_profile'])
@@ -188,9 +183,10 @@ UPDATE '.USER_INFOS_TABLE.'
   
   // reload the profile
   $user = build_user($user['id']);
-  
+  unset($_GET['new']);
   array_push($page['infos'], 'Profile saved.');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         PROFILE PAGE
@@ -206,11 +202,15 @@ if ( isset($_GET['user_id']) )
   
   if (!$local_user)
   {
-    array_push($page['errors'], 'Wrong user id!');
+    array_push($page['errors'], 'Wrong user id! <a href="javascript:history.back();">Go Back</a>.');
+    $template->close('messages');
   }
   else
   {
-    $page['window_title'] = $page['title'] = $local_user['username'];
+    $template->assign(array(
+      'WINDOW_TITLE' => $local_user['username'],
+      'PAGE_TITLE' => $local_user['username'],
+      ));
   }
 }
 else if (!is_guest())
@@ -218,167 +218,54 @@ else if (!is_guest())
   $local_user = $user;
   define('PRIVATE_PROFILE', true);
   
-  $page['window_title'] = $page['title'] = 'Profile';
+  $template->assign(array(
+      'WINDOW_TITLE' => 'Profile',
+      'PAGE_TITLE' => 'Profile',
+      'IS_PRIVATE' => true,
+      ));
 
   if (isset($_GET['new']))
   {
     array_push($page['infos'], '<b>Welcome on '.strip_tags($conf['install_name']).' !</b> Your registration is almost complete...<br>
       Before all please say us what languages you can speak, this way your registration as translator will be faster.
       ');
+    $template->assign('IS_NEW', true);
   }
 }
 else
 {
   redirect('index.php');
 }
-  
-if ($local_user)
+
+
+/* public profile */
+foreach ($local_user['languages'] as $lang)
 {
-  /* public profile */
-  echo '
-  <form action="" method="post"> 
-    <fieldset class="common">
-      <legend>Public profile</legend>
-      <table class="login">
-        <tr>
-          <td>Username :</td>
-          <td>'.$local_user['username'].'</td>
-        </tr>
-        <tr>
-          <td>Status :</td>
-          <td><i>'.$local_user['status'].'</i></td>
-        </tr>';
-        if ($local_user['email_privacy'] == 'public')
-        {
-          echo '
-          <tr>
-            <td>E-mail :</td>
-            <td><i><a href="mailto:'.$local_user['email'].'">'.$local_user['email'].'</a></i></td>
-          </tr>';
-        }
-        echo '
-        <tr>
-          <td>Languages assigned :</td>
-          <td>';
-          $f=1;
-          foreach ($local_user['languages'] as $lang)
-          {
-            if(!$f)echo ', ';$f=0;
-            echo '
-            <a href="'.get_url_string(array('language'=>$lang), true, 'language').'" title="'.get_language_name($lang).'" class="clean">'.get_language_flag($lang, 'name').'</a>';
-          }
-          echo '</td>
-        </tr>
-        <tr>
-          <td>Projects assigned :</td>
-          <td>';
-          $f=1;
-          foreach (array_diff($local_user['projects'], $local_user['manage_projects']) as $project)
-          {
-            if(!$f)echo ', ';$f=0;
-            echo '
-            <a href="'.get_url_string(array('project'=>$project), true, 'project').'" class="clean">'.get_project_name($project).'</a>';
-          }
-          echo '</td>
-        </tr>';
-      if ($local_user['status'] == 'manager')
-      {
-        echo '
-        <tr>
-          <td>Projects managed :</td>
-          <td>';
-          $f=1;
-          foreach ($local_user['manage_projects'] as $project)
-          {
-            if(!$f)echo ', ';$f=0;
-            echo '
-            <a href="'.get_url_string(array('project'=>$project), true, 'project').'" class="clean">'.get_project_name($project).'</a>';
-          }
-          echo '</td>
-        </tr>';
-      }
-      echo '
-      </table>
-    </fieldset>';
-    
-    /* registration */
-    if ( defined('PRIVATE_PROFILE') and $conf['allow_profile'] )
-    {
-      echo '
-      <fieldset class="common">
-        <legend>Registration</legend>
-        <table class="login">
-          <tr>
-            <td><label for="email">Email address :</label></td>
-            <td><input type="text" name="email" id="email" size="25" maxlength="64" value="'.$local_user['email'].'"></td>
-          </tr>
-          <tr>
-            <td><label for="password_new">New password :</label></td>
-            <td><input type="password" name="password_new" id="password_new" size="25" maxlength="32"> <i>(leave blank to not change)</i></td>
-          </tr>
-          <tr>
-            <td><label for="password_confirm">Confirm password :</label></td>
-            <td><input type="password" name="password_confirm" id="password_confirm" size="25" maxlength="32"></td>
-          </tr>
-          <tr>
-            <td><label for="password">Current password :</label></td>
-            <td><input type="password" name="password" id="password" size="25" maxlength="32"></td>
-          </tr>
-        </table>
-      </fieldset>';
-    }
-    
-    /* preference */
-    if (defined('PRIVATE_PROFILE'))
-    {
-      echo '    
-      <fieldset class="common">
-        <legend>Preferences</legend>
-        <table class="login">
-          <tr>
-            <td>Languages I speak :</td>
-            <td>
-            '.(isset($_GET['new']) ? '<div class="ui-state-warning ui-corner-all" style="padding:5px;"> <span class="ui-icon ui-icon-info" style="float:left; margin:3px 5px 0 0;"></span>' : null).'
-              <select id="my_languages" name="my_languages[]" multiple="multiple" data-placeholder="Select languages..." style="width:500px;">';
-              foreach ($conf['all_languages'] as $row)
-              {
-                if ($row['id'] == $conf['default_language']) continue;
-                echo '
-                <option'.(in_array($row['id'],$user['my_languages']) ? ' selected="selected"' : null).' value="'.$row['id'].'" style="color:#111 !important;">'.$row['name'].'</option>';
-              }
-              echo '
-              </select>
-              <br>
-              <i>(please note this only for information, this doesn\'t change languages you have access to)</i>
-            '.(isset($_GET['new']) ? '</div>' : null).'
-            </td>
-          </tr>
-          <tr>
-            <td><label for="nb_rows">Number of rows per page :</label></td>
-            <td><input type="text" name="nb_rows" id="nb_rows" size="3" maxlength="3" value="'.$user['nb_rows'].'"></td>
-          </tr>
-          <tr>
-            <td>Email visibility :</td>
-            <td>
-              <label><input type="radio" name="email_privacy" value="public" '.($user['email_privacy']=='public' ? 'checked="checked"' : null).'> All registered users can view my email and send me messages</label><br>
-              <label><input type="radio" name="email_privacy" value="hidden" '.($user['email_privacy']=='hidden' ? 'checked="checked"' : null).'> Only admins can view my email and registered users can send me messages through Lexiglot</label><br>
-              <label><input type="radio" name="email_privacy" value="private" '.($user['email_privacy']=='private' ? 'checked="checked"' : null).'> Only admins can view my email and send me messages</label>
-            </td>
-          </tr>
-          <tr>
-            <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"></td>
-            <td><input type="submit" name="save_profile" value="Submit" class="blue"></td>
-          </tr>
-        </table>
-      </fieldset>';
-    
-      load_jquery('chosen');  
-      $page['script'].= '
-      $("#my_languages").chosen();';
-    }
-    
-    /* activity */
-    $query = '
+  $template->append('languages', array(
+    'NAME' => get_language_name($lang),
+    'FLAG' => get_language_flag($lang, 'name'),
+    'URL' => get_url_string(array('language'=>$lang), true, 'language'),
+    ));
+}
+
+foreach (array_diff($local_user['projects'], $local_user['manage_projects']) as $project)
+{
+  $template->append('projects', array(
+    'NAME' => get_project_name($project),
+    'URL' => get_url_string(array('project'=>$project), true, 'project'),
+    ));
+}
+
+foreach ($local_user['manage_projects'] as $project)
+{
+  $template->append('manage_projects', array(
+    'NAME' => get_project_name($project),
+    'URL' => get_url_string(array('project'=>$project), true, 'project'),
+    ));
+}
+
+/* stats */
+$query = '
 SELECT 
     COUNT(*) AS total,
     LEFT(last_edit, 10) as day
@@ -387,91 +274,31 @@ SELECT
   GROUP BY day
   ORDER BY last_edit ASC
 ;';
-    $plot = hash_from_query($query);
-    
-    if (count($plot) > 0)
-    {
-      echo '
-      <fieldset class="common">
-        <legend>Activity</legend>
-        <div id="highstock" style="height: 350px;"></div>
-      </fieldset>';
-    
-      $json = array();
-      foreach ($plot as $row)
-      {
-        list($year, $month, $day) = explode('-', $row['day']);
-        if (!isset($json[0])) $json[0] = null;
-        $json[0].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
-      }
-      
-      // version displaying separated languages
-      // $json = array();
-      // foreach ($plot as $row)
-      // {
-        // list($year, $month, $day) = explode('-', $row['day']);
-        // if (!isset($json[ $row['language'] ])) $json[ $row['language'] ] = null;
-        // $json[ $row['language'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
-      // }
-      
-      load_jquery('highstock');
-      $page['script'].= '
-      $(function() {
-        window.chart = new Highcharts.StockChart({
-          chart : {
-            renderTo : "highstock",
-          },
+$plot = hash_from_query($query);
 
-          rangeSelector : {
-            buttons: [
-              {type: "month", count: 1, text: "1 month"}, 
-              {type: "month", count: 3, text: "3 months"}, 
-              {type: "month", count: 6, text: "6 months"}, 
-              {type: "year", count: 1, text: "1 year"}, 
-              {type: "year", count: 2, text: "2 years"}, 
-              {type: "all", text: "All"}
-            ],
-            buttonTheme: { width: 80},
-            selected : 0,
-          },
-          
-          scrollbar: {
-            barBackgroundColor: "#999",
-            barBorderRadius: 7,
-            barBorderWidth: 0,
-            rifleColor: "#333",
-            buttonBackgroundColor: "#999",
-            buttonBorderWidth: 0,
-            buttonBorderRadius: 7,
-            buttonArrowColor: "#333",
-            trackBackgroundColor: "none",
-            trackBorderWidth: 1,
-            trackBorderRadius: 8,
-            trackBorderColor: "#CCC",
-          },
-          
-          navigator: {
-            handles: {
-              backgroundColor: "#999",
-              borderColor: "#555",
-            },
-          },
-          
-          series : [';
-          foreach ($json as $lang => $data)
-          {
-            $page['script'].= '
-            {
-              name : "'.$lang.'",
-              data : ['.$data.'],
-            },';
-          }
-          $page['script'].= '
-          ],
-        });
-      });';
-    
-      /*$query = '
+if (count($plot) > 0)
+{    
+  $json = array();
+  foreach ($plot as $row)
+  {
+    list($year, $month, $day) = explode('-', $row['day']);
+    if (!isset($json[0])) $json[0] = null;
+    $json[0].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
+  }
+  
+  // version displaying separated languages
+  // $json = array();
+  // foreach ($plot as $row)
+  // {
+    // list($year, $month, $day) = explode('-', $row['day']);
+    // if (!isset($json[ $row['language'] ])) $json[ $row['language'] ] = null;
+    // $json[ $row['language'] ].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
+  // }
+  
+  $template->assign('stats', $json);
+}
+
+/*$query = '
 SELECT 
     language,
     project, 
@@ -484,84 +311,57 @@ SELECT
   ORDER BY last_edit DESC
   LIMIT 0,10
 ;';
-      $recent = hash_from_query($query, null);
-      
-      echo '
-      <fieldset class="common">
-        <legend>Activity</legend>
-        <table class="common">';
-          foreach ($recent as $row)
-          {
-            echo '
-            <tr>
-              <td>'.format_date($row['date'],0,0).'</td>
-              <td><b>'.$row['count'].'</b> string(s)</td>
-              <td><i>'.get_project_name($row['project']).'</i></td>
-              <td><i>'.get_language_name($row['language']).'</i></td>
-            </tr>';
-          }
-          if (!count($recent))
-          {
-            echo '
-            <tr><td>No recent activity</td></tr>';
-          }
-        echo '
-        </table>
-      </fieldset>';*/
-    }
-    
-    /* contact */
-    if ( 
-      !defined('PRIVATE_PROFILE') and 
-      (
-        is_admin() or 
-        ( !is_guest() and $local_user['email_privacy'] != 'private' ) 
-      )
-    )
+$recent = hash_from_query($query, null);
+
+echo '
+<fieldset class="common">
+  <legend>Activity</legend>
+  <table class="common">';
+    foreach ($recent as $row)
     {
-      echo'
-      <fieldset class="common">
-        <legend>Send e-mail</legend>
-          <table class="login">
-          <tr>
-            <td>Subject :</td>
-            <td><input type="text" name="subject" style="width:500px;" value="'.@$_POST['subject'].'"></td>
-          </tr>
-          <tr>
-            <td>Message :</td>
-            <td><textarea name="message" style="width:500px;" rows="6" maxsize="70">'.@$_POST['message'].'</textarea></td>
-          </tr>
-          <tr>
-            <td></td>
-            <td>Pease note that by using this form, your e-mail address will be disclosed to the recipient.</td>
-          </tr>
-          <tr>
-            <td><input type="hidden" name="key" value="'.get_ephemeral_key(2).'"><input type="hidden" name="user_id" value="'.$local_user['id'].'"></td>
-            <td><input type="submit" name="send_message" value="Send" class="blue"></td>
-          </tr>
-        </table>
-      </fieldset>';
-      
-      load_jquery('autoresize');
-      $page['script'].= '
-      $("textarea").autoResize({
-        maxHeight:2000,
-        extraSpace:11
-      });';
+      echo '
+      <tr>
+        <td>'.format_date($row['date'],0,0).'</td>
+        <td><b>'.$row['count'].'</b> string(s)</td>
+        <td><i>'.get_project_name($row['project']).'</i></td>
+        <td><i>'.get_language_name($row['language']).'</i></td>
+      </tr>';
     }
-    
+    if (!count($recent))
+    {
+      echo '
+      <tr><td>No recent activity</td></tr>';
+    }
   echo '
-  </form>';
+  </table>
+</fieldset>';*/
+    
+/* contact */
+if ( 
+  !defined('PRIVATE_PROFILE') and 
+  (
+    is_admin() or 
+    ( !is_guest() and $local_user['email_privacy'] != 'private' ) 
+  )
+)
+{
+  $template->assign('contact', array(
+    'SUBJECT' => @$_POST['subject'],
+    'CONTENT' => @$_POST['message'],
+    ));
 }
 
-load_jquery('tiptip');
 
-$page['script'].= '
-  $(".flag").parent("a").css("cursor", "help").tipTip({ 
-    maxWidth:"600px",
-    delay:200,
-    defaultPosition:"top"
-  });';
+$template->assign(array(
+  'all_languages' => simple_hash_from_array($conf['all_languages'], 'id', 'name'),
+  'user' => $local_user,
+  'KEY' => get_ephemeral_key(2),
+  ));
 
-print_page();
+
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('profile');
+
 ?>
