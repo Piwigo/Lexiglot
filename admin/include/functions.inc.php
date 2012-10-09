@@ -93,6 +93,30 @@ function session_search(&$search, $name, $exclude_from_query=array())
 }
 
 /**
+ * format search array for template usage
+ * @param: array search
+ * @return: array tpl search
+ */
+function search_to_template($search)
+{
+  $out = array();
+  
+  foreach ($search as $field => $data)
+  {
+    if ($data[0] == '%')
+    {
+      $out[$field] = str_replace('%', '*', $data[1]);
+    }
+    else if ($data[0] == '=')
+    {
+      $out[$field] = $data[1];
+    }
+  }
+  
+  return $out;
+}
+
+/**
  * simple access to the value of a search field
  * @param: string key
  * @return: mixed

@@ -28,7 +28,7 @@ include(LEXIGLOT_PATH . 'admin/include/functions.inc.php');
 if ( !is_manager() and !is_admin() )
 {
   array_push($page['errors'], 'Your are not allowed to view this page. <a href="user.php?login">Login</a>.');
-  print_page();
+  $template->close('messages');
 }
 
 if (is_manager())
@@ -84,28 +84,34 @@ else
   $page['page'] = 'history';
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS
 // +-----------------------------------------------------------------------+
 // page title
-$page['window_title'] = $page['title'] = 'Admin';
+$template->assign(array(
+  'WINDOW_TITLE' => 'Admin',
+  'PAGE_TITLE' => 'Admin',
+  ));
 
 // tabsheet
-$tabsheet['param'] = 'page';
-$tabsheet['selected'] = $page['page'];
+include_once(LEXIGLOT_PATH . 'include/tabsheet.inc.php');
+$tabsheet = new Tabsheet('ADMIN', 'page');
 foreach ($pages as $file => $name)
 {
-  $tabsheet['tabs'][ $file ] = array($name, null, true);
+  $tabsheet->add($file, $name, null, true);
 }
 if ( !array_key_exists($page['page'], $pages) )
 {
-  $tabsheet['tabs'][ $page['page'] ] = array($sub_pages[ $page['page'] ]);
+  $tabsheet->add($page['page'], $sub_pages[ $page['page'] ], null, array());
 }
+$tabsheet->select($page['page']);
+$tabsheet->render();
+
 
 // +-----------------------------------------------------------------------+
 // |                         MAIN
 // +-----------------------------------------------------------------------+
 include(LEXIGLOT_PATH . 'admin/'.$page['page'].'.php');
 
-print_page();
 ?>

@@ -21,6 +21,7 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
+
 // +-----------------------------------------------------------------------+
 // |                         ACTIONS
 // +-----------------------------------------------------------------------+
@@ -30,12 +31,12 @@ if (!empty($_GET['action']))
   {
     case 'optimize_db' :
     {
-      $result = mysql_query("SHOW TABLE STATUS FROM ". DB_NAME ."");
+      $result = mysql_query('SHOW TABLE STATUS FROM '. DB_NAME .';');
       while ($table = mysql_fetch_assoc($result))
       {
         if (strstr($table['Name'], DB_PREFIX) != false)
         {
-          mysql_query("OPTIMIZE TABLE ".$table['Name']);
+          mysql_query('OPTIMIZE TABLE '.$table['Name'].';');
         }
       }
       array_push($page['infos'], 'Database cleaned');
@@ -84,7 +85,7 @@ DELETE FROM '.ROWS_TABLE.'
     
     case 'clean_mail_history' :
       mysql_query('TRUNCATE TABLE '.MAIL_HISTORY_TABLE.';');
-      array_push($page['infos'],'Mail archive cleaned');
+      array_push($page['infos'], 'Mail archive cleared');
       break;
   }
 }
@@ -99,7 +100,7 @@ list($db_current_date) = mysql_fetch_row(mysql_query('SELECT NOW();'));
 // database space and tables size
 $db_tables = array();
 $db_size = $db_free = 0;
-$result = mysql_query("SHOW TABLE STATUS FROM ". DB_NAME ."");
+$result = mysql_query('SHOW TABLE STATUS FROM '. DB_NAME .';');
 while ($table = mysql_fetch_assoc($result))
 {
   if (strstr($table['Name'], DB_PREFIX) != false)
@@ -132,35 +133,26 @@ list($nb_unused_categories) = mysql_fetch_row(mysql_query($query));
 // +-----------------------------------------------------------------------+
 // |                         TEMPLATE
 // +-----------------------------------------------------------------------+
-echo '
-<div id="maintenance">
-  <ul style="float:left;">
-    <h5>Environement</h5>
-    <li><b>Lexiglot version :</b> '.$conf['version'].'</li>
-    <li><b>PHP :</b> '.phpversion().' ['.date("Y-m-d H:i:s").']</li>
-    <li><b>MySQL :</b> '.mysql_get_server_info().' ['.$db_current_date.']</li>
-  </ul>
+$template->assign(array(
+  'PHP_INFO' => phpversion().' ['.date("Y-m-d H:i:s").']',
+  'MYSQL_INFO' => mysql_get_server_info().' ['.$db_current_date.']',
+  'DATABASE' => array(
+    'used_space' => round($db_size/1024,2),
+    'free_space' => round($db_free/1024,2),
+    'optimize_uri' => get_url_string(array('action'=>'optimize_db')),
+    ),
+  'TABLES' => $db_tables,
+  'UNUSED_CATS' => $nb_unused_categories,
+  'DELETE_UNUSED_CATS_URI' => get_url_string(array('action'=>'delete_unused_categories')),
+  'MAKE_STATS_URI' => get_url_string(array('action'=>'make_stats')),
+  'DELETE_DONE_ROWS_URI' => get_url_string(array('action'=>'delete_done_rows')),
+  'CLEAN_MAIL_URI' => get_url_string(array('action'=>'clean_mail_history')),
+  ));
 
-  <ul style="float:right;">
-    <h5>Database</h5>
-    <li><b>Used space :</b> '.round($db_size/1024,2).' Kio
-      '.($db_free != 0 ? '(waste : '.round($db_free/1024,2).' Kio, <a href="'.get_url_string(array('action'=>'optimize_db')).'">Clean</a>)' : null).'</li>
-    <li><b>Users :</b> '.$db_tables['user_infos'].'</li>
-    <li><b>Projects :</b> '.$db_tables['projects'].'</li>
-    <li><b>Languages :</b> '.$db_tables['languages'].'</li>
-    '.(!$conf['delete_done_rows'] ? '<li><b>Translations :</b> '.$db_tables['rows'].'</li>' : null).'
-    <li><b>Categories :</b> '.$db_tables['categories'].'
-      '.($nb_unused_categories != 0 ? '('.$nb_unused_categories.' unused, <a href="'.get_url_string(array('action'=>'delete_unused_categories')).'">Delete</a>)' : null).'</li>
-  </ul>
-  
-  <ul style="float:left;">
-    <h5>Maintenance</h5>
-    <li><a href="'.get_url_string(array('action'=>'make_stats')).'">Update all statistics</a></li>
-    '.(!$conf['delete_done_rows'] ? '<li><a href="'.get_url_string(array('action'=>'delete_done_rows')).'" onclick="return confirm(\'Are you sure?\');">Delete all commited strings</a></li>' : null).'
-    <li><a href="'.get_url_string(array('action'=>'clean_mail_history')).'">Clean mail archive</a></li>
-  </ul>
-  
-  <div style="clear:both;"></div>
-</div>';
+
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('admin/maintenance');
 
 ?>

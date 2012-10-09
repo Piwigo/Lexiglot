@@ -21,6 +21,7 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
+
 // +-----------------------------------------------------------------------+
 // |                         DELETE ROW
 // +-----------------------------------------------------------------------+
@@ -30,6 +31,7 @@ if ( isset($_GET['delete_row']) and is_numeric($_GET['delete_row']) )
   mysql_query($query);
   array_push($page['infos'], 'Translation deleted.');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         ACTIONS
@@ -74,6 +76,7 @@ UPDATE '.ROWS_TABLE.'
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
@@ -88,6 +91,13 @@ $search = array(
 
 $where_clauses = session_search($search, 'history_search', array('limit'));
 
+$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
+if (is_manager())
+{
+  array_push($where_clauses, 'project IN("'.implode('","', array_keys($displayed_projects)).'")');
+}
+
+
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
@@ -101,23 +111,23 @@ list($total) = mysql_fetch_row(mysql_query($query));
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav');
 
+
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
 // +-----------------------------------------------------------------------+
-$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
-
-if (is_manager())
-{
-  array_push($where_clauses, 'r.project IN("'.implode('","', array_keys($displayed_projects)).'")');
-}
-
 $query = '
 SELECT 
     r.*,
-    u.'.$conf['user_fields']['username'].' as username
-  FROM '.ROWS_TABLE.' as r
-    INNER JOIN '.USERS_TABLE.' as u
+    u.'.$conf['user_fields']['username'].' AS username,
+    l.name AS language_name,
+    p.name AS project_name
+  FROM '.ROWS_TABLE.' AS r
+    INNER JOIN '.USERS_TABLE.' AS u
     ON r.user_id = u.'.$conf['user_fields']['id'].'
+    INNER JOIN '.LANGUAGES_TABLE.' AS l
+    ON r.language = l.id
+    INNER JOIN '.PROJECTS_TABLE.' AS p
+    ON r.project = p.id
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
   ORDER BY r.last_edit DESC
@@ -131,239 +141,33 @@ $_USERS = get_users_list(
   array('i.status IN( "translator", "manager", "admin" )'), null
   );
 
+
+
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// search rows
-echo '
-<form action="admin.php?page=log" method="post">
-<fieldset class="common">
-  <legend>Search</legend>
+foreach ($_ROWS as $row)
+{
+  $row['time'] = strtotime($row['last_edit']);
+  $row['date'] = format_date($row['last_edit'], true, false);
+  $row['trucated_value'] = cut_string(htmlspecialchars($row['row_value']), 400);
+  $row['delete_uri'] = get_url_string(array('delete_row'=>$row['id']));
   
-  <table class="search">
-    <tr>
-      <th>User</th>
-      <th>Language</th>
-      <th>Project</th>
-      <th>Status</th>
-      <th>Entries</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td>
-        <select name="user_id">
-          <option value="-1" '.(-1==get_search_value('user_id')?'selected="selected"':'').'>-------</option>';
-          foreach ($_USERS as $row)
-          {
-            echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('user_id')?'selected="selected"':'').'>'.$row['username'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td>
-        <select name="language">
-          <option value="-1" '.(-1==get_search_value('language')?'selected="selected"':'').'>-------</option>';
-          foreach ($conf['all_languages'] as $row)
-          {
-            echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('language')?'selected="selected"':'').'>'.$row['name'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td>
-        <select name="project">
-          <option value="-1" '.(-1==get_search_value('project')?'selected="selected"':'').'>-------</option>';
-          foreach ($displayed_projects as $row)
-          {
-            echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('project')?'selected="selected"':'').'>'.$row['name'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td>
-        <select name="status">
-          <option value="-1" '.(-1==get_search_value('status')?'selected="selected"':'').'>-------</option>
-          <option value="new" '.('new'==get_search_value('status')?'selected="selected"':'').'>Added</option>
-          <option value="edit" '.('edit'==get_search_value('status')?'selected="selected"':'').'>Modified</option>
-          <option value="done" '.('done'==get_search_value('status')?'selected="selected"':'').'>Commited</option>
-        </select>
-      </td>
-      <td>
-        <input type="text" size="3" name="limit" value="'.get_search_value('limit').'">
-      </td>
-      <td>
-        <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Reset">
-      </td>
-    </tr>
-  </table>
-</fieldset>
-</form>';
-
-// rows list
-echo '
-<form action="admin.php?page=log" method="post" id="last_modifs">
-<fieldset class="common">
-  <legend>History</legend>
-  
-  <table class="common tablesorter">
-    <thead>
-      <tr>
-        <th class="chkb"></th>
-        <th class="language">Language</th>
-        <th class="project">Project</th>
-        <th class="file">File</th>
-        <th class="user">User</th>
-        <th class="date">Date</th>
-        <th class="value">Content</th>
-        <th class="actions"></th>
-      </tr>
-    </thead>
-    <tbody>';
-    foreach ($_ROWS as $row)
-    {
-      echo '
-      <tr class="'.$row['status'].'">
-        <td class="chkb">
-          <input type="checkbox" name="select[]" value="'.$row['id'].'">
-        </td>
-        <td class="language">
-          <a href="'.get_url_string(array('language'=>$row['language']), true, 'language').'">'.get_language_name($row['language']).'</a>
-        </td>
-        <td class="project">
-          <a href="'.get_url_string(array('project'=>$row['project']), true, 'project').'">'.get_project_name($row['project']).'</a>
-        </td>
-        <td class="file">
-          '.$row['file_name'].'
-        </td>
-        <td class="user">
-          <a href="'.get_url_string(array('user_id'=>$row['user_id']), true, 'profile').'">'.$row['username'].'</a>
-        </td>
-        <td class="date">
-          <span style="display:none;">'.strtotime($row['last_edit']).'</span>'.format_date($row['last_edit'], true, false).'
-        </td>
-        <td class="value">
-          <pre class="row_value" title="'.str_replace('"',"'",$row['row_name']).'">'.cut_string(htmlspecialchars($row['row_value']), 400).'</pre>
-        </td>
-        <td class="actions">
-          <a href="'.get_url_string(array('delete_row'=>$row['id'])).'" title="Delete this row">
-            <img src="template/images/cross.png" alt="[x]"></a>
-        </td>
-      </tr>';
-    }
-    if (count($_ROWS) == 0)
-    {
-      echo '
-      <tr>
-        <td colspan="8"><i>No results</i></td>
-      </tr>';
-    }
-    echo '
-    </tbody>
-  </table>
-  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
-  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
-</fieldset>
-
-<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
-  <legend>Global action <span class="unselectAll">[close]</span></legend>
-  
-  <select name="selectAction">
-    <option value="-1">Choose an action...</option>
-    <option disabled="disabled">------------------</option>
-    <option value="delete_rows">Delete</option>
-    <option value="mark_as_done">Mark as commited</option>
-  </select>
-  
-  <span id="action_delete_rows" class="action-container">
-    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
-  </span>
-  
-  <span id="action_apply" class="action-container">
-    <input type="submit" name="apply_action" class="blue" value="Apply">
-  </span>
-</fieldset>
-
-</form>
-
-<table class="legend">
-  <tr>
-    <td><span>&nbsp;</span> Commited strings</td>
-    <td><span class="new">&nbsp;</span> Added strings</td>
-    <td><span class="edit">&nbsp;</span> Modified strings</td>
-  </tr>
-</table>';
-
-
-// +-----------------------------------------------------------------------+
-// |                        SCRIPTS
-// +-----------------------------------------------------------------------+
-load_jquery('tablesorter');
-load_jquery('tiptip');
-
-$page['script'].= '
-$(".row_value").tipTip({ 
-  maxWidth:"600px",
-  delay:200,
-  defaultPosition:"left"
-});
-
-$("#last_modifs table").tablesorter({
-  sortList: [[5,1]],
-  headers: { 0: {sorter: false}, 6: {sorter: false}, 7: {sorter: false} },
-  widgets: ["zebra"]
-});
-
-/* actions */
-function checkPermitAction() {
-  var nbSelected = 0;
-
-  $("td.chkb input[type=checkbox]").each(function() {
-     if ($(this).is(":checked")) {
-       nbSelected++;
-     }
-  });
-
-  if (nbSelected == 0) {
-    $("#permitAction").hide();
-  } else {
-    $("#permitAction").show();
-  }
+  $template->append('ROWS', $row);
 }
 
-$("[id^=action_]").hide();
+$template->assign(array(
+  'SEARCH' => search_to_template($search),
+  'displayed_projects' => $displayed_projects,
+  'PAGINATION' => display_pagination($paging, 'nav'),
+  'USERS' => $_USERS,
+  ));
 
-$("td.chkb input[type=checkbox]").change(function () {
-  checkPermitAction();
-});
 
-$(".selectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", true);
-  });
-  checkPermitAction();
-  return false;
-});
-$(".unselectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", false);
-  });
-  checkPermitAction();
-  return false;
-});
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('admin/history');
 
-$("select[name=selectAction]").change(function() {
-  $("[id^=action_]").hide();
-  $("#action_"+$(this).attr("value")).show();
-
-  if ($(this).val() != -1) {
-    $("#action_apply").show();
-  } else {
-    $("#action_apply").hide();
-  }
-});';
 
 ?>

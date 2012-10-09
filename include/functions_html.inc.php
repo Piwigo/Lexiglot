@@ -38,9 +38,9 @@ function js_popup($url, $title=null, $height=600, $width=480, $top=0, $left=0)
  * @param bool add popup link
  * @return string
  */
-function cut_string($string, $limit, $popup=true)
+function cut_string($string, $limit, $popup=true, $tpl_var='ROW_POPUP')
 {
-  global $page;
+  global $page, $template;
   
   if ( strlen(str_replace("\r\n", "\n", $string)) > $limit )
   {
@@ -48,21 +48,20 @@ function cut_string($string, $limit, $popup=true)
     {
       $md5 = md5($string);
     
-      $page['script'].= '
-      $("#content-'.$md5.'").dialog({
-        autoOpen: false, modal:true,
-        width: 600, height: 600,
-        hide:"clip", show:"clip",
-        buttons: { "Close": function() { $( this ).dialog( "close" ); } }
-      });
-      
-      $("#link-'.$md5.'").click(function() {
-        $("#content-'.$md5.'").dialog( "open" );
-        return false;
-      });';
+      $template->block_footer_script(array(), '
+$("#content-'.$md5.'").dialog({
+  autoOpen: false, modal:true,
+  width: 600, height: 600,
+  hide:"clip", show:"clip",
+  buttons: { "Close": function() { $( this ).dialog( "close" ); } }
+});
 
-      $page['begin'].= '
-      <div id="content-'.$md5.'" style="white-space:pre-wrap;display:none;">'.$string.'</div>';
+$("#link-'.$md5.'").click(function() {
+  $("#content-'.$md5.'").dialog( "open" );
+  return false;
+});');
+
+      $template->concat($tpl_var, '<div id="content-'.$md5.'" style="white-space:pre-wrap;display:none;">'.$string.'</div>');
 
       return substr($string, 0, $limit).'...<br><a id="link-'.$md5.'" href="#">Show full text</a>';
     }
@@ -240,7 +239,7 @@ function htmlspecialchars_utf8($string)
   {
     return utf8_encode($string);
   }
-  return htmlspecialchars($string);
+  return htmlspecialchars($string, ENT_NOQUOTES);
 }
 
 /**

@@ -82,7 +82,7 @@
   
   
 {if count($DIFFS)>=20}
-  <div class="pagination">'.display_pagination($paging).'</div>
+  <div class="pagination">{$PAGINATION}</div>
 {/if}
 
 {if $IS_TRANSLATOR and count($DIFFS)!=0}

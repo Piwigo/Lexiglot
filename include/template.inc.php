@@ -65,6 +65,9 @@ class Template
     $this->smarty->register_function('get_combined_css', array(&$this, 'func_get_combined_css') );
     
     $this->smarty->register_function('ui_message', array(&$this, 'func_ui_message') );
+    
+    $TemplateAdapter = new TemplateAdapter();
+    $this->assign('lex', $TemplateAdapter);
   }
   
   /**
@@ -415,6 +418,53 @@ class Template
   <span class="ui-icon ui-icon-'. $params['icon'] .'"></span>
   '. $params['content'] .'
 </div>';
+  }
+}
+
+
+/**
+ * adapter for core functiosn access from the template
+ */
+class TemplateAdapter
+{
+  function language_name($lang, $force=false)
+  {
+    return get_language_name($lang, $force);
+  }
+  
+  function language_flag($lang)
+  {
+    return get_language_flag($lang);
+  }
+  
+  function language_url($lang)
+  {
+    return get_language_url($lang);
+  }
+  
+  function project_name($proj)
+  {
+    return get_project_name($proj);
+  }
+  
+  function project_url($proj)
+  {
+    return get_project_url($proj);
+  }
+  
+  function username($user)
+  {
+    return get_username($user);
+  }
+  
+  function user_status($user=null)
+  {
+    return get_user_status($user);
+  }
+  
+  function user_url($user)
+  {
+    return get_user_url($user);
   }
 }
 

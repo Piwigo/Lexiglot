@@ -374,6 +374,14 @@ function get_language_ref($lang)
 }
 
 /**
+ * build language page url
+ */
+function get_language_url($lang)
+{
+  return get_url_string(array('language'=>$lang), true, 'language');
+}
+
+/**
  * get project name
  * @param string project
  */
@@ -401,10 +409,18 @@ function get_project_rank($project)
  * get project url
  * @param string project
  */
-function get_project_url($project)
+function get_project_website($project)
 {
   global $conf;
   return (string)@$conf['all_projects'][$project]['url'];
+}
+
+/**
+ * build project page url
+ */
+function get_project_url($project)
+{
+  return get_url_string(array('project'=>$project), true, 'project');
 }
 
 /**
@@ -537,6 +553,7 @@ function get_fulltext_words($needle)
   $str = preg_replace('#[\&\#\"\{\(\[\-\|\_\\\@\)\]\+\=\}\*\,\?\;\.\:\/\!]#', ' ', $needle);
   $str = preg_replace('#[\s]+#',' ', $str);
   $words = explode(' ', $str);
+  $words = array_filter($words, create_function('$v', 'return !empty($val);'));
   return $words;
 }
 

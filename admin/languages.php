@@ -24,6 +24,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 $highlight_language = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 $deploy_language = null;
 
+
 // +-----------------------------------------------------------------------+
 // |                         DELETE LANG
 // +-----------------------------------------------------------------------+
@@ -63,6 +64,7 @@ DELETE FROM '.LANGUAGES_TABLE.'
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         ACTIONS
 // +-----------------------------------------------------------------------+
@@ -70,6 +72,7 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 {
   include(LEXIGLOT_PATH . 'admin/include/languages.actions.php');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         DELETE FLAG
@@ -89,6 +92,7 @@ UPDATE '.LANGUAGES_TABLE.'
   $highlight_language = $_GET['delete_flag'];
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         MAKE STATS
 // +-----------------------------------------------------------------------+
@@ -101,6 +105,7 @@ if (isset($_GET['make_stats']))
     $highlight_language = $_GET['make_stats'];
   }
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         SAVE LANGS
@@ -180,6 +185,7 @@ UPDATE '.LANGUAGES_TABLE.'
     $deploy_language = $row['id'];
   }
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         ADD LANG
@@ -308,6 +314,7 @@ SELECT user_id
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
@@ -338,6 +345,7 @@ if (get_search_value('flag') != -1)
 }
 
 set_session_var('language_search', serialize($search));
+
 
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
@@ -372,6 +380,7 @@ SELECT x.pos
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);
 
+
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
@@ -390,7 +399,7 @@ SELECT
     l.id ASC
   LIMIT '.$paging['Entries'].'
   OFFSET '.$paging['Start'].'
-;';echo $query;
+;';
 $_LANGS = hash_from_query($query, 'id');
 
 $query = '
@@ -405,337 +414,35 @@ $categories_json = implode(',', array_map(create_function('$row', 'return \'{id:
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// add lang
-echo '
-<form action="admin.php?page=languages" method="post" enctype="multipart/form-data">
-<fieldset class="common">
-  <legend>Add a language</legend>
-  
-  <table class="search">
-    <tr>
-      <th>Id. (folder name) <span class="red">*</span></th>
-      <th>Name <span class="red">*</span></th>
-      <th>Flag</th>
-      <th>Reference</th>
-      <th>Priority</th>
-      <th>Category</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" name="id" size="15"></td>
-      <td><input type="text" name="name" size="20"></td>
-      <td>
-        <input type="file" name="flag">
-        <input type="hidden" name="MAX_FILE_SIZE" value="10240">
-      </td>
-      <td>
-        <select name="ref_id">
-          <option value="" selected="selected">(default)</option>';
-          foreach ($conf['all_languages'] as $lang)
-          {
-            echo '
-          <option value="'.$lang['id'].'">'.$lang['name'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td><input type="text" name="rank" size="2" value="1"></td>
-      <td><input type="text" name="category_id" class="category"></td>
-      <td><input type="submit" name="add_language" class="blue" value="Add"></td>
-    </tr>
-  </table>
-  
-</fieldset>
-</form>';
-
-// search langs
-if (count($_LANGS) or count($where_clauses) > 1)
+ 
+foreach ($_LANGS as $row)
 {
-echo '
-<form action="admin.php?page=languages" method="post">
-<fieldset class="common">
-  <legend>Search</legend>
+  $row['highlight'] = $highlight_language==$row['id'];
+  $row['category_name'] = @$categories[ @$row['category_id'] ]['name'];
+  $row['users_uri'] = get_url_string(array('page'=>'users','lang_id'=>$row['id']), true);
+  $row['make_stats_uri'] = get_url_string(array('make_stats'=>$row['id']));
   
-  <table class="search">
-    <tr>
-      <th>Name</th>
-      <th>Flag</th>
-      <th>Priority</th>
-      <th>Category</th>
-      <th>Entries</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
-      <td>
-        <select name="flag">
-          <option value="-1" '.(-1==get_search_value('flag')?'selected="selected"':'').'>-------</option>
-          <option value="with" '.('with'==get_search_value('flag')?'selected="selected"':'').'>With flag</option>
-          <option value="without" '.('without'==get_search_value('flag')?'selected="selected"':'').'>Without flag</option>
-        </select>
-      </td>
-      <td><input type="text" name="rank" size="2" value="'.get_search_value('rank').'"></td>
-      <td>
-        <select name="category">
-          <option value="-1" '.(-1==get_search_value('category')?'selected="selected"':'').'>-------</option>';
-          foreach ($categories as $row)
-          {
-            echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('category')?'selected="selected"':'').'>'.$row['name'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td><input type="text" name="limit" size="3" value="'.get_search_value('limit').'"></td>
-      <td>
-        <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Reset">
-      </td>
-    </tr>
-  </table>
-</fieldset>
-</form>';
-
-// langs list
-echo '
-<form id="languages" action="admin.php?page=languages'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post" enctype="multipart/form-data">
-<fieldset class="common">
-  <legend>Manage</legend>
-  <table class="common tablesorter">
-    <thead>
-      <tr>
-        <th class="chkb"></th>
-        <th class="name">Name</th>
-        <th class="rank">Priority</th>
-        <th class="category">Category</th>
-        <th class="users">Translators</th>
-        <th class="actions">Actions</th>
-      </tr>
-    </thead>
-    <tbody>';
-    foreach ($_LANGS as $row)
-    {
-      echo '
-      <tr class="main '.($highlight_language==$row['id'] ? 'highlight' : null).'">
-        <td class="chkb">
-          <input type="checkbox" name="select[]" value="'.$row['id'].'">
-        </td>
-        <td class="name">
-          <a href="'.get_url_string(array('language'=>$row['id']), true, 'language').'">'.get_language_flag($row['id'], 'default').' '.$row['name'].'</a>
-        </td>
-        <td class="rank">
-          '.$row['rank'].'
-        </td>
-        <td class="category">
-          '.(!empty($row['category_id']) ? get_category_name($row['category_id']) : null).'
-        </td>
-        <td class="users">
-          <a href="'.get_url_string(array('lang_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
-        </td>
-        <td class="actions">
-          <a href="#" class="expand" data="'.$row['id'].'" title="Edit this language"><img src="template/images/page_white_edit.png" alt="edit"></a>
-          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>';
-          if ($conf['default_language'] != $row['id'])
-          {
-            echo ' <a href="'.get_url_string(array('delete_language'=>$row['id'])).'" title="Delete this language" onclick="return confirm(\'Are you sure?\');">
-            <img src="template/images/cross.png" alt="[x]"></a>';
-          }
-          else
-          {
-            echo ' <span style="display:inline-block;margin-left:5px;width:16px;">&nbsp;</span>';
-          }
-        echo '
-        </td>
-      </tr>';
-    }
-    if (count($_LANGS) == 0)
-    {
-      echo '
-      <tr>
-        <td colspan="6"><i>No results</i></td>
-      </tr>';
-    }
-    echo '
-    </tbody>
-  </table>
-  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
-  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
+  if (!is_default_language($row['id']))
+  {
+    $row['delete_uri'] = get_url_string(array('delete_language'=>$row['id']));
+  }
   
-  <input type="hidden" name="MAX_FILE_SIZE" value="10240">
-</fieldset>
-
-<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
-  <legend>Global action <span class="unselectAll">[close]</span></legend>
-  
-  <select name="selectAction">
-    <option value="-1">Choose an action...</option>
-    <option disabled="disabled">------------------</option>
-    <option value="make_stats">Refresh stats</option>
-    <option value="delete_languages">Delete languages</option>
-    <option value="change_rank">Change priority</option>
-    <option value="change_category">Change category</option>
-  </select>
-  
-  <span id="action_delete_languages" class="action-container">
-    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
-  </span>
-  
-  <span id="action_change_rank" class="action-container">
-    <input type="text" name="batch_rank" size="2">
-  </span>
-  
-  <span id="action_change_category" class="action-container" style="position:relative;top:8px;"> <!-- manually correct the mispositionning of tokeninput block -->
-    <input type="text" name="batch_category_id" class="category">
-  </span>
-  
-  <span id="action_apply" class="action-container">
-    <input type="submit" name="apply_action" class="blue" value="Apply">
-  </span>
-</fieldset>
-</form>';
+  $template->append('LANGS', $row);
 }
+
+$template->assign(array(
+  'SEARCH' => search_to_template($search),
+  'PAGINATION' => display_pagination($paging, 'nav'),
+  'CATEGORIES' => $categories,
+  'CATEGORIES_JSON' => $categories_json,
+  'NAV_PAGE' => !empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null,
+  'DEPLOY_LANGUAGE' => $deploy_language,
+  ));
 
 
 // +-----------------------------------------------------------------------+
-// |                        JAVASCRIPT
+// |                         OUTPUT
 // +-----------------------------------------------------------------------+
-load_jquery('tablesorter');
-load_jquery('tokeninput');
-
-$page['header'].= '
-<script type="text/javascript" src="template/js/functions.js"></script>';
-
-$page['script'].= '
-/* perform ajax request for language edit */
-$("a.expand").click(function() {
-  $trigger = $(this);
-  language_id = $trigger.attr("data");
-  $parent_row = $trigger.parents("tr.main");
-  $details_row = $parent_row.next("tr.details");
-  
-  if (!$details_row.length) {
-    $("a.expand img").attr("src", "template/images/page_white_edit.png");
-    $("tr.details").remove();
-    
-    $trigger.children("img").attr("src", "template/images/page_edit.png");
-    $parent_row.after(\'<tr class="details" id="details\'+ language_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
-    
-    $container = $parent_row.next("tr.details").children("td:last-child");
-
-    $.ajax({
-      type: "POST",
-      url: "admin/ajax.php",
-      data: { "action":"get_language_form", "language_id": language_id }
-    }).done(function(msg) {
-      msg = $.parseJSON(msg);
-      
-      if (msg.errcode == "success") {
-        $container.html(msg.data);
-        $container.find("input.category").tokenInput(json_categories, {
-          tokenLimit: 1,
-          allowCreation: true,
-          hintText: ""
-        });
-      }  else {
-        overlayMessage(msg.data, msg.errcode, $trigger);
-      }
-    });
-  } else {
-    $details_row.remove();
-    $trigger.children("img").attr("src", "template/images/page_white_edit.png");
-  }
-  
-  return false;
-});
-
-/* linked table rows follow hover state */
-$("tr.main").hover(
-  function() { $(this).next("tr.details").addClass("hover"); },
-  function() { $(this).next("tr.details").removeClass("hover"); }
-);
-// this is a live version of above trigger, as "tr.details" are created on the fly
-$(document).on("mouseenter", "tr.details", function() { $(this).prev("tr.main").addClass("hover"); });
-$(document).on("mouseleave", "tr.details", function() { $(this).prev("tr.main").removeClass("hover"); });
-
-/* token input for categories */
-var json_categories = ['.$categories_json.'];
-$("input.category").tokenInput(json_categories, {
-  tokenLimit: 1,
-  allowCreation: true,
-  hintText: ""
-});
-
-/* tablesorter */
-$("#languages table").tablesorter({
-  sortList: [[2,1],[1,0]],
-  headers: { 0: {sorter: false}, 5: {sorter: false} },
-  widgets: ["zebra"]
-})
-.bind("sortStart", function() { 
-  $("tr.details").remove();
-  $("a.expand img").attr("src", "template/images/page_white_edit.png");
-});
-
-/* actions */
-function checkPermitAction() {
-  var nbSelected = 0;
-
-  $("td.chkb input[type=checkbox]").each(function() {
-     if ($(this).is(":checked")) {
-       nbSelected++;
-     }
-  });
-
-  if (nbSelected == 0) {
-    $("#permitAction").hide();
-    $("#save_status").show();
-  } else {
-    $("#permitAction").show();
-    $("#save_status").hide();
-  }
-}
-
-$("[id^=action_]").hide();
-
-$("td.chkb input[type=checkbox]").change(function () {
-  checkPermitAction();
-});
-
-$(".selectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", true);
-  });
-  checkPermitAction();
-  return false;
-});
-$(".unselectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", false);
-  });
-  checkPermitAction();
-  return false;
-});
-
-$("select[name=selectAction]").change(function() {
-  $("[id^=action_]").hide();
-  $("#action_"+$(this).attr("value")).show();
-
-  if ($(this).val() != -1) {
-    $("#action_apply").show();
-  } else {
-    $("#action_apply").hide();
-  }
-});
-
-$("td.id").click(function() {
-  $checkbox = $(this).prev("td.chkb").children("input");
-  $checkbox.attr("checked", !$checkbox.attr("checked"));
-});';
-
-if (!empty($deploy_language))
-{
-  $page['script'].= '
-  $("a.expand[data=\''.$deploy_language.'\']").trigger("click");';
-}
+$template->close('admin/languages');
 
 ?>

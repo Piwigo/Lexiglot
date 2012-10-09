@@ -28,6 +28,11 @@ define('IN_AJAX', 1);
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 
+if ( !is_admin() and !is_manager() )
+{
+  close_ajax('error', 'Hacking attempt!');
+}
+
 if (!isset($_POST['action']))
 {
   close_ajax('error', 'Undefined action');
@@ -141,7 +146,7 @@ SELECT *
 function close_ajax($errcode, $data=null)
 {
   echo json_encode(array('errcode'=>$errcode, 'data'=>$data));
-  close_page();
+  exit;
 }
 
 ?>

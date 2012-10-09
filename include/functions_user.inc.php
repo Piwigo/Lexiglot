@@ -559,25 +559,32 @@ SELECT '.$conf['user_fields']['id'].'
  * @param int identifier
  * @param string username
  */
-function get_username($id)
+function get_username($id=null)
 {
-  global $conf;
+  global $conf, $user;
 
-  $query = '
+  if ($id == null)
+  {
+    return $user['username'];
+  }
+  else
+  {
+    $query = '
 SELECT '.$conf['user_fields']['username'].'
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['id'].' = "'.mres($id).'"
 ;';
-  $result = mysql_query($query);
+    $result = mysql_query($query);
 
-  if (mysql_num_rows($result) == 0)
-  {
-    return false;
-  }
-  else
-  {
-    list($username) = mysql_fetch_row($result);
-    return $username;
+    if (mysql_num_rows($result) == 0)
+    {
+      return false;
+    }
+    else
+    {
+      list($username) = mysql_fetch_row($result);
+      return $username;
+    }
   }
 } 
 
@@ -807,6 +814,14 @@ function is_manager($project=null)
 function is_admin()
 {
   return get_user_status() == 'admin';
+}
+
+/**
+ * build profile url
+ */
+function get_user_url($user_id)
+{
+  return get_url_string(array('user_id'=>$user_id), true, 'profile');
 }
 
 ?>

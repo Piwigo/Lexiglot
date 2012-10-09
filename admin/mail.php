@@ -21,6 +21,7 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
+
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
@@ -34,6 +35,7 @@ $search = array(
   
 $where_clauses = session_search($search, 'mail_search', array('limit'));
 
+
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
 // +-----------------------------------------------------------------------+
@@ -46,6 +48,7 @@ SELECT COUNT(1)
 list($total) = mysql_fetch_row(mysql_query($query));
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav');
+
 
 // +-----------------------------------------------------------------------+
 // |                         GET ROWS
@@ -65,101 +68,27 @@ $_MAILS = hash_from_query($query, null);
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// search rows
-echo '
-<form action="admin.php?page=mail" method="post">
-<fieldset class="common">
-  <legend>Search</legend>
-  
-  <table class="search">
-    <tr>
-      <th>From</th>
-      <th>To</th>
-      <th>Subject</th>
-      <th>Limit</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" size="20" name="from_mail" value="'.get_search_value('from_mail').'"></td>
-      <td><input type="text" size="20" name="to_mail" value="'.get_search_value('to_mail').'"></td>
-      <td><input type="text" size="20" name="subject" value="'.get_search_value('subject').'"></td>
-      <td><input type="text" size="3" name="limit" value="'.get_search_value('limit').'"></td>
-      <td>
-        <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Reset">
-      </td>
-    </tr>
-  </table>
-</fieldset>
-</form>';
+foreach ($_MAILS as $row)
+{
+  $template->append('mails', array(
+    'FROM' => htmlspecialchars($row['from_mail']),
+    'TO' => htmlspecialchars($row['to_mail']),
+    'TIME' => strtotime($row['send_date']),
+    'DATE' => format_date($row['send_date'], true, false),
+    'SUBJECT' => $row['subject'],
+    'HIGHLIGHT' => $row['from_mail']==$conf['system_email'] ? 'highlight' : null
+    ));
+}
 
-// mails list
-echo '
-<form id="mail_history">
-<fieldset class="common">
-  <legend>History</legend>
-  
-  <table class="common tablesorter">
-    <thead>
-      <tr>
-        <th class="from">From</th>
-        <th class="to">To</th>
-        <th class="date">Date</th>
-        <th class="subject">Subject</th>
-      </tr>
-    </thead>
-    <tbody>';
-    foreach ($_MAILS as $row)
-    {
-      echo '
-      <tr class="'.($row['from_mail']==$conf['system_email']?'highlight':null).'">
-        <td class="from">
-          '.htmlspecialchars($row['from_mail']).'
-        </td>
-        <td class="to">
-          '.htmlspecialchars($row['to_mail']).'
-        </td>
-        <td class="date">
-          <span style="display:none;">'.strtotime($row['send_date']).'</span>
-          '.format_date($row['send_date'], true, false).'
-        </td>
-        <td class="subject">
-          '.$row['subject'].'
-        </td>
-      </tr>';
-    }
-    if (count($_MAILS) == 0)
-    {
-      echo '
-      <tr>
-        <td colspan="4"><i>No results</i></td>
-      </tr>';
-    }
-    echo '
-    </tbody>
-  </table>
-  
-  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
-</fieldset>
-</form>
-
-<table class="legend">
-  <tr>
-    <td><span>&nbsp;</span>User mails</td>
-    <td><span class="highlight">&nbsp;</span> System mails</td>
-  </tr>
-</table>';
+$template->assign(array(
+  'SEARCH' => search_to_template($search),
+  'PAGINATION' => display_pagination($paging, 'nav'),
+  ));
 
 
 // +-----------------------------------------------------------------------+
-// |                        SCRIPTS
+// |                         OUTPUT
 // +-----------------------------------------------------------------------+
-load_jquery('tablesorter');
-
-$page['script'].= '
-$("#mail_history table").tablesorter({
-  sortList: [[2,1]],
-  widgets: ["zebra"]
-});';
+$template->close('admin/mail');
 
 ?>

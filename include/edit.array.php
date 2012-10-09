@@ -233,7 +233,7 @@ foreach ($_DIFFS as $key => $row)
                           );
   
   // original value can be highlighted
-  $tpl_var['ORIGINAL'] = htmlspecialchars($row['original']);
+  $tpl_var['ORIGINAL'] = htmlspecialchars_utf8($row['original']);
   $tpl_var['ORIGINAL'] = ($in_search && $search['where']=='original')
                          ? highlight_search_result($tpl_var['ORIGINAL'], array_merge(array($search['needle']), $search['words'])) 
                          : $tpl_var['ORIGINAL'];
