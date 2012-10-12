@@ -3,7 +3,9 @@
 {if $REFERENCE_POPUP_LINK}<a class="floating_link" {$REFERENCE_POPUP_LINK}>View reference file</a>{/if}
 
 <p class="legend">
-  <a href="{$PROJECT_URL}">{$PROJECT_NAME}</a> &raquo; <a href="{$LANGUAGE_URL}">{$LANGUAGE_FLAG} {$LANGUAGE_NAME}</a>
+  <a href="{$lex->project_url($PROJECT)}">{$lex->project_name($PROJECT)}</a>
+  &raquo;
+  <a href="{$lex->language_url($LANGUAGE)}">{$lex->language_flag($LANGUAGE)} {$lex->language_name($LANGUAGE)}</a>
 </p>
 
 {if $notifications_users}
@@ -49,45 +51,45 @@
 {include file="messages.tpl"}
 
 {include file="edit_"|cat:$MODE|cat:".tpl"}
- {$NO_AUTORESIZE}
+
 
 {if $IS_TRANSLATOR}
-{* <!-- notification popup --> *}
+  {* <!-- notification popup --> *}
 
-{footer_script}{literal}
-$("#dialog-form").dialog({
-  autoOpen: false, modal: true, resizable: false,
-  height: 320, width: 520,
-  show: "clip", hide: "clip",
-  buttons: {
-    "Send": function() { $("#dialog-form form").submit(); },
-    Cancel: function() { $(this).dialog("close"); }
-  }
-});
-$(".notification").click(function() {
-  $("#dialog-form").dialog("open");
-});
-$("select[name='user_id']").change(function() {
-  $("input[name='nb_rows']").val($(this).children("option:selected").data("rows"));
-});
-{/literal}{/footer_script}
+  {footer_script}{literal}
+  $("#dialog-form").dialog({
+    autoOpen: false, modal: true, resizable: false,
+    height: 320, width: 520,
+    show: "clip", hide: "clip",
+    buttons: {
+      "Send": function() { $("#dialog-form form").submit(); },
+      Cancel: function() { $(this).dialog("close"); }
+    }
+  });
+  $(".notification").click(function() {
+    $("#dialog-form").dialog("open");
+  });
+  $("select[name='user_id']").change(function() {
+    $("input[name='nb_rows']").val($(this).children("option:selected").data("rows"));
+  });
+  {/literal}{/footer_script}
 
 {else}
-{* <!-- disable inputs --> *}
+  {* <!-- disable inputs --> *}
 
-{footer_script}
-$("textarea").prop("disabled", true);
-{/footer_script}
+  {footer_script}
+  $("textarea").prop("disabled", true);
+  {/footer_script}
 {/if}
 
 {if count($_DIFFS) <= 30 and empty($NO_AUTORESIZE)}
-{* <!-- Can't use autoResize plugin with too many textareas (browser crashes) and incompatible with highlightTextarea --> *}
-{combine_script id="jquery.autoresize" path="template/js/jquery.autoresize.min.js" load="footer"}
+  {* <!-- Can't use autoResize plugin with too many textareas (browser crashes) and incompatible with highlightTextarea --> *}
+  {combine_script id="jquery.autoresize" path="template/js/jquery.autoresize.min.js" load="footer"}
 
-{footer_script}{literal}
-$("#diffs textarea").autoResize({
-  maxHeight:2000,
-  extraSpace:11
-});
-{/literal}{/footer_script}
+  {footer_script}{literal}
+  $("#diffs textarea").autoResize({
+    maxHeight:2000,
+    extraSpace:11
+  });
+  {/literal}{/footer_script}
 {/if}

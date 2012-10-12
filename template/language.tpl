@@ -1,6 +1,8 @@
 {include file="messages.tpl"}
 
-<p class="legend"><a href="{$SELF_URL}">{$LANGUAGE_FLAG} {$LANGUAGE_NAME}</a></p>
+<p class="legend">
+  <a href="{$lex->language_url($LANGUAGE)}">{$lex->language_flag($LANGUAGE)} {$lex->language_name($LANGUAGE)}</a>
+</p>
 
 <ul id="projects" class="list-cloud {if $USE_PROJECT_STATS}w-stats{/if}">
 {assign var=category value=0}
@@ -24,9 +26,9 @@
 {/foreach}
 
 {if $PROJECT_NOT_TRANSLATED}
-<li class="add">
-  <b>{$PROJECT_NOT_TRANSLATED} project(s) not translated</b> <a href="#"><img src="template/images/bullet_add.png" alt="+"> Translate another project</a>
-</li>
+  <li class="add">
+    <b>{$PROJECT_NOT_TRANSLATED} project(s) not translated</b> <a href="#"><img src="template/images/bullet_add.png" alt="+"> Translate another project</a>
+  </li>
 {/if}
 </ul>
 

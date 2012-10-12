@@ -1,7 +1,6 @@
 {include file="messages.tpl"}
 
-<form method="post" action="{$SELF_URL}">
-
+<form action="{$SELF_URL}" method="post">
 <fieldset class="common">
   <legend>Request a new language</legend>
   {ui_message type="highlight" icon="info" style="font-weight:bold;" content="Here is a full list of available languages. If you can't find your, feel free to send us a message, we will consider your request as soon as possible."}
@@ -29,5 +28,4 @@
     </tr>
   </table>
 </fieldset>
-
 </form>

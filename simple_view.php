@@ -22,8 +22,9 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
-$page['header'].= '
-<style type="text/css">#the_page { margin-top:20px; width:580px; }</style>';
+$template->assign('NO_HEADER', true);
+$template->block_html_style(array(), '#the_page { margin-top:20px; width:580px; }');
+
 
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS
@@ -32,13 +33,13 @@ $page['header'].= '
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
   array_push($page['errors'], 'Undefined or unknown language. <a class="floating_link" href="javascript:window.close();">Close</a>');
-  print_page();
+  $template->close('messages');
 }
 // project
 if ( !isset($_GET['project']) or !array_key_exists($_GET['project'], $conf['all_projects']) )
 {
   array_push($page['errors'], 'Undefined or unknown project. <a class="floating_link" href="javascript:window.close();">Close</a>');
-  print_page();
+  $template->close('messages');
 }
 
 $page['language'] = $_GET['language'];
@@ -49,46 +50,35 @@ $page['files'] = explode(',', $conf['all_projects'][$_GET['project']]['files']);
 if ( !isset($_GET['file']) or !in_array($_GET['file'], $page['files']) )
 {
   array_push($page['errors'], 'Undefined or unknown file.');
-  print_page(false);
+  $template->close('messages');
 }
 
 $page['file'] = $_GET['file'];
 
-// +-----------------------------------------------------------------------+
-// |                         GET ROWS
-// +-----------------------------------------------------------------------+
+$template->assign(array(
+  'LANGUAGE' => $page['language'],
+  'PROJECT' => $page['project'],
+  'FILE' => $page['file'],
+  ));
 
+  
+// +-----------------------------------------------------------------------+
+// |                         DISPLAY FILE
+// +-----------------------------------------------------------------------+
 $_LANG = load_language($page['project'], $page['language'], $page['file']);
 
+foreach ($_LANG as $key => $row)
+{
+  $template->append('ROWS', array(
+    'key' => htmlspecialchars($key),
+    'row_value' => htmlspecialchars($row['row_value']),
+    ));
+}
+
 
 // +-----------------------------------------------------------------------+
-// |                         DISPLAY ROWS
-// +-----------------------------------------------------------------------+  
-echo '
-<p class="caption">
-  <a class="floating_link" href="javascript:window.close();">Close this window</a>
-  '.get_project_name($page['project']).' &raquo; '.get_language_flag($page['language']).' '.get_language_name($page['language']).'
-</p>';
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('simple_view');
 
-echo '
-<form id="diffs">
-<fieldset class="common">
-  <table class="common">';
-  $i=0;
-  foreach ($_LANG as $key => $row)
-  {
-    echo '
-    <tr class="'.($i%2==0?'odd':'even').'">
-      <td><pre>'.htmlspecialchars($key).'</pre></td>
-      <td><pre>'.htmlspecialchars($row['row_value']).'</pre></td>
-    </tr>';
-    $i++;
-  }
-  echo '
-  </table>
-</fieldset>
-</form>';
-
-
-print_page(false);
 ?>

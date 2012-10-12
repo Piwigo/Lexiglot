@@ -14,6 +14,7 @@
 </fieldset>
 </form>
 
+
 {if $NB_LINES>40}
   <a href="#top" id="top-link" title="To top"></a>
   <a href="#bottom" id="bottom-link" title="To bottom"></a>
@@ -42,6 +43,7 @@
     );
   {/literal}{/footer_script}
 {/if}
+
 
 {if $IS_TRANSLATOR}
   {footer_script}{literal}

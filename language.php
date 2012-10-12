@@ -38,8 +38,7 @@ $page['language'] = $_GET['language'];
 $template->assign(array(
   'WINDOWS_TITLE' => get_language_name($page['language']),
   'PAGE_TITLE' => 'Browse',
-  'LANGUAGE_NAME' => get_language_name($page['language']),
-  'LANGUAGE_FLAG' => get_language_flag($page['language']),
+  'LANGUAGE' => $page['language'],
   ));
 
 // get ordered projects with categories names (uses a workaround for projects without categories)

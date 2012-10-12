@@ -230,6 +230,7 @@
 
 </form>
 
+
 {combine_script id="jquery.tiptip" path="template/js/jquery.tiptip.min.js" load="footer"}
 {combine_css path="template/js/jquery.tiptip.css"}
 

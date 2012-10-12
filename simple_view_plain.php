@@ -22,8 +22,9 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
-$page['header'].= '
-<style type="text/css">#the_page { margin-top:20px; width:580px; }</style>';
+$template->assign('NO_HEADER', true);
+$template->block_html_style(array(), '#the_page { margin-top:20px; width:580px; }');
+
 
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS
@@ -32,13 +33,13 @@ $page['header'].= '
 if ( !isset($_GET['language']) or !array_key_exists($_GET['language'], $conf['all_languages']) )
 {
   array_push($page['errors'], 'Undefined or unknown language. <a class="floating_link" href="javascript:window.close();">Close</a>');
-  print_page();
+  $template->close('messages');
 }
 // project
 if ( !isset($_GET['project']) or !array_key_exists($_GET['project'], $conf['all_projects']) )
 {
   array_push($page['errors'], 'Undefined or unknown project. <a class="floating_link" href="javascript:window.close();">Close</a>');
-  print_page();
+  $template->close('messages');
 }
 // display
 if ( isset($_GET['display']) and in_array($_GET['display'], array('plain','normal')) )
@@ -58,58 +59,40 @@ $page['files'] = explode(',', $conf['all_projects'][$_GET['project']]['files']);
 if ( !isset($_GET['file']) or !in_array($_GET['file'], $page['files']) )
 {
   array_push($page['errors'], 'Undefined or unknown file.');
-  print_page(false);
+  $template->close('messages');
 }
 
 $page['file'] = $_GET['file'];
 
-// +-----------------------------------------------------------------------+
-// |                         GET FILE
-// +-----------------------------------------------------------------------+
-$_LANG = load_language($page['project'], $page['language'], $page['file']);
-$_LANG = $_LANG[ $page['file'] ];
+$template->assign(array(
+  'LANGUAGE' => $page['language'],
+  'PROJECT' => $page['project'],
+  'FILE' => $page['file'],
+  'DISPLAY' => $page['display'],
+  'DISPLAY_URI' => get_url_string(array('display'=> ($page['display']=='plain')?'normal':'plain' )),
+  'NO_HEADER' => true,
+  ));
 
-
+  
 // +-----------------------------------------------------------------------+
 // |                         DISPLAY FILE
-// +-----------------------------------------------------------------------+  
-echo '
-<p class="caption">
-  <a class="floating_link" href="javascript:window.close();">Close this window</a> <span class="floating_link">&nbsp;|&nbsp;</span>
-  '.get_project_name($page['project']).' &raquo; '.get_language_flag($page['language']).' '.get_language_name($page['language']);
+// +-----------------------------------------------------------------------+
+
 
 if ($page['display'] == 'plain')
 {
-  echo '
-  <a class="floating_link" href="'.get_url_string(array('display'=>'normal')).'">View normal</a>';
+  $_LANG = load_language($page['project'], $page['language'], $page['file']);
+  $template->assign('CONTENT', htmlspecialchars($_LANG[ $page['file'] ]['row_value']));
 }
 else
 {
-  echo'
-  <a class="floating_link" href="'.get_url_string(array('display'=>'plain')).'">View plain</a>';
+  $template->assign('FILE_URI', $conf['local_dir'].$page['project'].'/'.$page['language'].'/'.$page['file']);
 }
-  echo '
-</p>';
 
-echo '
-<form id="diffs">
-<fieldset class="common">
-  <legend>File content</legend>';
-  if ($page['display'] == 'plain')
-  {
-    echo '
-    <script type="text/javascript">$(document).ready(function(){$("pre").css("height", $(window).height()-150);});</script>
-    <pre style="white-space:pre-wrap;overflow-y:scroll;">'.htmlspecialchars($_LANG['row_value']).'</pre>';
-  }
-  else
-  {
-    echo '
-    <script type="text/javascript">$(document).ready(function(){$("iframe").css("height", $(window).height()-150);});</script>
-    <iframe src="'.$conf['local_dir'].$page['project'].'/'.$page['language'].'/'.$page['file'].'" style="width:100%;margin:0;"></iframe>';
-  }
-echo '
-</fieldset>
-</form>';
 
-print_page(false);
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('simple_view_plain');
+
 ?>

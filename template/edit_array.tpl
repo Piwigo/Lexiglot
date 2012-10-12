@@ -111,7 +111,6 @@
 {/if}
 
 
-
 {combine_script id="functions" path="template/js/functions.js" load="footer"}
 {combine_script id="jquery.tiptip" path="template/js/jquery.tiptip.min.js" load="footer"}
 {combine_css path="template/js/jquery.tiptip.css"}
@@ -140,7 +139,8 @@ $("#display_buttons a.search").click(function() {
       $("#display_buttons a").removeClass("active");
       $("#display_buttons a.display").addClass("active");
       $("#diffs_search").hide("slow");
-    } else {
+    }
+    else {
       $("#display_buttons a").removeClass("active");
       $(this).addClass("active");
       $("#diffs_search").show("slow");
@@ -155,7 +155,8 @@ $("#display_buttons a:not(.search)").click(function() {
     $(this).addClass("active");
     $("#diffs_search").hide("slow");
     return false;
-  } else {
+  }
+  else {
     return true;
   }
 });
@@ -186,12 +187,14 @@ $("a.expand").click(function() {
         msg = $.parseJSON(msg);
         if (msg.errcode == "success") {
           $container.addClass("loaded").html("<p>"+ msg.data +"</p>");
-        }  else {
+        }
+        else {
           overlayMessage(msg.data, msg.errcode, $trigger);
         }
       });
     }
-  } else {
+  }
+  else {
     $trigger.children("img").attr("src", "template/images/magnifier_zoom_in.png");
     $details_row.hide();
   }
@@ -201,44 +204,45 @@ $("a.expand").click(function() {
 {/literal}{/footer_script}
 
 {if $IS_TRANSLATOR}
-{footer_script}{literal}
-// check saves before close page
-var handlers = 0;
-$("textarea[name$='[row_value]']").change(function() {
-  handlers++;
-});
-$("input[name='submit']").click(function() {
-  handlers = 0;
-});
-$(window).bind("beforeunload", function() {
-  if (handlers > 0) return false;
-});
-
-// perform ajax request to save string value
-$("a.save").click(function() {
-  $trigger = $(this);
-  row_name = $("textarea[name='rows["+ $(this).attr("data") +"][row_name]']").val();
-  row_value = $("textarea[name='rows["+ $(this).attr("data") +"][row_value]']").val();
-  
-  $.ajax({
-    type: "POST",
-    url: "ajax.php",
-    data: {{/literal} "action":"save_row", "project":"{$PROJECT}", "language":"{$LANGUAGE}", "file":"{$FILE}", "key":"{$SECRET_KEY}", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) {literal}}
-  }).done(function(msg) {
-    msg = $.parseJSON(msg);
-    if (msg.errcode == "success") {
-      $trigger.parents("tr.main").removeClass("missing").addClass("new");
-      overlayMessage(msg.data, "highlight", $trigger);
-    }  else {
-      overlayMessage(msg.data, msg.errcode, $trigger);
-    }
-    
-    handlers--;
+  {footer_script}{literal}
+  // check saves before close page
+  var handlers = 0;
+  $("textarea[name$='[row_value]']").change(function() {
+    handlers++;
   });
-  
-  return false;
-});
-{/literal}{/footer_script}
+  $("input[name='submit']").click(function() {
+    handlers = 0;
+  });
+  $(window).bind("beforeunload", function() {
+    if (handlers > 0) return false;
+  });
+
+  // perform ajax request to save string value
+  $("a.save").click(function() {
+    $trigger = $(this);
+    row_name = $("textarea[name='rows["+ $(this).attr("data") +"][row_name]']").val();
+    row_value = $("textarea[name='rows["+ $(this).attr("data") +"][row_value]']").val();
+    
+    $.ajax({
+      type: "POST",
+      url: "ajax.php",
+      data: {{/literal} "action":"save_row", "project":"{$PROJECT}", "language":"{$LANGUAGE}", "file":"{$FILE}", "key":"{$SECRET_KEY}", "row_name": utf8_encode(row_name), "row_value": utf8_encode(row_value) {literal}}
+    }).done(function(msg) {
+      msg = $.parseJSON(msg);
+      if (msg.errcode == "success") {
+        $trigger.parents("tr.main").removeClass("missing").addClass("new");
+        overlayMessage(msg.data, "highlight", $trigger);
+      }
+      else {
+        overlayMessage(msg.data, msg.errcode, $trigger);
+      }
+      
+      handlers--;
+    });
+    
+    return false;
+  });
+  {/literal}{/footer_script}
 {/if}
 
 {if $DISPLAY.mode=='search' and $SEARCH.where=='row_value'}

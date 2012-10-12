@@ -62,4 +62,3 @@
   {/foreach}
   </ul>
 {/if}
-    
