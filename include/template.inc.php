@@ -442,6 +442,11 @@ class TemplateAdapter
     return get_language_url($lang);
   }
   
+  function language_rank($lang)
+  {
+    return get_language_rank($lang);
+  }
+  
   function project_name($proj)
   {
     return get_project_name($proj);
@@ -450,6 +455,11 @@ class TemplateAdapter
   function project_url($proj)
   {
     return get_project_url($proj);
+  }
+  
+  function project_rank($proj)
+  {
+    return get_project_rank($proj);
   }
   
   function username($user)
@@ -465,6 +475,16 @@ class TemplateAdapter
   function user_url($user)
   {
     return get_user_url($user);
+  }
+  
+  function is_admin()
+  {
+    return is_admin();
+  }
+  
+  function is_manager()
+  {
+    return is_manager();
   }
 }
 

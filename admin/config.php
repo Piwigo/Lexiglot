@@ -95,6 +95,8 @@ else
   array_push($page['warnings'], 'SVN support not available. You can not use <b>exec()</b> function on this server.');
 }
 
+$template->assign('F_ACTION', get_url_string(array('page'=>'config'), true));
+
 
 // +-----------------------------------------------------------------------+
 // |                         OUTPUT

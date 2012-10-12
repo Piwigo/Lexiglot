@@ -25,8 +25,9 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 if ( !isset($_GET['user_id']) or !is_numeric($_GET['user_id']) or !get_username($_GET['user_id']) )
 {
   array_push($page['errors'], 'Invalid user id. <a href="'.get_url_string(array('page'=>'users'), true).'">Go Back</a>');
-  print_page();
+  $template->close('messages');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         SAVE PERMISSIONS
@@ -166,10 +167,14 @@ UPDATE '.USER_INFOS_TABLE.'
   redirect(get_url_string(array('page'=>'users','from_id'=>$_POST['user_id']), true));
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
 $local_user = build_user($_GET['user_id']);
+$local_user['languages'] = create_languages_array($local_user['languages']);
+$local_user['projects'] = create_projects_array($local_user['projects']);
+$local_user['is_manager'] = $local_user['status']=='manager' && is_admin();
 
 if ( $conf['use_stats'] and !empty($local_user['main_language']) )
 {
@@ -179,24 +184,24 @@ $use_project_stats = !empty($stats);
 
 $movable_projects = is_admin() ? array_keys($conf['all_projects']) : $user['manage_projects'];
 
+// count number of different ranks, if 1, we consider that we don't use ranks
+$use_language_rank = count(array_unique_deep($conf['all_languages'], 'rank')) > 1;
+$use_project_rank = count(array_unique_deep($conf['all_projects'], 'rank')) > 1;
+
 
 // +-----------------------------------------------------------------------+
 // |                         TEMPLATE
 // +-----------------------------------------------------------------------+
-// sort projects and languages by rank
-uasort($local_user['languages'], 'cmp_language');
-uasort($conf['all_languages'], 'cmp_default');
-uasort($local_user['projects'], 'cmp_project');
-uasort($conf['all_projects'], 'cmp_default');
+$template->assign(array(
+  'local_user' => $local_user,
+  'USE_LANGUAGE_RANK' => $use_language_rank,
+  'USE_PROJECT_RANK' => $use_project_rank,
+  'USE_PROJECT_STATS' => $use_project_stats,
+  'CANCEL_URI' => get_url_string(array('page'=>'users', 'from_id'=>$local_user['id']), true),
+  'F_ACTION' => get_url_string(array('page'=>'user_perm', 'user_id'=>$_GET['user_id']), true),
+  ));
 
-// count number of different ranks, if 1, we consider that we don't use ranks
-$use_language_rank = !(count(array_unique_deep($conf['all_languages'], 'rank')) > 1);
-$use_project_rank = count(array_unique_deep($conf['all_projects'], 'rank')) > 1;
-
-echo '
-<p class="caption">Manage permissions for user #'.$local_user['id'].' : '.$local_user['username'].'</p>
-
-<form action="" method="post" onSubmit="save_datas(this);" id="permissions">';
+// LANGUAGES
 if (is_admin())
 {
   // ellipsis display cant' be "automated" in css so we figure out the size of the name field
@@ -214,48 +219,31 @@ if (is_admin())
   }
   $name_size_1-= 15;
   
-  echo '
-  <fieldset class="common">
-    <legend>Languages</legend>
-    '.($local_user['status']!='guest' ? '<p class="caption">Check the main language of this user</p>' : null).'
-    
-    <ul id="available_languages" class="language-container">
-      <h5>Authorized languages <span id="authorizeAllLanguage" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
-    foreach ($local_user['languages'] as $lang)
+  $template->assign(array(
+    'LANGUAGE_SIZE_1' => $name_size_1,
+    'LANGUAGE_SIZE_2' => $name_size_2,
+    ));
+  
+  foreach ($local_user['languages'] as $row)
+  {
+    if (array_key_exists($row['id'], $conf['all_languages']))
     {
-      if (array_key_exists($lang, $conf['all_languages']))
-      {
-        echo '
-        <li id="list_'.$lang.'" class="language">
-          '.($local_user['status']!='guest' ? '<input type="radio" name="main_language" value="'.$lang.'" '.($lang==$local_user['main_language']?'checked="checked"':null).'>' : null).'
-          '.get_language_flag($lang).' <span style="width:'.$name_size_1.'px;">'.get_language_name($lang).'</span>
-          '.($use_language_rank ? '<i>'.get_language_rank($lang).'</i>' : null).'
-        </li>';
-      }
+      $row['is_main'] = $row['id']==$local_user['main_language'];
+        
+      $template->append('user_languages', $row);
     }
-    echo '
-    </ul>
-
-    <ul id="unavailable_languages" class="language-container">
-      <h5>Forbidden languages <span id="forbidAllLanguage" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
-    foreach ($conf['all_languages'] as $row)
+  }
+  
+  foreach ($conf['all_languages'] as $row)
+  {
+    if (!array_key_exists($row['id'], $local_user['languages']))
     {
-      if (!in_array($row['id'], $local_user['languages']))
-      {
-        echo '
-        <li id="list_'.$row['id'].'" class="language">
-          '.($local_user['status']!='guest' ? '<input type="radio" name="main_language" value="'.$row['id'].'" style="display:none;">' : null).'
-          '.get_language_flag($row['id']).' <span style="width:'.$name_size_2.'px;">'.$row['name'].'</span>
-          '.($use_language_rank ? '<i>'.$row['rank'].'</i>' : null).'
-        </li>';
-      }
+      $template->append('all_languages', $row);
     }
-    echo '
-    </ul>
-  </fieldset>';
+  }
 }
 
-
+// PROJECTS
 $name_size_1 = $name_size_2 = 140;
 if ($use_project_rank)
 { 
@@ -267,219 +255,52 @@ if ($use_project_stats)
   $name_size_1-= 27;
   $name_size_2-= 27;
 }
-if ($local_user['status']=='manager' && is_admin())
+if ($local_user['is_manager'])
 { 
   $name_size_1-= 15;
 }
 
-echo '
-  <fieldset class="common">
-    <legend>Projects</legend>
-    '.($local_user['status']=='manager' && is_admin() ? '<p class="caption">Check projects this user can manage</p>' : null).'
-    
-    <ul id="available_projects" class="project-container">
-      <h5>Authorized projects <span id="authorizeAllProject" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
-    foreach ($local_user['projects'] as $project)
-    {
-      if (array_key_exists($project, $conf['all_projects']))
-      {
-        echo '
-        <li id="list_'.$project.'" class="project" '.(!in_array($project,$movable_projects) ? 'style="display:none;"' : null).' title="'.get_project_name($project).'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects[]" value="'.$project.'" '.(in_array($project,$local_user['manage_projects'])?'checked="checked"':null).'>' : null).'
-          <span style="width:'.$name_size_1.'px;">'.get_project_name($project).'</span>
-          '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$project],'dark').';">'.number_format($stats[$project]*100, 0).'%</b>' : null).'
-          '.($use_project_rank ? '<i>'.get_project_rank($project).'</i>' : null).'
-        </li>';
-      }
-    }
-    echo '
-    </ul>
+$template->assign(array(
+  'PROJECT_SIZE_1' => $name_size_1,
+  'PROJECT_SIZE_2' => $name_size_2,
+  ));
 
-    <ul id="unavailable_projects" class="project-container">
-      <h5>Forbidden projects <span id="forbidAllProject" class="uniq-action" style="margin-left:-40px;">[all]</span></h5>';
-      
-    foreach ($conf['all_projects'] as $row)
-    {
-      if (!in_array($row['id'], $local_user['projects']))
-      {
-        echo '
-        <li id="list_'.$row['id'].'" class="project" '.(!in_array($row['id'],$movable_projects) ? 'style="display:none;"' : null).' title="'.$row['name'].'">
-          '.($local_user['status']=='manager' && is_admin() ? '<input type="checkbox" name="manage_projects[]" value="'.$row['id'].'" style="display:none;">' : null).'
-          <span style="width:'.$name_size_2.'px;">'.$row['name'].'</span>
-          '.($use_project_stats ? '<b style="color:'.get_gauge_color($stats[$row['id']],'dark').';">'.number_format($stats[$row['id']]*100, 0).'%</b>' : null).'
-          '.($use_project_rank ? '<i>'.$row['rank'].'</i>' : null).'
-        </li>';
-      }
-    }
-    echo '
-    </ul>
-  </fieldset>';
-  
-  if ( $local_user['status']=='manager' and is_admin() )
+foreach ($local_user['projects'] as $row)
+{
+  if (array_key_exists($row['id'], $conf['all_projects']))
   {
-    echo '
-  <fieldset class="common">
-    <legend>Manager permissions</legend>
+    $row['is_movable'] = in_array($row['id'], $movable_projects);
+    $row['is_managed'] = in_array($row['id'], $local_user['manage_projects']);
+      
+    if ($use_project_stats)
+    {
+      $row['stats_value'] = number_format($stats[ $row['id'] ]*100, 0);
+      $row['stats_color'] = get_gauge_color($stats[ $row['id'] ], 'dark');
+    }
+      
+    $template->append('user_projects', $row);
+  }
+}
+
+foreach ($conf['all_projects'] as $row)
+{
+  if (!array_key_exists($row['id'], $local_user['projects']))
+  {
+    $row['is_movable'] = in_array($row['id'], $movable_projects);
     
-    <label><input type="checkbox" name="manage_perms[can_add_projects]" value="1" '.($local_user['manage_perms']['can_add_projects'] ? 'checked="checked"' : null).'> Can add projects</label><br>
-    <label><input type="checkbox" name="manage_perms[can_delete_projects]" value="1" '.($local_user['manage_perms']['can_delete_projects'] ? 'checked="checked"' : null).'> Can delete projects</label><br>
-    <label><input type="checkbox" name="manage_perms[can_change_users_projects]" value="1" '.($local_user['manage_perms']['can_change_users_projects'] ? 'checked="checked"' : null).'> Can change users projects</label><br>
-  </fieldset>';
+    if ($use_project_stats)
+    {
+      $row['stats_value'] = number_format($stats[ $row['id'] ]*100, 0);
+      $row['stats_color'] = get_gauge_color($stats[ $row['id'] ], 'dark');
+    }
+    
+    $template->append('all_projects', $row);
   }
-
-  echo '
-  <div class="centered">
-    <input type="hidden" name="user_id" value="'.$local_user['id'].'">
-    <input type="submit" name="save_perm" class="blue big" value="Save">
-    <input type="reset" onClick="location.href=\''.get_url_string(array('page'=>'users','from_id'=>$local_user['id']), true).'\';" class="red" value="Cancel">
-  </div>
-</form>';
-
+}
 
 // +-----------------------------------------------------------------------+
-// |                        JAVASCRIPT
+// |                         OUTPUT
 // +-----------------------------------------------------------------------+
-if (is_admin())
-{
-  $page['script'].= '
-  /* move languages */
-  $("li.language input").bind("click", function (e) {
-    e.stopPropagation();
-  });
-  $("#available_languages").delegate("li.language", "click", function() {
-    $(this).fadeOut("fast", function() {
-      $(this).children("input").hide();
-      $(this).children("span").css("width", $(this).children("span").width() + 15);
-      $(this).appendTo("#unavailable_languages").fadeIn("fast", function(){
-        update_height("languages");
-      });
-    });
-  });
-  $("#unavailable_languages").delegate("li.language", "click", function() {
-    $(this).fadeOut("fast", function() {
-      $(this).children("input").show();
-      $(this).children("span").css("width", $(this).children("span").width() - 15);
-      $(this).appendTo("#available_languages").fadeIn("fast", function(){
-        update_height("languages");
-      });
-    });
-  });
-  
-  /* all languages */
-  $("#authorizeAllLanguage").click(function() {
-    $("#unavailable_languages li").each(function() {
-      $(this).fadeOut("fast", function() {
-        $(this).children("input").show();
-        $(this).children("span").css("width", $(this).children("span").width() - 15);
-        $(this).appendTo($("#available_languages")).fadeIn("fast");
-      });
-    }).promise().done(function() { 
-      update_height("languages");
-    });
-  });
-  $("#forbidAllLanguage").click(function() {
-    $("#available_languages li").each(function() {
-      $(this).fadeOut("fast", function() {
-        $(this).children("input").hide();
-        $(this).children("span").css("width", $(this).children("span").width() + 15);
-        $(this).appendTo($("#unavailable_languages")).fadeIn("fast");
-      });
-    }).promise().done(function() { 
-      update_height("languages");
-    });
-  });
-  
-  update_height("languages");';
-}
-
-$page['script'].= '
-/* move projects */
-$("li.project input").bind("click", function (e) {
-  e.stopPropagation();
-});
-$("#available_projects").delegate("li.project", "click", function() {
-  $(this).fadeOut("fast", function() {
-    $(this).children("input").hide();
-    '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() + 15);' : null ).'
-    $(this).appendTo("#unavailable_projects").fadeIn("fast", function(){
-      update_height("projects");
-    });
-  });
-});
-$("#unavailable_projects").delegate("li.project", "click", function() {
-  $(this).fadeOut("fast", function() {
-    $(this).children("input").show();
-    '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() - 15);' : null ).'
-    $(this).appendTo("#available_projects").fadeIn("fast", function(){
-      update_height("projects");
-    }); 
-  });
-});
-
-/* all projects */
-$("#authorizeAllProject").click(function() {
-  $("#unavailable_projects li").each(function() {
-    if ($(this).css("display") != "none") {
-      $(this).fadeOut("fast", function() {
-        $(this).children("input").show();
-        '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() - 15);' : null ).'
-        $(this).appendTo($("#available_projects")).fadeIn("fast");
-      });
-    }
-  }).promise().done(function() { 
-    update_height("projects");
-  });
-});
-$("#forbidAllProject").click(function() {
-  $("#available_projects li").each(function() {
-    if ($(this).css("display") != "none") {
-      $(this).fadeOut("fast", function() {
-        $(this).children("input").hide();
-        '.($local_user['status']=='manager' && is_admin() ? '$(this).children("span").css("width", $(this).children("span").width() + 15);' : null ).'
-        $(this).appendTo($("#unavailable_projects")).fadeIn("fast");
-      });
-    }
-  }).promise().done(function() { 
-    update_height("projects");
-  });
-});
-
-update_height("projects");';
-
-$page['header'].= '
-<script type="text/javascript">
-  function save_datas(form) {    
-    $("#available_languages > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_languages[]\" value=\""+ $(this).attr("id").replace("list_","") +"\">");
-    });
-    $("#available_projects > li").each(function() {
-      $(form).append("<input type=\"hidden\" name=\"available_projects[]\" value=\""+ $(this).attr("id").replace("list_","") +"\">");
-    });
-  }
-  function update_height(row) {
-    $("#available_"+ row).css("height", "auto");
-    $("#unavailable_"+ row).css("height", "auto");
-    var max = Math.max($("#available_"+ row).height(), $("#unavailable_"+ row).height());
-    $("#available_"+ row).css("height", max);
-    $("#unavailable_"+ row).css("height", max);
-  }
-</script>';
-
-
-function cmp_default($a, $b)
-{
-  if ($a['rank'] == $b['rank']) return strcmp($a['id'], $b['id']);
-  return $a['rank'] > $b['rank'] ? -1 : 1;
-}
-function cmp_language($a, $b)
-{
-  if (get_language_rank($a) == get_language_rank($b)) return strcmp($a, $b);
-  return get_language_rank($a) < get_language_rank($b) ? 1 : -1;
-}
-function cmp_project($a, $b)
-{
-  if (get_project_rank($a) == get_project_rank($b)) return strcmp($a, $b);
-  return get_project_rank($a) < get_project_rank($b) ? 1 : -1;
-}
+$template->close('admin/user_perm');
 
 ?>

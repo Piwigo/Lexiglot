@@ -3,46 +3,36 @@
 {include file="messages.tpl"}
 
 
-{* <!-- add lang --> *}
-<form action="{$F_ACTION}" method="post" enctype="multipart/form-data">
+{* <!-- add project --> *}
+{if $CAN_ADD_PROJECT}
+<form action="{$F_ACTION}" method="post">
 <fieldset class="common">
-  <legend>Add a language</legend>
+  <legend>Add a project</legend>
   
   <table class="search">
     <tr>
-      <th>Id. (folder name) <span class="red">*</span></th>
       <th>Name <span class="red">*</span></th>
-      <th>Flag</th>
-      <th>Reference</th>
+      {if $CONF.svn_activated}<th>Directory (on Subversion server) <span class="red">*</span></th>{/if}
+      <th>Files <span class="red">*</span></th>
       <th>Priority</th>
       <th>Category</th>
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15"></td>
       <td><input type="text" name="name" size="20"></td>
-      <td>
-        <input type="file" name="flag">
-        <input type="hidden" name="MAX_FILE_SIZE" value="10240">
-      </td>
-      <td>
-        <select name="ref_id">
-          <option value="" selected="selected">(default)</option>
-        {foreach from=$CONF.all_languages item=lang}
-          <option value="{$lang.id}">{$lang.name}</option>
-        {/foreach}
-        </select>
-      </td>
+      {if $CONF.svn_activated}<td><input type="text" name="directory" size="30"></td>{/if}
+      <td><input type="text" name="files" size="50"></td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>
-      <td><input type="submit" name="add_language" class="blue" value="Add"></td>
+      <td><input type="submit" name="add_project" class="blue" value="Add"></td>
     </tr>
   </table>
   
 </fieldset>
 </form>
+{/if}
 
-{* <!-- search lang --> *}
+{* <!-- search projects --> *}
 <form action="{$F_ACTION}" method="post">
 <fieldset class="common">
   <legend>Search</legend>
@@ -50,7 +40,6 @@
   <table class="search">
     <tr>
       <th>Name</th>
-      <th>Flag</th>
       <th>Priority</th>
       <th>Category</th>
       <th>Entries</th>
@@ -58,19 +47,12 @@
     </tr>
     <tr>
       <td><input type="text" name="name" size="20" value="{$SEARCH.name}"></td>
-      <td>
-        <select name="flag">
-          <option value="-1" {if -1==$SEARCH.flag}selected="selected"{/if}>-------</option>
-          <option value="with" {if 'with'==$SEARCH.flag}selected="selected"{/if}>With flag</option>
-          <option value="without" {if 'without'==$SEARCH.flag}selected="selected"{/if}>Without flag</option>
-        </select>
-      </td>
       <td><input type="text" name="rank" size="2" value="{$SEARCH.rank}"></td>
       <td>
-        <select name="category">
-          <option value="-1" {if -1==$SEARCH.category}selected="selected"{/if}>-------</option>
+        <select name="category_id">
+          <option value="-1" {if -1==$SEARCH.category_id}selected="selected"{/if}>-------</option>
         {foreach from=$CATEGORIES item=row}
-          <option value="{$row.id}" {if $row.id==$SEARCH.category}selected="selected"{/if}>{$row.name}</option>
+          <option value="{$row.id}" {if $row.id==$SEARCH.category_id}selected="selected"{/if}>{$row.name}</option>
         {/foreach}
         </select>
       </td>
@@ -84,8 +66,8 @@
 </fieldset>
 </form>
 
-{* <!-- langs list --> *}
-<form id="languages" action="{$F_ACTION}{$NAV_PAGE}" method="post">
+{* <!-- projects list --> *}
+<form id="projects" action="{$F_ACTION}{$NAV_PAGE}" method="post">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">
@@ -100,13 +82,13 @@
       </tr>
     </thead>
     <tbody>
-    {foreach from=$LANGS item=row}
+    {foreach from=$DIRS item=row}
       <tr class="main {if $row.highlight}highlight{/if}">
         <td class="chkb">
           <input type="checkbox" name="select[]" value="{$row.id}">
         </td>
         <td class="name">
-          <a href="{$lex->language_url($row.id)}">{$lex->language_flag($row.id, 'default')} {$row.name}</a>
+          <a href="{$lex->project_url($row.id)}">{$row.name}</a>
         </td>
         <td class="rank">
           {$row.rank}
@@ -118,18 +100,14 @@
           <a href="{$row.users_uri}">{$row.total_users}</a>
         </td>
         <td class="actions">
-          <a href="#" class="expand" data="{$row.id}" title="Edit this language"><img src="template/images/page_white_edit.png" alt="edit"></a>
-          <a href="{$row.make_stats_uri}" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
-        {if $row.delete_uri}
-          <a href="{$row.delete_uri}" title="Delete this language" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="[x]"></a>
-        {else}
-          <span style="display:inline-block;margin-left:5px;width:16px;">&nbsp;</span>
-        {/if}
+          <a href="#" class="expand" data="{$row.id}" title="Edit this project"><img src="template/images/page_white_edit.png" alt="edit"></a>
+          <a href="{$row.make_stats_uri}" title="Refresh stats"><img src="template/images/arrow_refresh.png" alt="refresh"></a>
+          {if $row.delete_uri}<a href="{$row.delete_uri}" title="Delete this project" onclick="return confirm('Are you sure?');"><img src="template/images/cross.png" alt="delete"></a>{/if}
         </td>
       </tr>
     {foreachelse}
       <tr>
-        <td colspan="6" style="text-align:center;"><i>No results</i></td>
+        <td colspan="6"><i>No results</i></td>
       </tr>
     {/foreach}
     </tbody>
@@ -146,12 +124,12 @@
     <option value="-1">Choose an action...</option>
     <option disabled="disabled">------------------</option>
     <option value="make_stats">Refresh stats</option>
-    <option value="delete_languages">Delete languages</option>
+    {if $CAN_ADD_PROJECT}<option value="delete_projects">Delete projects</option>{/if}
     <option value="change_rank">Change priority</option>
     <option value="change_category">Change category</option>
   </select>
   
-  <span id="action_delete_languages" class="action-container">
+  <span id="action_delete_projects" class="action-container">
     <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
   </span>
   
@@ -177,10 +155,10 @@
 {combine_css path="template/js/jquery.tokeninput.css"}
 
 {footer_script}{literal}
-/* perform ajax request for language edit */
+/* perform ajax request for project edit */
 $("a.expand").click(function() {
   $trigger = $(this);
-  language_id = $trigger.attr("data");
+  project_id = $trigger.attr("data");
   $parent_row = $trigger.parents("tr.main");
   $details_row = $parent_row.next("tr.details");
   
@@ -189,14 +167,14 @@ $("a.expand").click(function() {
     $("tr.details").remove();
     
     $trigger.children("img").attr("src", "template/images/page_edit.png");
-    $parent_row.after('<tr class="details" id="details'+ language_id +'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>');
+    $parent_row.after('<tr class="details" id="details'+ project_id +'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>');
     
     $container = $parent_row.next("tr.details").children("td:last-child");
 
     $.ajax({
       type: "POST",
       url: "admin/ajax.php",
-      data: { "action":"get_language_form", "language_id": language_id }
+      data: { "action":"get_project_form", "project_id": project_id }
     }).done(function(msg) {
       msg = $.parseJSON(msg);
       
@@ -236,9 +214,9 @@ $("input.category").tokenInput(json_categories, {
 });
 
 /* tablesorter */
-$("#languages table").tablesorter({
+$("#projects table").tablesorter({
   sortList: [[2,1],[1,0]],
-  headers: { 0: {sorter: false}, 5: {sorter: false} },
+  headers: { 0: {sorter:false}, 5: {sorter: false} },
   widgets: ["zebra"]
 })
 .bind("sortStart", function() { 
@@ -305,8 +283,8 @@ $("td.id").click(function() {
 });
 {/literal}{/footer_script}
 
-{if $DEPLOY_LANGUAGE}
+{if $DEPLOY_PROJECT}
   {footer_script}
-  $("a.expand[data='{$DEPLOY_LANGUAGE}']").trigger("click");
+  $("a.expand[data='{$DEPLOY_PROJECT}']").trigger("click");
   {/footer_script}
 {/if}

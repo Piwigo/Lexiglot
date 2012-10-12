@@ -24,6 +24,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 $highlight_project = isset($_GET['from_id']) ? $_GET['from_id'] : null;
 $deploy_project = null;
 
+
 // +-----------------------------------------------------------------------+
 // |                         DELETE PROJECT
 // +-----------------------------------------------------------------------+
@@ -63,6 +64,7 @@ DELETE FROM '.PROJECTS_TABLE.'
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         ACTIONS
 // +-----------------------------------------------------------------------+
@@ -70,6 +72,7 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 {
   include(LEXIGLOT_PATH . 'admin/include/projects.actions.php');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         MAKE STATS
@@ -83,6 +86,7 @@ if (isset($_GET['make_stats']))
     $highlight_project = $_GET['make_stats'];
   }
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         SAVE PROJECTS
@@ -197,6 +201,7 @@ UPDATE '.PROJECTS_TABLE.'
     $deploy_project = $row['id'];
   }
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         ADD PROJECT
@@ -353,6 +358,7 @@ SELECT user_id
   }
 }
 
+
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
 // +-----------------------------------------------------------------------+
@@ -374,12 +380,13 @@ if (isset($_GET['project_id']))
 
 $where_clauses = session_search($search, 'project_search', array('limit'));
 
-$displayed_projects = is_admin() ? array_keys($conf['all_projects']) : $user['manage_projects'];
+$displayed_projects = is_admin() ? $conf['all_projects'] : create_projects_array($user['manage_projects']);
 
 if (is_manager())
 {
-  array_push($where_clauses, 'id IN("'.implode('","', $displayed_projects).'")');
+  array_push($where_clauses, 'id IN("'.implode('","', array_keys($displayed_projects)).'")');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         PAGINATION
@@ -414,6 +421,7 @@ SELECT x.pos
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);
 
+
 // +-----------------------------------------------------------------------+
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
@@ -447,310 +455,40 @@ $categories_json = implode(',', array_map(create_function('$row', 'return \'{id:
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
-// add project
+foreach ($_DIRS as $row)
+{
+  $row['highlight'] = $highlight_project==$row['id'];
+  $row['category_name'] = @$categories[ @$row['category_id'] ]['name'];
+  $row['users_uri'] = get_url_string(array('page'=>'users','project_id'=>$row['id']), true);
+  $row['make_stats_uri'] = get_url_string(array('make_stats'=>$row['id']));
+  
+  if ( is_admin() or $user['manage_perms']['can_delete_projects'] )
+  {
+    $row['delete_uri'] = get_url_string(array('delete_project'=>$row['id']));
+  }
+  
+  $template->append('DIRS', $row);
+}
+
+$template->assign(array(
+  'SEARCH' => search_to_template($search),
+  'PAGINATION' => display_pagination($paging, 'nav'),
+  'CATEGORIES' => $categories,
+  'CATEGORIES_JSON' => $categories_json,
+  'NAV_PAGE' => !empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null,
+  'DEPLOY_PROJECT' => $deploy_project,
+  'F_ACTION' => get_url_string(array('page'=>'projects'), true),
+  ));
+
 if ( is_admin() or $user['manage_perms']['can_add_projects'] )
 {
-echo '
-<form action="admin.php?page=projects" method="post">
-<fieldset class="common">
-  <legend>Add a project</legend>
-  
-  <table class="search">
-    <tr>
-      <th>Name <span class="red">*</span></th>
-      '.($conf['svn_activated'] ? '<th>Directory (on Subversion server) <span class="red">*</span></th>' : null).'
-      <th>Files <span class="red">*</span></th>
-      <th>Priority</th>
-      <th>Category</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" name="name" size="20"></td>
-      '.($conf['svn_activated'] ? '<td><input type="text" name="directory" size="30"></td>' : null).'
-      <td><input type="text" name="files" size="50"></td>
-      <td><input type="text" name="rank" size="2" value="1"></td>
-      <td><input type="text" name="category_id" class="category"></td>
-      <td><input type="submit" name="add_project" class="blue" value="Add"></td>
-    </tr>
-  </table>
-  
-</fieldset>
-</form>';
-}
-
-// search projects
-if ( count($_DIRS) or count($where_clauses) > 1 )
-{
-echo '
-<form action="admin.php?page=projects" method="post">
-<fieldset class="common">
-  <legend>Search</legend>
-  
-  <table class="search">
-    <tr>
-      <th>Name</th>
-      <th>Priority</th>
-      <th>Category</th>
-      <th>Entries</th>
-      <th></th>
-    </tr>
-    <tr>
-      <td><input type="text" name="name" size="20" value="'.get_search_value('name').'"></td>
-      <td><input type="text" name="rank" size="2" value="'.get_search_value('rank').'"></td>
-      <td>
-        <select name="category_id">
-          <option value="-1" '.(-1==get_search_value('category_id')?'selected="selected"':'').'>-------</option>';
-          foreach ($categories as $row)
-          {
-            echo '
-          <option value="'.$row['id'].'" '.($row['id']==get_search_value('category_id')?'selected="selected"':'').'>'.$row['name'].'</option>';
-          }
-        echo '
-        </select>
-      </td>
-      <td><input type="text" name="limit" size="3" value="'.get_search_value('limit').'"></td>
-      <td>
-        <input type="submit" name="search" class="blue" value="Search">
-        <input type="submit" name="erase_search" class="red tiny" value="Reset">
-      </td>
-    </tr>
-  </table>
-</fieldset>
-</form>';
-
-// projects list
-echo '
-<form id="projects" action="admin.php?page=projects'.(!empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null).'" method="post">
-<fieldset class="common">
-  <legend>Manage</legend>
-  <table class="common tablesorter">
-    <thead>
-      <tr>
-        <th class="chkb"></th>
-        <th class="name">Name</th>
-        <th class="rank">Priority</th>
-        <th class="category">Category</th>
-        <th class="users">Translators</th>
-        <th class="actions">Actions</th>
-      </tr>
-    </thead>
-    <tbody>';
-    foreach ($_DIRS as $row)
-    {
-      echo '
-      <tr class="main '.($highlight_project==$row['id'] ? 'highlight' : null).'">
-        <td class="chkb">
-          <input type="checkbox" name="select[]" value="'.$row['id'].'">
-        </td>
-        <td class="name">
-          <a href="'.get_url_string(array('project'=>$row['id']), true, 'project').'">'.$row['name'].'</a>
-        </td>
-        <td class="rank">
-          '.$row['rank'].'
-        </td>
-        <td class="category">
-          '.(!empty($row['category_id']) ? get_category_name($row['category_id']) : null).'
-        </td>
-        <td class="users">
-          <a href="'.get_url_string(array('project_id'=>$row['id'],'page'=>'users'), true).'">'.$row['total_users'].'</a>
-        </td>
-        <td class="actions">
-          <a href="#" class="expand" data="'.$row['id'].'" title="Edit this project"><img src="template/images/page_white_edit.png" alt="edit"></a>
-          <a href="'.get_url_string(array('make_stats'=>$row['id'])).'" title="Refresh stats"><img src="template/images/arrow_refresh.png" alt="refresh"></a>';
-          if ( is_admin() || $user['manage_perms']['can_delete_projects'] )
-          {
-            echo ' <a href="'.get_url_string(array('delete_project'=>$row['id'])).'" title="Delete this project" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="delete"></a>';
-          }
-        echo '
-        </td>
-      </tr>';
-    }
-    if (count($_DIRS) == 0)
-    {
-      echo '
-      <tr>
-        <td colspan="6"><i>No results</i></td>
-      </tr>';
-    }
-    echo '
-    </tbody>
-  </table>
-  <a href="#" class="selectAll">Select All</a> / <a href="#" class="unselectAll">Unselect all</a>
-  <div class="pagination">'.display_pagination($paging, 'nav').'</div>
-</fieldset>
-
-<fieldset id="permitAction" class="common" style="display:none;margin-bottom:20px;">
-  <legend>Global action <span class="unselectAll">[close]</span></legend>
-  
-  <select name="selectAction">
-    <option value="-1">Choose an action...</option>
-    <option disabled="disabled">------------------</option>
-    <option value="make_stats">Refresh stats</option>
-    '.(is_admin() || $user['manage_perms']['can_delete_projects'] ? '<option value="delete_projects">Delete projects</option>' : null).'
-    <option value="change_rank">Change priority</option>
-    <option value="change_category">Change category</option>
-  </select>
-  
-  <span id="action_delete_projects" class="action-container">
-    <label><input type="checkbox" name="confirm_deletion" value="1"> Are you sure ?</label>
-  </span>
-  
-  <span id="action_change_rank" class="action-container">
-    <input type="text" name="batch_rank" size="2">
-  </span>
-  
-  <span id="action_change_category" class="action-container" style="position:relative;top:8px;"> <!-- manually correct the mispositionning of tokeninput block -->
-    <input type="text" name="batch_category_id" class="category">
-  </span>
-  
-  <span id="action_apply" class="action-container">
-    <input type="submit" name="apply_action" class="blue" value="Apply">
-  </span>
-</fieldset>
-</form>';
+  $template->assign('CAN_ADD_PROJECT', true);
 }
 
 
 // +-----------------------------------------------------------------------+
-// |                        JAVASCRIPT
+// |                         OUTPUT
 // +-----------------------------------------------------------------------+
-load_jquery('tablesorter');
-load_jquery('tokeninput');
-
-$page['header'].= '
-<script type="text/javascript" src="template/js/functions.js"></script>';
-
-$page['script'].= '
-/* perform ajax request for project edit */
-$("a.expand").click(function() {
-  $trigger = $(this);
-  project_id = $trigger.attr("data");
-  $parent_row = $trigger.parents("tr.main");
-  $details_row = $parent_row.next("tr.details");
-  
-  if (!$details_row.length) {
-    $("a.expand img").attr("src", "template/images/page_white_edit.png");
-    $("tr.details").remove();
-    
-    $trigger.children("img").attr("src", "template/images/page_edit.png");
-    $parent_row.after(\'<tr class="details" id="details\'+ project_id +\'"><td class="chkb"></td><td colspan="5"><img src="template/images/load16.gif"> <i>Loading...</i></td></tr>\');
-    
-    $container = $parent_row.next("tr.details").children("td:last-child");
-
-    $.ajax({
-      type: "POST",
-      url: "admin/ajax.php",
-      data: { "action":"get_project_form", "project_id": project_id }
-    }).done(function(msg) {
-      msg = $.parseJSON(msg);
-      
-      if (msg.errcode == "success") {
-        $container.html(msg.data);
-        $container.find("input.category").tokenInput(json_categories, {
-          tokenLimit: 1,
-          allowCreation: true,
-          hintText: ""
-        });
-      }  else {
-        overlayMessage(msg.data, msg.errcode, $trigger);
-      }
-    });
-  } else {
-    $details_row.remove();
-    $trigger.children("img").attr("src", "template/images/page_white_edit.png");
-  }
-  
-  return false;
-});
-
-/* linked table rows follow hover state */
-$("tr.main").hover(
-  function() { $(this).next("tr.details").addClass("hover"); },
-  function() { $(this).next("tr.details").removeClass("hover"); }
-);
-// this is a live version of above trigger, as "tr.details" are created on the fly
-$(document).on("mouseenter", "tr.details", function() { $(this).prev("tr.main").addClass("hover"); });
-$(document).on("mouseleave", "tr.details", function() { $(this).prev("tr.main").removeClass("hover"); });
-
-/* token input for categories */
-var json_categories = ['.$categories_json.'];
-$("input.category").tokenInput(json_categories, {
-  tokenLimit: 1,
-  allowCreation: true,
-  hintText: ""
-});
-
-/* tablesorter */
-$("#projects table").tablesorter({
-  sortList: [[2,1],[1,0]],
-  headers: { 0: {sorter:false}, 5: {sorter: false} },
-  widgets: ["zebra"]
-})
-.bind("sortStart", function() { 
-  $("tr.details").remove();
-  $("a.expand img").attr("src", "template/images/page_white_edit.png");
-});
-
-/* actions */
-function checkPermitAction() {
-  var nbSelected = 0;
-
-  $("td.chkb input[type=checkbox]").each(function() {
-     if ($(this).is(":checked")) {
-       nbSelected++;
-     }
-  });
-
-  if (nbSelected == 0) {
-    $("#permitAction").hide();
-    $("#save_status").show();
-  } else {
-    $("#permitAction").show();
-    $("#save_status").hide();
-  }
-}
-
-$("[id^=action_]").hide();
-
-$("td.chkb input[type=checkbox]").change(function () {
-  checkPermitAction();
-});
-
-$(".selectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", true);
-  });
-  checkPermitAction();
-  return false;
-});
-$(".unselectAll").click(function() {
-  $("td.chkb input[type=checkbox]").each(function() {
-     $(this).attr("checked", false);
-  });
-  checkPermitAction();
-  return false;
-});
-
-$("select[name=selectAction]").change(function() {
-  $("[id^=action_]").hide();
-  $("#action_"+$(this).attr("value")).show();
-
-  if ($(this).val() != -1) {
-    $("#action_apply").show();
-  } else {
-    $("#action_apply").hide();
-  }
-});
-
-$("td.id").click(function() {
-  $checkbox = $(this).prev("td.chkb").children("input");
-  $checkbox.attr("checked", !$checkbox.attr("checked"));
-});';
-
-if (!empty($deploy_project))
-{
-  $page['script'].= '
-  $("a.expand[data=\''.$deploy_project.'\']").trigger("click");';
-}
+$template->close('admin/projects');
 
 ?>

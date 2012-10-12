@@ -2,17 +2,8 @@
 
 {include file="messages.tpl"}
 
-{combine_script id="jquery.autoresize" path="template/js/jquery.autoresize.min.js" load="footer"}
 
-{footer_script}{literal}
-$("textarea").autoResize({
-  maxHeight:2000,
-  extraSpace:5
-});
-{/literal}{/footer_script}
-
-
-<form action="admin.php?page=config" method="post" id="config">
+<form action="{$F_ACTION}" method="post" id="config">
   <fieldset class="common">
     <legend>Engine configuration</legend>
     
@@ -34,7 +25,7 @@ $("textarea").autoResize({
         <td><input type="text" name="var_name" value="{$CONF.var_name}"></td>
       </tr>
       <tr>
-        <td>Allow modification of default_language :</td>
+        <td>Allow modification of default language :</td>
         <td><input type="checkbox" name="allow_edit_default" value="1" {if $CONF.allow_edit_default}checked="checked"{/if}></td>
       </tr>
       <tr>
@@ -85,7 +76,8 @@ $("textarea").autoResize({
     $("input[name='svn_activated']").change(function () {
       if ($(this).is(":checked")) {
         $("tr.svn").show();
-      } else {
+      }
+      else {
         $("tr.svn").hide();
       }
     });
@@ -165,3 +157,13 @@ $("textarea").autoResize({
   	<input type="submit" name="save_config" value="Save" class="blue big">
   </div>
 </form>
+
+
+{combine_script id="jquery.autoresize" path="template/js/jquery.autoresize.min.js" load="footer"}
+
+{footer_script}{literal}
+$("textarea").autoResize({
+  maxHeight:2000,
+  extraSpace:5
+});
+{/literal}{/footer_script}

@@ -6,7 +6,7 @@
 
 
 {* <!-- search rows --> *}
-<form action="admin.php?page=history" method="post">
+<form action="{$F_ACTION}" method="post">
 <fieldset class="common">
   <legend>Search</legend>
   
@@ -65,7 +65,7 @@
 </form>
 
 {* <!-- rows list --> *}
-<form action="admin.php?page=history" method="post" id="last_modifs">
+<form action="{$F_ACTION}" method="post" id="last_modifs">
 <fieldset class="common">
   <legend>History</legend>
   
@@ -140,8 +140,8 @@
     <input type="submit" name="apply_action" class="blue" value="Apply">
   </span>
 </fieldset>
-
 </form>
+
 
 <table class="legend">
   <tr>
@@ -154,8 +154,8 @@
 
 
 {combine_script id="jquery.tablesorter" path="template/js/jquery.tablesorter.min.js" load="footer"}
-{combine_css path="template/js/jquery.tablesorter.css"}
 {combine_script id="jquery.tiptip" path="template/js/jquery.tiptip.min.js" load="footer"}
+{combine_css path="template/js/jquery.tablesorter.css"}
 {combine_css path="template/js/jquery.tiptip.css"}
 
 {footer_script}{literal}
@@ -183,7 +183,8 @@ function checkPermitAction() {
 
   if (nbSelected == 0) {
     $("#permitAction").hide();
-  } else {
+  }
+  else {
     $("#permitAction").show();
   }
 }
@@ -215,7 +216,8 @@ $("select[name=selectAction]").change(function() {
 
   if ($(this).val() != -1) {
     $("#action_apply").show();
-  } else {
+  }
+  else {
     $("#action_apply").hide();
   }
 });

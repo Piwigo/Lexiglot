@@ -44,7 +44,6 @@ else
 }
 
 $template->assign(array(
-  'INSTALL_NAME' => $conf['install_name'],
   'SELF_URL' => get_url_string(),
   'USER' => array(
     'USERNAME' => $user['username'],

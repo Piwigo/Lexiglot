@@ -2,9 +2,9 @@
 <html lang="en" dir="ltr">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>{if $WINDOW_TITLE}{$WINDOW_TITLE} | {/if}{$INSTALL_NAME|strip_tags}</title>
+  <title>{if $WINDOW_TITLE}{$WINDOW_TITLE} | {/if}{$CONF.install_name|strip_tags}</title>
   
-  <!-- default css & js -->{strip}
+  {strip}
   {combine_css path="template/css/style.css" rank=1}
   {combine_css path="template/js/jquery.ui/jquery.ui.custom.css" rank=100}
   {combine_script id="jquery" path="template/js/jquery.min.js" load="header"}
@@ -32,15 +32,16 @@
   </div></div>
   
   <div id="title">
-    <a href="index.php">{$INSTALL_NAME}</a>
+    <a href="index.php">{$CONF.install_name}</a>
     {if $PAGE_TITLE} | <a href="{$GET_URL_STRING}"><i>{$PAGE_TITLE}</i></a>{/if}
   </div>
 </div><!-- the_header -->
 {/if}
 
 <div id="the_page">
+
 <noscript>
-<div class="ui-state-warning" style="padding: 0.7em;margin-bottom:10px;">
+<div class="ui-state-error" style="padding: 0.7em;margin-bottom:10px;">
   <span class="ui-icon ui-icon-info" style="float: left; margin-right: 0.7em;"></span>
   <b>JavaScript is not activated, some major functions may not work !</b>
 </div>

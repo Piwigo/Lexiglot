@@ -147,6 +147,7 @@ $template->assign(array(
   'MAKE_STATS_URI' => get_url_string(array('action'=>'make_stats')),
   'DELETE_DONE_ROWS_URI' => get_url_string(array('action'=>'delete_done_rows')),
   'CLEAN_MAIL_URI' => get_url_string(array('action'=>'clean_mail_history')),
+  'F_ACTION' => get_url_string(array('page'=>'maintenance'), true),
   ));
 
 

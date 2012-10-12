@@ -79,13 +79,11 @@ mysql_query('SET names utf8;');
 load_conf_db($conf);
 
 // available projects and langs
-$query = 'SELECT * FROM '.PROJECTS_TABLE.' ORDER BY id;';
+$query = 'SELECT * FROM '.PROJECTS_TABLE.' ORDER BY rank DESC, id ASC;';
 $conf['all_projects'] = hash_from_query($query, 'id');
-ksort($conf['all_projects']);
 
-$query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY id;';
+$query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY rank DESC, id ASC;';
 $conf['all_languages'] = hash_from_query($query, 'id');
-ksort($conf['all_languages']);
 
 // user infos
 $user['id'] = $conf['guest_id'];

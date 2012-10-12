@@ -83,6 +83,7 @@ foreach ($_MAILS as $row)
 $template->assign(array(
   'SEARCH' => search_to_template($search),
   'PAGINATION' => display_pagination($paging, 'nav'),
+  'F_ACTION' => get_url_string(array('page'=>'mail'), true),
   ));
 
 

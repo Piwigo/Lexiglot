@@ -91,7 +91,7 @@ $search = array(
 
 $where_clauses = session_search($search, 'history_search', array('limit'));
 
-$displayed_projects = is_admin() ? $conf['all_projects'] : array_intersect_key($conf['all_projects'], create_permissions_array($user['manage_projects']));
+$displayed_projects = is_admin() ? $conf['all_projects'] : create_projects_array($user['manage_projects']);
 if (is_manager())
 {
   array_push($where_clauses, 'project IN("'.implode('","', array_keys($displayed_projects)).'")');
@@ -142,7 +142,6 @@ $_USERS = get_users_list(
   );
 
 
-
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
@@ -158,9 +157,10 @@ foreach ($_ROWS as $row)
 
 $template->assign(array(
   'SEARCH' => search_to_template($search),
-  'displayed_projects' => $displayed_projects,
   'PAGINATION' => display_pagination($paging, 'nav'),
   'USERS' => $_USERS,
+  'displayed_projects' => $displayed_projects,
+  'F_ACTION' => get_url_string(array('page'=>'history'), true),
   ));
 
 

@@ -414,12 +414,11 @@ $categories_json = implode(',', array_map(create_function('$row', 'return \'{id:
 // +-----------------------------------------------------------------------+
 // |                        TEMPLATE
 // +-----------------------------------------------------------------------+
- 
 foreach ($_LANGS as $row)
 {
   $row['highlight'] = $highlight_language==$row['id'];
   $row['category_name'] = @$categories[ @$row['category_id'] ]['name'];
-  $row['users_uri'] = get_url_string(array('page'=>'users','lang_id'=>$row['id']), true);
+  $row['users_uri'] = get_url_string(array('page'=>'users','language_id'=>$row['id']), true);
   $row['make_stats_uri'] = get_url_string(array('make_stats'=>$row['id']));
   
   if (!is_default_language($row['id']))
@@ -437,6 +436,7 @@ $template->assign(array(
   'CATEGORIES_JSON' => $categories_json,
   'NAV_PAGE' => !empty($_GET['nav']) ? '&amp;nav='.$_GET['nav'] : null,
   'DEPLOY_LANGUAGE' => $deploy_language,
+  'F_ACTION' => get_url_string(array('page'=>'languages'), true),
   ));
 
 

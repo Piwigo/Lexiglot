@@ -321,19 +321,39 @@ function print_user_projects_tooltip(&$user, $max=1)
 }
 
 /**
- * a little helper for permissions arrays
- * @param: original array
- * @param: default perm (0 or 1)
+ * returns full info array for specified languages
+ * @param: ids array
  * @return: array
  */
-function create_permissions_array($array, $fill=0)
+function create_languages_array($ids)
 {
-  if (!count($array)) return array();
+  global $conf;
   
-  return array_combine(
-    $array, 
-    array_fill(0, count($array), $fill)
+  if (!count($ids)) return array();
+  
+  $intersect = array_combine($ids, 
+    array_fill(0, count($ids), null)
     );
+  
+  return array_intersect_key($conf['all_languages'], $intersect);
+}
+
+/**
+ * returns full info array for specified projects
+ * @param: ids array
+ * @return: array
+ */
+function create_projects_array($ids)
+{
+  global $conf;
+  
+  if (!count($ids)) return array();
+  
+  $intersect = array_combine($ids, 
+    array_fill(0, count($ids), null)
+    );
+  
+  return array_intersect_key($conf['all_projects'], $intersect);
 }
 
 ?>

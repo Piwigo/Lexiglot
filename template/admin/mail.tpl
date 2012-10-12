@@ -2,19 +2,9 @@
 
 {include file="messages.tpl"}
 
-{combine_script id="jquery.tablesorter" path="template/js/jquery.tablesorter.min.js" load="footer"}
-{combine_css path="template/js/jquery.tablesorter.css"}
-
-{footer_script}{literal}
-$("#mail_history table").tablesorter({
-  sortList: [[2,1]],
-  widgets: ["zebra"]
-});
-{/literal}{/footer_script}
-
 
 {* <!-- search mails --> *}
-<form action="admin.php?page=mail" method="post">
+<form action="{$F_ACTION}" method="post">
 <fieldset class="common">
   <legend>Search</legend>
   
@@ -83,3 +73,14 @@ $("#mail_history table").tablesorter({
     <td><span class="highlight">&nbsp;</span> System mails</td>
   </tr>
 </table>
+
+
+{combine_script id="jquery.tablesorter" path="template/js/jquery.tablesorter.min.js" load="footer"}
+{combine_css path="template/js/jquery.tablesorter.css"}
+
+{footer_script}{literal}
+$("#mail_history table").tablesorter({
+  sortList: [[2,1]],
+  widgets: ["zebra"]
+});
+{/literal}{/footer_script}
