@@ -48,11 +48,6 @@ if (!function_exists('json_decode')) // >= 5.2.0
   }
 }
 
-if (!function_exists('quoted_printable_encode')) // >= 5.3.0
-{
-  include_once(LEXIGLOT_PATH . 'include/php_compat/quoted_printable.inc.php');
-}
-
 
 /**
  * create an url from current url

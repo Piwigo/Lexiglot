@@ -21,6 +21,7 @@ INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 ('allow_edit_default', 'false'),
 ('delete_done_rows', 'false'),
 ('use_stats', 'true'),
+('use_talks', 'true'),
 
 ('svn_activated', 'false'),
 ('svn_server', ''),
@@ -134,6 +135,20 @@ CREATE TABLE `lexiglot_stats` (
   `date` datetime NOT NULL,
   `value` float DEFAULT NULL,
   UNIQUE KEY `UNIQUE` (`project`,`language`,`date`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Structure of the table `lexiglot_talks`
+--
+
+CREATE TABLE `lexiglot_talks` (
+  `type` enum('project','language') NOT NULL,
+  `id` varchar(32) NOT NULL,
+  `content` text DEFAULT NULL,
+  `last_edit` datetime DEFAULT NULL,
+  UNIQUE KEY `UNIQUE` (`type`,`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------

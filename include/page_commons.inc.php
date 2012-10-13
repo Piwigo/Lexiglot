@@ -46,6 +46,7 @@ else
 $template->assign(array(
   'SELF_URL' => get_url_string(),
   'USER' => array(
+    'ID' => $user['id'],
     'USERNAME' => $user['username'],
     'EMAIL' => $user['email'],
     'STATUS' => $user['status'],

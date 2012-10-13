@@ -307,7 +307,7 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
 
   $headers.= 'X-Mailer: Lexiglot'."\n";
   $headers.= 'MIME-Version: 1.0'."\n";
-  $headers.= 'Content-Transfer-Encoding: Quoted-Printable'."\n";
+  $headers.= 'Content-Transfer-Encoding: 8bit'."\n";
   $headers.= 'Content-Type: '.$args['content_format'].'; charset="utf-8"'."\n";
 
   // content
@@ -316,7 +316,6 @@ function send_mail($to, $subject, $content, $args = array(), $additional_infos=n
     $content = htmlspecialchars($content);
   }
   
-  $content = quoted_printable_encode($content);
   $content = wordwrap($content, 70, "\n", true);
   
   

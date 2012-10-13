@@ -34,6 +34,7 @@ if (isset($_POST['save_config']))
     'var_name' =>               $_POST['var_name'],
     'delete_done_rows' =>       set_boolean(isset($_POST['delete_done_rows'])),
     'use_stats' =>              set_boolean(isset($_POST['use_stats'])),
+    'use_talks' =>              set_boolean(isset($_POST['use_talks'])),
     'allow_edit_default' =>     set_boolean(isset($_POST['allow_edit_default'])),
     
     'access_to_guest' =>        set_boolean(isset($_POST['access_to_guest'])),

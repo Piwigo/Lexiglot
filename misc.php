@@ -87,6 +87,42 @@ Here is his message :<br>
   }
 }
 
+
+// +-----------------------------------------------------------------------+
+// |                         SAVE TALK
+// +-----------------------------------------------------------------------+
+else if (isset($_POST['save_talk']))
+{
+  if (!verify_ephemeral_key(@$_POST['key'], '', false))
+  {
+    array_push($page['errors'], 'Invalid/expired form key');
+  }
+  else 
+  {
+    $id = $_GET[ $_POST['type'] ];
+    
+    $query = '
+INSERT INTO '.TALKS_TABLE.'(
+    type,
+    id,
+    content,
+    last_edit
+  )
+  VALUES (
+    "'.$_POST['type'].'",
+    "'.$id.'",
+    "'.mres($_POST['content']).'",
+    NOW()
+  )
+  ON DUPLICATE KEY UPDATE
+    content = "'.mres($_POST['content']).'",
+    last_edit = NOW()
+;';
+    mysql_query($query);
+  }
+}
+
+
 // +-----------------------------------------------------------------------+
 // |                         REQUEST A NEW LANGUAGE
 // +-----------------------------------------------------------------------+
@@ -109,6 +145,71 @@ if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_ad
     ));
   
   $template->close('lang_request');
+}
+
+// +-----------------------------------------------------------------------+
+// |                         TALKS
+// +-----------------------------------------------------------------------+
+else if ( isset($_GET['talk']) and $conf['use_talks'] )
+{
+  $editable = false;
+  
+  if (isset($_GET['language']))
+  {
+    $page['type'] = 'language';
+    $page['item'] = $_GET['language'];
+    
+    if (is_translator($page['item'], null))
+    {
+      $editable = true;
+    }
+  }
+  else if (isset($_GET['project']))
+  {
+    $page['type'] = 'project';
+    $page['item'] = $_GET['project'];
+    
+    if (is_translator(null, $page['item']))
+    {
+      $editable = true;
+    }
+  }
+  else
+  {
+    redirect('index.php');
+  }
+  
+  $query = '
+SELECT content
+  FROM '.TALKS_TABLE.'
+  WHERE
+    type = "'.$page['type'].'"
+    AND id = "'.$page['item'].'"
+;';
+  $result = mysql_query($query);
+  
+  $content = '<h2>This talk is empty</h2> <p>Fell free to add notes about the translation.</p>';
+  if (mysql_num_rows($result))
+  {
+    $content = mysql_result($result, 0);
+  }
+  
+  $template->assign(array(
+    'TYPE' => $page['type'],
+    'ITEM' => $page['item'],
+    'EDITABLE' => $editable,
+    'CONTENT' => $content,
+    ));
+  
+  if ($editable)
+  {
+    $template->assign(array(
+    'SECRET_KEY' => get_ephemeral_key(4),
+    'CURRENT_DATE' => format_date(date('Y-m-d')),
+    ));
+  }
+    
+  $template->close('talks');
 }
 else
 {

@@ -106,7 +106,7 @@ if ($conf['use_stats'])
 $use_stats = !empty($stats);
 $template->assign('USE_PROJECT_STATS', $use_stats);
 
-// projects not translated, translated and editable, not translated and editable
+// projects not translated, translated and editable, not translated and editable (translated and not editable doesn't appear)
 $project_not_translated = $project_translated = $project_available = $conf['all_projects'];
 foreach ($conf['all_projects'] as $row)
 {
@@ -119,11 +119,16 @@ foreach ($conf['all_projects'] as $row)
   {
     unset($project_translated[ $row['id'] ]);
   }
-  if (!in_array($row['id'], $user['projects']))
+  if (!in_array($row['id'], $user['projects'])) // don't use is_translator() because of read access
   {
     unset($project_available[ $row['id'] ]);
     unset($project_translated[ $row['id'] ]);
   }
+}
+
+if ($conf['use_talks'])
+{
+  $template->assign('TALK_URI', get_url_string(array('talk'=>null,'language'=>$page['language']), true, 'misc'));
 }
 
 
