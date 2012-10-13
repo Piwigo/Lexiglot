@@ -1,8 +1,5 @@
 {include file="messages.tpl"}
 
-{footer_script}
-$("input[type='text']:first", document.forms[0]).focus();
-{/footer_script}
 
 {if $IN_LOGIN}
 <form action="{$SELF_URL}" method="post">
@@ -84,3 +81,8 @@ $("input[type='text']:first", document.forms[0]).focus();
   </table>
 </form>
 {/if}
+
+
+{footer_script}
+$("input[type='text']:first", document.forms[0]).focus();
+{/footer_script}

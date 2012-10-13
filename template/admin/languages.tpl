@@ -121,7 +121,7 @@
           <a href="#" class="expand" data="{$row.id}" title="Edit this language"><img src="template/images/page_white_edit.png" alt="edit"></a>
           <a href="{$row.make_stats_uri}" title="Refresh stats"><img src="template/images/arrow_refresh.png"></a>
         {if $row.delete_uri}
-          <a href="{$row.delete_uri}" title="Delete this language" onclick="return confirm(\'Are you sure?\');"><img src="template/images/cross.png" alt="[x]"></a>
+          <a href="{$row.delete_uri}" title="Delete this language" onclick="return confirm('Are you sure?');"><img src="template/images/cross.png" alt="[x]"></a>
         {else}
           <span style="display:inline-block;margin-left:5px;width:16px;">&nbsp;</span>
         {/if}

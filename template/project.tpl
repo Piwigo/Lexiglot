@@ -2,6 +2,7 @@
 
 <p class="legend">
   <a href="{$lex->project_url($PROJECT)}">{$lex->project_name($PROJECT)}</a>
+  {* {if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if} *}
 </p>
 
 <ul id="languages" class="list-cloud {if $USE_LANGUAGE_STATS}w-stats{/if}">

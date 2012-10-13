@@ -253,3 +253,35 @@ table.login tr td:first-child {
     background: linear-gradient(top,  #e0e0e0 0%,#ffffff 100%);
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', endColorstr='#ffffff',GradientType=0 );
    }
+
+
+/* TALK PAGE */
+div.ckeditor {
+  margin:10px 0;
+  border:1px dotted #aaa;
+  padding:5px;
+  font-size:1.1em;
+  font-family:Arial,Verdana,sans-serif;
+  color:#222;
+}
+#talk_form #buttons {
+  margin-bottom:10px;
+}
+
+div.ckeditor h1, div.ckeditor h2, div.ckeditor h3, div.ckeditor h4, div.ckeditor h5, 
+div.ckeditor p, div.ckeditor ul, div.ckeditor ol {
+  margin-top:10px;
+}
+div.ckeditor h1 {
+  font-size:2em;
+}
+div.ckeditor h2 {
+  font-size:1.4em;
+}
+div.ckeditor h3 {
+  font-size:1.1em;
+}
+div.ckeditor ul {
+  list-style:disc;
+  margin-left:30px;
+}

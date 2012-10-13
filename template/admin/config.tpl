@@ -36,6 +36,10 @@
         <td>Display statistics :</td>
         <td><input type="checkbox" name="use_stats" value="1" {if $CONF.use_stats}checked="checked"{/if}></td>
       </tr>
+      <tr>
+        <td>Display talk pages :</td>
+        <td><input type="checkbox" name="use_talks" value="1" {if $CONF.use_talks}checked="checked"{/if}></td>
+      </tr>
     </table>
   </fieldset>
   
