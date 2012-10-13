@@ -106,7 +106,7 @@ if ( !array_key_exists($page['page'], $pages) )
   $tabsheet->add($page['page'], $sub_pages[ $page['page'] ], null, array());
 }
 $tabsheet->select($page['page']);
-$tabsheet->render();
+$tabsheet->render(false);
 
 
 // +-----------------------------------------------------------------------+

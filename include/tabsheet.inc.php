@@ -51,12 +51,20 @@ class Tabsheet
     $this->sheets[$id]['SELECTED'] = true;
   }
   
-  function render()
+  function render($return=false)
   {
     global $template;
     $template->set_filename('tabsheet', 'tabsheet.tpl');
     $template->assign('tabsheet', $this->sheets);
-    $template->assign_var_from_handle('TABSHEET_'.$this->id, 'tabsheet');
+    
+    if ($return)
+    {
+      $template->assign_var_from_handle('TABSHEET_'.$this->id, 'tabsheet');
+    }
+    else
+    {
+      $template->parse('tabsheet');
+    }
   }
 }
 

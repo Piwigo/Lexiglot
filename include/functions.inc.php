@@ -555,14 +555,14 @@ function mkgetdir($dir, $flags=MKGETDIR_DEFAULT)
     
     if ($mkd==false)
     {
-      !($flags&MKGETDIR_DIE_ON_ERROR) or fatal_error( "$dir ".l10n('no write access'));
+      !($flags&MKGETDIR_DIE_ON_ERROR) or trigger_error("$dir no write access", E_USER_ERROR);
       return false;
     }
   }
   
   if ( !is_writable($dir) )
   {
-    !($flags&MKGETDIR_DIE_ON_ERROR) or fatal_error( "$dir ".l10n('no write access'));
+    !($flags&MKGETDIR_DIE_ON_ERROR) or trigger_error("$dir no write access", E_USER_ERROR);
     return false;
   }
   

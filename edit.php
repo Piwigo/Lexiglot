@@ -273,7 +273,7 @@ foreach ($page['files'] as $file)
   $tabsheet->add($file, basename($file), "Edit the file '".$file."'", array('page'));
 }
 $tabsheet->select($page['file']);
-$tabsheet->render();
+$tabsheet->render(true);
 
 // popu to reference file
 if (!is_default_language($page['language']))

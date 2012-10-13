@@ -25,6 +25,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 // +-----------------------------------------------------------------------+
 // |                        PREVIEW COMMIT
 // +-----------------------------------------------------------------------+
+// FOREACH COMMIT
 foreach ($_ROWS as $props => $commit_content)
 {
   // commit infos
@@ -32,9 +33,9 @@ foreach ($_ROWS as $props => $commit_content)
   list($commit['project'], $commit['language']) = explode('||', $props);
   $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
   $commit['is_new'] = dir_is_empty($commit['path']);
-  $commit['users'] = array();
-  $commit['files'] = array();
+  $commit['users'] = $commit['files'] = array();
   
+  // FOREACH FILE
   foreach ($commit_content as $filename => $file_content)
   {
     $file = array();

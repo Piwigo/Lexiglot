@@ -1,5 +1,3 @@
-{$TABSHEET_ADMIN}
-
 {include file="messages.tpl"}
 
 
@@ -47,7 +45,7 @@
     <tbody>
     {foreach from=$mails item=row}
       <tr class="{$row.HIGHLIGHT}">
-        <td class="from">{$row.FRO}</td>
+        <td class="from">{$row.FROM}</td>
         <td class="to">{$row.TO}</td>
         <td class="date">
           <span style="display:none;">{$row.TIME}</span>

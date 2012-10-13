@@ -1,5 +1,3 @@
-{$TABSHEET_ADMIN}
-
 {include file="messages.tpl"}
 
 {$ROW_POPUP}

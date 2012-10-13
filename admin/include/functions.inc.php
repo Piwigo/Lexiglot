@@ -173,6 +173,16 @@ function upload_flag($file, $name)
 }
 
 /**
+ * search if the end of the line if the end of the row
+ * @param string
+ * @return bool
+ */
+function is_eor($line)
+{
+  return preg_match('#(\'|");(\s*)$#', $line);
+}
+
+/**
  * search the end of the row and delete the row (doesn't delete the first line of the row)
  * @param array
  * @param int start

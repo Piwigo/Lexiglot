@@ -21,55 +21,79 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
-// +-----------------------------------------------------------------------+
-// |                        SEND COMMIT
-// +-----------------------------------------------------------------------+
+// commit states :
+// +--------------+---------------+------------++--------------------------+
+// |   modified   |   done_rows   |   errors   ||   state                  |
+// +--------------+---------------+------------++--------------------------+
+// |    false     |      =0       |     =0     ||   IMPOSSIBLE             |
+// |    false     |      =0       |     >0     ||   fatal error            |
+// |    false     |      >0       |     =0     ||   commit aborded         |
+// |    false     |      >0       |     >0     ||   IMPOSSIBLE             |
+// |    true      |      =0       |     =0     ||   IMPOSSIBLE             |
+// |    true      |      =0       |     >0     ||   IMPOSSIBLE             |
+// |    true      |      >0       |     =0     ||   commit                 |
+// |    true      |      >0       |     >0     ||   commit with errors     |
+// +--------------+---------------+------------++--------------------------+
+//
+// "commit" and "commit with errors" can lead up to "fatal error" in case of SVN error
 
+
+// +-----------------------------------------------------------------------+
+// |                        UPDATE FILES
+// +-----------------------------------------------------------------------+
 // FOREACH COMMIT
-foreach ($_ROWS as $props => $files)
+foreach ($_ROWS as $props => $commit_content)
 {
   // commit infos
+  $commit = array();
   list($commit['project'], $commit['language']) = explode('||', $props);
+  $commit['project_name'] = get_project_name($commit['project']);
+  $commit['language_name'] = get_language_name($commit['language']);
   $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
   $commit['is_new'] = dir_is_empty($commit['path']);
   $commit['users'] = $commit['done_rows'] = $commit['errors'] = array();
+  $commit['modified'] = false;
   
   // FOREACH FILE
-  foreach ($files as $filename => $file_content)
+  foreach ($commit_content as $filename => $file_content)
   {
     // file infos
-    $file_infos['name'] = $filename;
-    $file_infos['path'] = $commit['path'].$file_infos['name'];
-    $file_infos['is_new'] = !file_exists($file_infos['path']);
-    $file_infos['users'] = $file_infos['done_rows'] = $file_infos['errors'] = array();
+    $file = array();
+    $file['name'] = $filename;
+    $file['path'] = $commit['path'].$file['name'];
+    $file['is_new'] = !file_exists($file['path']);
+    $file['users'] = $file['done_rows'] = $file['errors'] = array();
+    $file['modified'] = false;
     
     ## plain file ##
-    if (is_plain_file($file_infos['name']))
+    if (is_plain_file($file['name']))
     {
-      $row = $file_content[ $file_infos['name'] ];
+      $row = $file_content[ $file['name'] ];
       
       // try to put the content in the file
-      if (deep_file_put_contents($file_infos['path'], $row[0]['row_value']))
+      if (deep_file_put_contents($file['path'], $row[0]['row_value']))
       {
-        array_merge_ref($file_infos['done_rows'], array_unique_deep($row, 'id'));
-        array_merge_ref($file_infos['users'], array_unique_deep($row, 'user_id'));
+        // keep trace of added row(s), user(s) and mark the file as modified
+        array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
+        array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
+        $file['modified'] = true;
       }
       else
       {
-        array_push($file_infos['errors'], 'Can\'t update/create file \''.$file_infos['path'].'\'');
+        array_push($file['errors'], 'Can\'t update/create file \''.$file['path'].'\'');
       }
     }
     ## array file ##
     else
     {
       // load language files
-      $_LANG =         load_language_file($commit['project'], $commit['language'], $file_infos['name']);
-      $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file_infos['name']);
+      $_LANG =         load_language_file($commit['project'], $commit['language'], $file['name']);
+      $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file['name']);
       
       // update the file
-      if (!$file_infos['is_new'])
+      if (!$file['is_new'])
       {
-        $_FILE = file($file_infos['path'], FILE_IGNORE_NEW_LINES);
+        $_FILE = file($file['path'], FILE_IGNORE_NEW_LINES);
         unset($_FILE[ array_search('?>', $_FILE) ]); // remove PHP end tag
       }
       // create the file
@@ -79,7 +103,6 @@ foreach ($_ROWS as $props => $files)
       }
       
       // FOREACH ROW
-      // rows from database (new/edit) we skip/remove obsolete
       foreach ($file_content as $key => $row)
       {
         $sub_string = is_sub_string($key);
@@ -119,33 +142,21 @@ foreach ($_ROWS as $props => $files)
             break;
         }
         
-        // remove obsolete row, and continue to the next
+        // obsolete rows, if translated then removed from the source, must be marked as commited
         if (!isset($_LANG_default[$key]))
         {
-          /*if ( 
-            !$file_infos['is_new'] and
-            isset($_POST['delete_obsolete']) and
-            ($i = array_pos($row['search'], $_FILE)) !== false
-          )
-          {
-            // if the end of the line is not the end of the row, we search the end into lines bellow
-            if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
-            {
-              unset_to_eor($_FILE, $i);
-            }
-            unset($_FILE[$i]);
-          }*/
+          array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
           continue;
         }
         
         // update existing line
         if (
-          !$file_infos['is_new'] and 
+          !$file['is_new'] and 
           ($i = array_pos($row[0]['search'], $_FILE)) !== false
         )
         {
           // if the end of the line is not the end of the row, we search the end into lines bellow
-          if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
+          if (!is_eor($_FILE[$i]))
           {
             unset_to_eor($_FILE, $i);
           }
@@ -157,17 +168,18 @@ foreach ($_ROWS as $props => $files)
           $_FILE[] = $row[0]['content'];
         }
         
-        array_merge_ref($file_infos['done_rows'], array_unique_deep($row, 'id'));
-        array_merge_ref($file_infos['users'], array_unique_deep($row, 'user_id'));
+        // keep trace of added row(s), user(s) and mark the file as modified
+        array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
+        array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
+        $file['modified'] = true;
       }
       
       // obsolete rows from file
-      if ( isset($_POST['delete_obsolete']) and !$file_infos['is_new'] )
+      if ( isset($_POST['delete_obsolete']) and !$file['is_new'] )
       {
         foreach ($_LANG as $key => $row)
         {
-          // here we skip rows that were in the database, already deleted
-          if ( !isset($_LANG_default[$key]) /*and !isset($file_content[$key])*/ )
+          if (!isset($_LANG_default[$key]))
           {
             $sub_string = is_sub_string($key);
             
@@ -189,12 +201,15 @@ foreach ($_ROWS as $props => $files)
             }
           
             $i = array_pos($row['search'], $_FILE);
+            
             // if the end of the line is not the end of the row, we search the end into lines bellow
-            if ( !preg_match('#(\'|");(\s*)$#', $_FILE[$i]) )
+            if (!is_eor($_FILE[$i]))
             {
               unset_to_eor($_FILE, $i);
             }
+            
             unset($_FILE[$i]);
+            $file['modified'] = true;
           }
         }
       }
@@ -202,80 +217,114 @@ foreach ($_ROWS as $props => $files)
       $_FILE[] = '?>'; // don't forget to close PHP tag
       
       // try to put the content in the file
-      if (!deep_file_put_contents($file_infos['path'], implode($conf['eol'], $_FILE)))
+      if (!deep_file_put_contents($file['path'], implode($conf['eol'], $_FILE)))
       {
-        $file_infos['done_rows'] = array();
-        $file_infos['users'] = array();
-        array_push($file_infos['errors'], 'Can\'t update/create file\''.$file_infos['path'].'\'');
+        $file['done_rows'] = array();
+        $file['users'] = array();
+        $file['modified'] = false;
+        
+        array_push($file['errors'], 'Can\'t update/create file\''.$file['path'].'\'');
       }
     }
     
     // try to svn_add the file if it's new
-    if ( count($file_infos['done_rows']) > 0 and $conf['svn_activated'] and $file_infos['is_new'] ) 
+    if ( $conf['svn_activated'] and $file['modified'] and $file['is_new'] ) 
     {
-      $svn_result = svn_add($file_infos['path'], true);
+      $svn_result = svn_add($file['path'], true);
       if ($svn_result['level'] == 'error')
       {
-        unlink($file_infos['path']);
-        $file_infos['done_rows'] = array();
-        array_push($file_infos['errors'], 'svn: '.$svn_result['msg']);
+        $file['done_rows'] = array();
+        $file['users'] = array();
+        $file['modified'] = false;
+        
+        unlink($file['path']);
+        array_push($file['errors'], 'svn: '.$svn_result['msg']);
       }
     }
     
-    // if the file was successfully modified/created
-    if (count($file_infos['done_rows']) > 0)
+    // the file was successfully modified/created
+    if ($file['done_rows'] > 0)
     {
-      array_merge_ref($commit['done_rows'], $file_infos['done_rows']);
-      array_merge_ref($commit['users'], $file_infos['users']);
+      array_merge_ref($commit['done_rows'], $file['done_rows']);
     }
-    else
+    if ($file['modified'])
     {
-      array_merge_ref($commit['errors'], $file_infos['errors']);
+      array_merge_ref($commit['users'], $file['users']);
+      $commit['modified'] = true;
     }
     
-    unset($file_infos);
+    // errors occured
+    if (count($file['errors']) > 0)
+    {
+      array_merge_ref($commit['errors'], $file['errors']);
+    }
   }
   
   // users
   $commit['users'] = array_unique($commit['users']);
   array_walk($commit['users'], 'print_username');
   
-  // everything fine, try to commit
-  if ( count($commit['done_rows']) > 0 and $conf['svn_activated'] )
+  
+  // +-----------------------------------------------------------------------+
+  // |                        SEND COMMIT
+  // +-----------------------------------------------------------------------+
+  // state: aborded
+  if ( !$commit['modified'] and count($commit['done_rows'])>0 and count($commit['errors'])==0 )
   {
-    $svn_result = svn_commit($commit['path'], 
-      '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
-      );
+    array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': aborded, nothing modified.');
+  }
+  else
+  {
+    // state: commit/commit with errors
+    if ( $commit['modified'] and count($commit['done_rows'])>0 )
+    {
+      if ( $conf['svn_activated'] )
+      {
+        $svn_result = svn_commit($commit['path'], 
+          '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
+          );
+        
+        // => fatal error
+        if ($svn_result['level'] == 'error')
+        {
+          svn_revert($commit['path']);
+          $commit['done_rows'] = array();
+          $commit['modified'] = false;
+          $commit['errors'] = array('['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg']);
+        }
+        // state: commit
+        else if (count($commit['errors'])==0)
+        {
+          array_push($page['infos'], '['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg']);
+        }
+        // state: commit with errors
+        else if (count($commit['errors'])>0)
+        {
+          array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+        }
+      }
+      else
+      {
+        // state: commit
+        if (count($commit['errors'])==0)
+        {
+          array_push($page['infos'], '['.$commit['project_name'].'] '.$commit['language_name'].': done');
+        }
+        // state: commit with errors
+        else if (count($commit['errors'])>0)
+        {
+          array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': partialy done, see errors bellow<br>'.implode('<br>', $commit['errors']));
+        }
+      }
+    }
     
-    // error while commit
-    if ($svn_result['level'] == 'error')
+    // state: fatal error
+    if ( !$commit['modified'] and count($commit['done_rows'])==0 and count($commit['errors'])>0 )
     {
-      svn_revert($commit['path']);
-      $commit['done_rows'] = array();
-      array_push($page['errors'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
+      array_push($page['errors'], '['.$commit['project_name'].'] '.$commit['language_name'].': failed<br>'.implode('<br>', $commit['errors']));
     }
-    // commited successfully without files errors
-    else if (count($commit['errors']) == 0)
-    {
-      array_push($page['infos'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': '.$svn_result['msg']);
-    }
-  }
-  // everything fine, svn not activated
-  else if ( count($commit['done_rows']) > 0 and count($commit['errors']) == 0 )
-  {
-    array_push($page['infos'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': done');
-  }
-  // nothing done
-  else if (count($commit['done_rows']) == 0)
-  {
-    array_push($page['errors'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': failed<br>'.implode('<br>', $commit['errors']));
   }
   
-  // some errors in files creation
-  if ( count($commit['done_rows']) > 0 and count($commit['errors']) > 0 )
-  {
-    array_push($page['warnings'], '['.get_project_name($commit['project']).'] '.get_language_name($commit['language']).': partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
-  }
   
   // update database
   if (count($commit['done_rows']) > 0)
@@ -298,20 +347,16 @@ UPDATE '.ROWS_TABLE.'
   WHERE id IN('.implode(',', $commit['done_rows']).')
 ;';
       mysql_query($query);
-
-      /*$query = '
-UPDATE '.ROWS_TABLE.'
-  SET 
-    last_edit = NOW()
-  WHERE
-    id IN('.implode(',', $commit['done_rows']).')
-;';
-      mysql_query($query);*/
     }
   }
   
   make_stats($commit['project'], $commit['language']);  
-  unset($commit);
 }
+
+
+// +-----------------------------------------------------------------------+
+// |                         OUTPUT
+// +-----------------------------------------------------------------------+
+$template->close('messages');
 
 ?>
