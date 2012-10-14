@@ -249,6 +249,7 @@ SELECT * FROM (
       foreach ($from as $project)
       {
         $sub_num = $sub_denom = 0;
+        if (empty($out[$project])) $out[$project] = array();
         $sub_from = !empty($Slanguage) ? array_keys($out[$project]) : array_keys($conf['all_languages']);
         foreach ($sub_from as $language)
         {

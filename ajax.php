@@ -141,6 +141,38 @@ SELECT
     </ul>');
   }
   
+  // MAKE STATS
+  case 'make_stats':
+  {
+    if ( !empty($_POST['project']) and !array_key_exists($_POST['project'], $conf['all_projects']) )
+    {
+      close_ajax('error', 'Bad project id');
+    }
+    if ( !empty($_POST['language']) and !array_key_exists($_POST['language'], $conf['all_languages']) )
+    {
+      close_ajax('error', 'Bad language id');
+    }
+    
+    if ( empty($_POST['project']) and empty($_POST['language']) )
+    {
+      close_ajax('error', 'Bad parameters');
+    }
+    else if ( !empty($_POST['project']) and !empty($_POST['language']) )
+    {
+      $stats = make_stats($_POST['project'], $_POST['language']);
+    }
+    else if ( !empty($_POST['project']) and empty($_POST['language']) )
+    {
+      $stats = make_project_stats($_POST['project']);
+    }
+    else if ( empty($_POST['project']) and !empty($_POST['language']) )
+    {
+      $stats = make_language_stats($_POST['language']);
+    }
+    
+    close_ajax('success', $stats);
+  }
+  
   default:
     close_ajax('error', 'Bad parameters');
 }

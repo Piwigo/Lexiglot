@@ -93,7 +93,8 @@ if (isset($_POST['add_project']))
 // update statistics
 if ( time() - strtotime(get_cache_date(null, $page['language'])) > $conf['stats_cache_life'] )
 {
-  make_language_stats($page['language']);
+  // make_language_stats($page['language']);
+  $template->assign('MAKE_STATS_KEY', get_ephemeral_key(0));
 }
   
 // get statistics

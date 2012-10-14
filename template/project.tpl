@@ -74,3 +74,18 @@ $(".add a").click(function() {
   return false;
 });
 {/literal}{/footer_script}
+
+{if $MAKE_STATS_KEY}
+  {footer_script}{literal}
+  $.ajax({
+    type: "POST",
+    url: "ajax.php",
+    data: {{/literal} "action":"make_stats", "project":"{$PROJECT}", "key":"{$MAKE_STATS_KEY}" {literal}}
+  }).done(function(msg) {
+    msg = $.parseJSON(msg);
+    if (msg.errcode == "success") {
+      document.location.reload(true);
+    }
+  });
+  {/literal}{/footer_script}
+{/if}

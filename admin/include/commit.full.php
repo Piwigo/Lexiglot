@@ -268,10 +268,12 @@ foreach ($_ROWS as $props => $commit_content)
   // +-----------------------------------------------------------------------+
   // |                        SEND COMMIT
   // +-----------------------------------------------------------------------+
+  $msg_prefix = '['.$commit['project_name'].'] '.$commit['language_name'];
+  
   // state: aborded
   if ( !$commit['modified'] and count($commit['done_rows'])>0 and count($commit['errors'])==0 )
   {
-    array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': aborded, nothing modified.');
+    array_push($page['warnings'], $msg_prefix.': aborded, nothing modified.');
   }
   else
   {
@@ -290,17 +292,17 @@ foreach ($_ROWS as $props => $commit_content)
           svn_revert($commit['path']);
           $commit['done_rows'] = array();
           $commit['modified'] = false;
-          $commit['errors'] = array('['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg']);
+          $commit['errors'] = array('svn: '.$svn_result['msg']);
         }
         // state: commit
         else if (count($commit['errors'])==0)
         {
-          array_push($page['infos'], '['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg']);
+          array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
         }
         // state: commit with errors
         else if (count($commit['errors'])>0)
         {
-          array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+          array_push($page['warnings'], $msg_prefix.': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
         }
       }
       else
@@ -308,12 +310,12 @@ foreach ($_ROWS as $props => $commit_content)
         // state: commit
         if (count($commit['errors'])==0)
         {
-          array_push($page['infos'], '['.$commit['project_name'].'] '.$commit['language_name'].': done');
+          array_push($page['infos'], $msg_prefix.': done');
         }
         // state: commit with errors
         else if (count($commit['errors'])>0)
         {
-          array_push($page['warnings'], '['.$commit['project_name'].'] '.$commit['language_name'].': partialy done, see errors bellow<br>'.implode('<br>', $commit['errors']));
+          array_push($page['warnings'], $msg_prefix.': partialy done, see errors bellow<br>'.implode('<br>', $commit['errors']));
         }
       }
     }
@@ -321,7 +323,7 @@ foreach ($_ROWS as $props => $commit_content)
     // state: fatal error
     if ( !$commit['modified'] and count($commit['done_rows'])==0 and count($commit['errors'])>0 )
     {
-      array_push($page['errors'], '['.$commit['project_name'].'] '.$commit['language_name'].': failed<br>'.implode('<br>', $commit['errors']));
+      array_push($page['errors'], $msg_prefix.': failed, see errors bellow<br>'.implode('<br>', $commit['errors']));
     }
   }
   

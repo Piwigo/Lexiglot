@@ -92,7 +92,8 @@ if (isset($_POST['add_language']))
 // update statistics
 if ( time() - strtotime(get_cache_date($page['project'], null)) > $conf['stats_cache_life'] )
 {
-  make_project_stats($page['project']);
+  // make_project_stats($page['project']);
+  $template->assign('MAKE_STATS_KEY', get_ephemeral_key(0));
 }
   
 // get statistics (must be computed with a clean rank)
