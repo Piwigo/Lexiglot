@@ -39,6 +39,7 @@ $template->assign(array(
   'WINDOWS_TITLE' => get_project_name($page['project']),
   'PAGE_TITLE' => 'Browse',
   'PROJECT' => $page['project'],
+  'PROJECT_WEBSITE' => get_project_website($page['project']),
   ));
 
 // get ordered languages with categories names (uses a workaround for languages without categories)

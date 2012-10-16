@@ -24,6 +24,7 @@
     <li><a href="{$MAKE_STATS_URI}">Update all statistics</a></li>
     {if not $CONF.delete_done_rows}<li><a href="{$DELETE_DONE_ROWS_URI}" onclick="return confirm('Are you sure?');">Delete all commited strings</a></li>{/if}
     <li><a href="{$CLEAN_MAIL_URI}">Clean mail archive</a></li>
+    <li><a href="{$PURGE_TEMPLATE_URI}">Clear compiled templates</a></li>
   </ul>
   
   <div style="clear:both;"></div>

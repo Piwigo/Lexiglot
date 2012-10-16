@@ -824,4 +824,20 @@ function get_user_url($user_id)
   return get_url_string(array('user_id'=>$user_id), true, 'profile');
 }
 
+/**
+ * return a color for each status
+ */
+function get_status_color($status)
+{
+  $map = array(
+    'guest' => '000000',
+    'visitor' => '000000',
+    'translator' => '000000',
+    'manager' => '0000ff',
+    'admin' => 'ff0000',
+    );
+    
+  return $map[$status];
+}
+
 ?>

@@ -1,8 +1,10 @@
 {include file="messages.tpl"}
 
+
+{if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if}
+
 <p class="legend">
   <a href="{$lex->language_url($LANGUAGE)}">{$lex->language_flag($LANGUAGE)} {$lex->language_name($LANGUAGE)}</a>
-  {if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if}
 </p>
 
 <ul id="projects" class="list-cloud {if $USE_PROJECT_STATS}w-stats{/if}">
@@ -49,6 +51,14 @@
 
 {if $PROGRESS_BAR}
   {ui_message type="highlight" icon="signal" content="<b>Language progression :</b> "|cat:$PROGRESS_BAR}
+{/if}
+
+{if $users}
+  {foreach from=$users item=row}
+    {append var=content value='<a href="'|cat:$row.url|cat:'" style="color:#'|cat:$row.color|cat:';">'|cat:$row.username|cat:'</a>'}
+  {/foreach}
+  {assign var=content value=', '|implode:$content}
+  {ui_message type="highlight" icon="person" content='<b>Users :</b> '|cat:$content}
 {/if}
 
 

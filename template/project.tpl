@@ -1,8 +1,10 @@
 {include file="messages.tpl"}
 
+
+{* {if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if} *}
+
 <p class="legend">
   <a href="{$lex->project_url($PROJECT)}">{$lex->project_name($PROJECT)}</a>
-  {* {if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if} *}
 </p>
 
 <ul id="languages" class="list-cloud {if $USE_LANGUAGE_STATS}w-stats{/if}">
@@ -53,8 +55,8 @@
   {ui_message type="highlight" icon="signal" content="<b>Project progression :</b> "|cat:$PROGRESS_BAR}
 {/if}
 
-{if $PROJECT_URL}
-  {ui_message type="highlight" icon="extlink" content="<b>Website :</b> <a href='"|cat:$PROJECT_URL|cat:"'>"|cat:$PROJECT_URL|cat:"</a>"}
+{if $PROJECT_WEBSITE}
+  {ui_message type="highlight" icon="extlink" content="<b>Website :</b> <a href='"|cat:$PROJECT_WEBSITE|cat:"'>"|cat:$PROJECT_WEBSITE|cat:"</a>"}
 {/if}
 
 

@@ -65,6 +65,8 @@ class Template
     $this->smarty->register_function('get_combined_css', array(&$this, 'func_get_combined_css') );
     
     $this->smarty->register_function('ui_message', array(&$this, 'func_ui_message') );
+    $this->smarty->register_function('concat', array(&$this, 'func_concat') );
+    $this->smarty->register_function('append', array(&$this, 'func_append') );
     
     $TemplateAdapter = new TemplateAdapter();
     $this->assign('lex', $TemplateAdapter);
@@ -414,10 +416,48 @@ class Template
     }
     
     return '
-<div class="message ui-state-'. $params['type'] .' " '.(!empty($params['style'])?'style="'.$params['style'].'"':null).'>
+<div class="message ui-state-'. $params['type'] .'" '.(!empty($params['style'])?'style="'.$params['style'].'"':null).'>
   <span class="ui-icon ui-icon-'. $params['icon'] .'"></span>
   '. $params['content'] .'
 </div>';
+  }
+  
+  /**
+   * Concatenates a variable
+   * param var - required
+   * param value - required
+   */
+  function func_concat($params)
+  {
+    if (!isset($params['var']))
+    {
+      $this->smarty->trigger_error("concat: missing 'var' parameter", E_USER_ERROR);
+    }
+    if (empty($params['value']))
+    {
+      return;
+    }
+    
+    $this->concat($params['var'], $params['value']);
+  }
+  
+  /**
+   * Appends a value to a template array
+   * param var - required
+   * param value - required
+   */
+  function func_append($params)
+  {
+    if (!isset($params['var']))
+    {
+      $this->smarty->trigger_error("append: missing 'var' parameter", E_USER_ERROR);
+    }
+    if (empty($params['value']))
+    {
+      return;
+    }
+    
+    $this->append($params['var'], $params['value']);
   }
 }
 

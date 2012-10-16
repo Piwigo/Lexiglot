@@ -174,6 +174,24 @@ if ( $conf['user_can_add_language'] and is_translator($page['language'], null) a
 
 
 // +-----------------------------------------------------------------------+
+// |                         USERS
+// +-----------------------------------------------------------------------+
+$users = get_users_list(array(
+  'l.language = "'.$page['language'].'"',
+  'u.id != '.$conf['guest_id'],
+  'status!="admin"',
+  ), null);
+
+foreach ($users as $row)
+{
+  $row['url'] = get_url_string(array('user_id'=>$row['id']), true, 'profile');
+  $row['color'] = get_status_color($row['status']);
+
+  $template->append('users', $row);
+}
+
+
+// +-----------------------------------------------------------------------+
 // |                         OUTPUT
 // +-----------------------------------------------------------------------+
 $template->close('language');
