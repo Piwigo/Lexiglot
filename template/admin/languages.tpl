@@ -83,7 +83,7 @@
 </form>
 
 {* <!-- langs list --> *}
-<form id="languages" action="{$F_ACTION}{$NAV_PAGE}" method="post">
+<form id="languages" action="{$F_ACTION}{$NAV_PAGE}" method="post" enctype="multipart/form-data">
 <fieldset class="common">
   <legend>Manage</legend>
   <table class="common tablesorter">

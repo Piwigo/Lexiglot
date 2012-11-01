@@ -102,6 +102,7 @@ SELECT *
   <tr>
     <td class="title">Flag :</td>
     <td>
+      <input type="hidden" name="MAX_FILE_SIZE" value="10240">
       <input type="file" name="flags-'.$row['id'].'" size="40">
       '.(!empty($row['flag']) ? '<a href="'.get_url_string(array('page'=>'languages','delete_flag'=>$row['id']), array(), 'admin').'" title="Delete the flag" style="margin-right:10px;"><img src="template/images/cross.png" alt="x"></a>' : null).'
     </td>
