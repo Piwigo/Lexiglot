@@ -146,7 +146,7 @@
         <td class="status">
         {if $lex->is_admin()}
           <span style="display:none;">{$row.status}</span>
-          <select name="status[{$row.id}" data="{$row.id}" {if $row.status_disabled}disabled="disabled"{/if}>
+          <select name="status[{$row.id}]" data="{$row.id}" {if $row.status_disabled}disabled="disabled"{/if}>
             {if $row.id==$CONF.guest_id}<option value="guest" selected="selected">Guest</option>{/if}
             <option value="visitor" {if 'visitor'==$row.status}selected="selected"{/if}>Visitor</option>
             <option value="translator" {if 'translator'==$row.status}selected="selected"{/if}>Translator</option>
