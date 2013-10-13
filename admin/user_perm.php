@@ -43,7 +43,7 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
     user_id = '.$_POST['user_id'].'
     AND type = "translate"
 ;';
-  mysql_query($query);
+  $db->query($query);
   
   $inserts = array();
   if (!empty($_POST['available_projects']))
@@ -70,7 +70,7 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     user_id = '.$_POST['user_id'].'
     AND type = "translate"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     $inserts = array();
     
@@ -97,7 +97,7 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
     user_id = '.$_POST['user_id'].'
     AND type = "manage"
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       $inserts = array();
       if (!empty($_POST['manage_projects']))
@@ -130,7 +130,7 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     user_id = '.$_POST['user_id'].'
     AND type = "main"
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       if ( !empty($_POST['main_language']) and in_array($_POST['main_language'], @$_POST['available_languages']) )
       {
@@ -161,7 +161,7 @@ UPDATE '.USER_INFOS_TABLE.'
   WHERE
     user_id = '.$_POST['user_id'].'
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   redirect(get_url_string(array('page'=>'users','from_id'=>$_POST['user_id']), true));

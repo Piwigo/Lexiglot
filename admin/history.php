@@ -28,7 +28,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 if ( isset($_GET['delete_row']) and is_numeric($_GET['delete_row']) )
 {
   $query = 'DELETE FROM '.ROWS_TABLE.' WHERE id = '.$_GET['delete_row'].';';
-  mysql_query($query);
+  $db->query($query);
   array_push($page['infos'], 'Translation deleted.');
 }
 
@@ -53,9 +53,9 @@ if ( isset($_POST['apply_action']) and $_POST['selectAction'] != '-1' and !empty
 DELETE FROM '.ROWS_TABLE.' 
   WHERE id IN('.implode(',', $_POST['select']).') 
 ;';
-        mysql_query($query);
+        $db->query($query);
 
-        array_push($page['infos'], mysql_affected_rows().' translations deleted.');
+        array_push($page['infos'], $db->affected_rows.' translations deleted.');
       }
       break;
     }
@@ -68,9 +68,9 @@ UPDATE '.ROWS_TABLE.'
   SET status = "done" 
   WHERE id IN('.implode(',', $_POST['select']).') 
 ;';
-      mysql_query($query);
+      $db->query($query);
 
-      array_push($page['infos'], mysql_affected_rows().' translations marked as commited.');
+      array_push($page['infos'], $db->affected_rows.' translations marked as commited.');
       break;
     }
   }
@@ -107,7 +107,7 @@ SELECT COUNT(1)
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
-list($total) = mysql_fetch_row(mysql_query($query));
+list($total) = $db->query($query)->fetch_row();
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav');
 

@@ -45,6 +45,8 @@ $conf['user_fields'] = array(
   'email' => 'email'
   );
   
+$conf['users_table_encoding'] = 'utf8';
+  
 // additional fields to complete when a new user register (only for a external users table)
 $conf['additional_user_infos'] = array();
 

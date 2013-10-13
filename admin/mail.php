@@ -45,7 +45,7 @@ SELECT COUNT(1)
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
-list($total) = mysql_fetch_row(mysql_query($query));
+list($total) = $db->query($query)->fetch_row();
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav');
 

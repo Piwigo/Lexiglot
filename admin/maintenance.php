@@ -31,12 +31,12 @@ if (!empty($_GET['action']))
   {
     case 'optimize_db' :
     {
-      $result = mysql_query('SHOW TABLE STATUS FROM '. DB_NAME .';');
-      while ($table = mysql_fetch_assoc($result))
+      $result = $db->query('SHOW TABLE STATUS FROM '. DB_NAME .';');
+      while ($table = $result->fetch_assoc())
       {
         if (strstr($table['Name'], DB_PREFIX) != false)
         {
-          mysql_query('OPTIMIZE TABLE '.$table['Name'].';');
+          $db->query('OPTIMIZE TABLE '.$table['Name'].';');
         }
       }
       array_push($page['infos'], 'Database cleaned');
@@ -67,8 +67,8 @@ DELETE FROM '.CATEGORIES_TABLE.'
         GROUP BY category_id
       )
 ;';
-      mysql_query($query);
-      array_push($page['infos'], mysql_affected_rows().' unused categories deleted');
+      $db->query($query);
+      array_push($page['infos'], $db->affected_rows.' unused categories deleted');
       break;
     }
     
@@ -78,14 +78,14 @@ DELETE FROM '.CATEGORIES_TABLE.'
 DELETE FROM '.ROWS_TABLE.'
   WHERE status = "done"
 ;';
-      mysql_query($query);
-      array_push($page['infos'], mysql_affected_rows().' commited strings deleted');
+      $db->query($query);
+      array_push($page['infos'], $db->affected_rows.' commited strings deleted');
       break;
     }
     
     case 'clean_mail_history' :
     {
-      mysql_query('TRUNCATE TABLE '.MAIL_HISTORY_TABLE.';');
+      $db->query('TRUNCATE TABLE '.MAIL_HISTORY_TABLE.';');
       array_push($page['infos'], 'Mail archive cleared');
       break;
     }
@@ -104,13 +104,13 @@ DELETE FROM '.ROWS_TABLE.'
 // |                         GET INFOS
 // +-----------------------------------------------------------------------+
 // database time
-list($db_current_date) = mysql_fetch_row(mysql_query('SELECT NOW();'));
+list($db_current_date) = $db->query('SELECT NOW();')->fetch_row();
 
 // database space and tables size
 $db_tables = array();
 $db_size = $db_free = 0;
-$result = mysql_query('SHOW TABLE STATUS FROM '. DB_NAME .';');
-while ($table = mysql_fetch_assoc($result))
+$result = $db->query('SHOW TABLE STATUS FROM '. DB_NAME .';');
+while ($table = $result->fetch_assoc())
 {
   if (strstr($table['Name'], DB_PREFIX) != false)
   {
@@ -136,7 +136,7 @@ SELECT COUNT(*) as total
         GROUP BY category_id
       )
 ;';
-list($nb_unused_categories) = mysql_fetch_row(mysql_query($query));
+list($nb_unused_categories) = $db->query($query)->fetch_row();
 
 
 // +-----------------------------------------------------------------------+
@@ -144,7 +144,7 @@ list($nb_unused_categories) = mysql_fetch_row(mysql_query($query));
 // +-----------------------------------------------------------------------+
 $template->assign(array(
   'PHP_INFO' => phpversion().' ['.date("Y-m-d H:i:s").']',
-  'MYSQL_INFO' => mysql_get_server_info().' ['.$db_current_date.']',
+  'MYSQL_INFO' => $db->server_info.' ['.$db_current_date.']',
   'DATABASE' => array(
     'used_space' => round($db_size/1024,2),
     'free_space' => round($db_free/1024,2),

@@ -39,7 +39,7 @@ switch ($_POST['selectAction'])
 DELETE FROM '.USER_LANGUAGES_TABLE.'
   WHERE language IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
   
       // delete flags
       foreach ($selection as $language)
@@ -52,16 +52,16 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
 DELETE FROM '.STATS_TABLE.'
   WHERE language IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       // delete from languages table
       $query = '
 DELETE FROM '.LANGUAGES_TABLE.' 
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], '<b>'.mysql_affected_rows().'</b> languages deleted.');
+      array_push($page['infos'], '<b>'.$db->affected_rows.'</b> languages deleted.');
     }
     break;
   }
@@ -86,9 +86,9 @@ UPDATE '.LANGUAGES_TABLE.'
   SET rank = '.intval(@$_POST['batch_rank']).'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-    mysql_query($query);
+    $db->query($query);
     
-    array_push($page['infos'], 'Rank changed for <b>'.mysql_affected_rows().'</b> languages.');
+    array_push($page['infos'], 'Rank changed for <b>'.$db->affected_rows.'</b> languages.');
     break;
   }
   
@@ -109,9 +109,9 @@ UPDATE '.LANGUAGES_TABLE.'
   SET category_id = '.$_POST['batch_category_id'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-    mysql_query($query);
+    $db->query($query);
     
-    array_push($page['infos'], 'Category changed for <b>'.mysql_affected_rows().'</b> languages.');
+    array_push($page['infos'], 'Category changed for <b>'.$db->affected_rows.'</b> languages.');
     break;
   }
 }

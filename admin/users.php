@@ -32,7 +32,7 @@ if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) and is_adm
   if (USERS_TABLE == DB_PREFIX.'users')
   {
     $query = 'DELETE FROM '.USERS_TABLE.' WHERE '.$conf['user_fields']['id'].' = '.$_GET['delete_user'].';';
-    $done = (bool)mysql_query($query);
+    $done = (bool)$db->query($query);
   }
   else
   {
@@ -40,7 +40,7 @@ if ( isset($_GET['delete_user']) and is_numeric($_GET['delete_user']) and is_adm
   }
   
   $query = 'DELETE FROM '.USER_INFOS_TABLE.' WHERE user_id = '.$_GET['delete_user'].';';
-  $done = $done && (bool)mysql_query($query);
+  $done = $done && (bool)$db->query($query);
   
   if ($done) array_push($page['infos'], 'User deleted');
 }
@@ -73,7 +73,7 @@ UPDATE '.USER_INFOS_TABLE.'
     '.implode(",    \n", $sets).'
   WHERE user_id = '.$_POST['save_status'].'
 ;';
-  mysql_query($query);
+  $db->query($query);
   
   unset($local_user);
   
@@ -233,7 +233,7 @@ SELECT COUNT(1)
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
-list($total) = mysql_fetch_row(mysql_query($query));
+list($total) = $db->query($query)->fetch_row();
 
 $highlight_pos = null;
 if (!empty($highlight_user))
@@ -255,7 +255,7 @@ SELECT x.pos
   ) AS x
   WHERE x.id = "'.$highlight_user.'"
 ;';
-  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+  list($highlight_pos) = $db->query($query)->fetch_row();
 }
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);

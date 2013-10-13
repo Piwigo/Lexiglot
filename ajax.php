@@ -87,7 +87,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
-      mysql_query($query);      
+      $db->query($query);      
       close_ajax('success', 'Saved');
     }
     else
@@ -123,10 +123,10 @@ SELECT
     AND r.file_name = "'.mres($_POST['file']).'"
   ORDER BY r.last_edit DESC
 ;';
-    $result = mysql_query($query);
+    $result = $db->query($query);
     
     $out = array();
-    while ($entry = mysql_fetch_assoc($result))
+    while ($entry = $result->fetch_assoc())
     {
       array_push($out, '<li><pre>'.htmlspecialchars($entry['row_value']).'</pre> <span>by <a href="'.get_url_string(array('user_id'=>$entry['user_id']), true, 'profile').'">'.$entry['username'].'</a> on '.format_date($entry['last_edit']).'</span></li>');
     }

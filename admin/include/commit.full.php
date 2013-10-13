@@ -338,7 +338,7 @@ foreach ($_ROWS as $props => $commit_content)
 DELETE FROM '.ROWS_TABLE.'
   WHERE id IN('.implode(',', $commit['done_rows']).')
 ;';
-      mysql_query($query);
+      $db->query($query);
     }
     // set rows as done
     else
@@ -348,7 +348,7 @@ UPDATE '.ROWS_TABLE.'
   SET status = "done"
   WHERE id IN('.implode(',', $commit['done_rows']).')
 ;';
-      mysql_query($query);
+      $db->query($query);
     }
   }
   

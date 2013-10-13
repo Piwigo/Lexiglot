@@ -190,7 +190,7 @@ function is_default_language($lang)
 function is_plain_file($file)
 {
   global $conf;
-  return preg_match('#['.implode('|', $conf['plain_types']).']$#', $file);
+  return preg_match('#('.implode('|', $conf['plain_types']).')$#i', $file);
 }
 
 /**
@@ -275,6 +275,8 @@ function verify_language_file($filename)
  */
 function notify_language_file_error($filename, $infos)
 {
+  global $db;
+  
   // don't notify 'Notice' errors
   if ($infos[0] == 'Notice') return;
   
@@ -286,7 +288,7 @@ SELECT COUNT(1)
   FROM '.MAIL_HISTORY_TABLE.'
   WHERE subject = "PHP '.$infos[0].' on '.$filename.'"
 ;';
-  if (mysql_num_rows(mysql_query($query))) return;
+  if ($db->query($query)->num_rows) return;
   
   
   $subject = '['.strip_tags($conf['install_name']).'] PHP '.$infos[0].' on a language file';
@@ -363,8 +365,11 @@ function get_language_flag($lang, $force=false)
 function get_language_ref($lang)
 {
   global $conf;
-  if ( !empty($conf['all_languages'][$lang]['ref_id']) and $lang!=$conf['all_languages'][$lang]['ref_id'] and array_key_exists($conf['all_languages'][$lang]['ref_id'], $conf['all_languages']) )
-  {
+  if ( 
+    !empty($conf['all_languages'][$lang]['ref_id']) 
+    and $lang!=$conf['all_languages'][$lang]['ref_id'] 
+    and array_key_exists($conf['all_languages'][$lang]['ref_id'], $conf['all_languages']) 
+  ) {
     return $conf['all_languages'][$lang]['ref_id'];
   }
   else
@@ -429,12 +434,14 @@ function get_project_url($project)
  */
 function get_category_name($id)
 {
+  global $db;
+  
   $query = '
 SELECT name
   FROM '.CATEGORIES_TABLE.'
   WHERE id = '.$id.'
 ;';
-  list($name) = mysql_fetch_row(mysql_query($query));
+  list($name) = $db->query($query)->fetch_row();
   return $name;
 }
 

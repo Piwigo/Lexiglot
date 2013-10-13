@@ -234,14 +234,14 @@ function unset_session_var($var)
  */
 function get_ephemeral_key($valid_after_seconds, $aditionnal_data_to_hash = '')
 {
-	global $conf;
-	$time = round(microtime(true), 1);
+  global $conf;
+  $time = round(microtime(true), 1);
   
-	return $time.':'.$valid_after_seconds.':'
-		.hash_hmac(
-			'md5',
-			$time.substr($_SERVER['REMOTE_ADDR'],0,5).$valid_after_seconds.$aditionnal_data_to_hash,
-			SALT_KEY
+  return $time.':'.$valid_after_seconds.':'
+    .hash_hmac(
+      'md5',
+      $time.substr($_SERVER['REMOTE_ADDR'],0,5).$valid_after_seconds.$aditionnal_data_to_hash,
+      SALT_KEY
       );
 }
 
@@ -254,25 +254,25 @@ function get_ephemeral_key($valid_after_seconds, $aditionnal_data_to_hash = '')
  */
 function verify_ephemeral_key($key, $aditionnal_data_to_hash = '', $expiration=true)
 {
-	global $conf;
-	$time = microtime(true);
-	$key = explode( ':', @$key );
+  global $conf;
+  $time = microtime(true);
+  $key = explode( ':', @$key );
   
-	if ( 
+  if ( 
     count($key)!= 3
-		or $key[0]>$time-(float)$key[1] // page must have been retrieved more than X sec ago
-		or ( $key[0]<$time-3600 and $expiration ) // 60 minutes expiration
-		or hash_hmac(
-			  'md5', 
+    or $key[0]>$time-(float)$key[1] // page must have been retrieved more than X sec ago
+    or ( $key[0]<$time-3600 and $expiration ) // 60 minutes expiration
+    or hash_hmac(
+        'md5', 
         $key[0].substr($_SERVER['REMOTE_ADDR'],0,5).$key[1].$aditionnal_data_to_hash, 
         SALT_KEY
         ) != $key[2] // verify key
-	  )
-	{
-		return false;
-	}
+    )
+  {
+    return false;
+  }
   
-	return true;
+  return true;
 }
 
 /**

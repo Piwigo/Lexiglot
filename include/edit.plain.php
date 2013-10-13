@@ -70,7 +70,7 @@ INSERT INTO `'.ROWS_TABLE.'`(
     row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
-      mysql_query($query);
+      $db->query($query);
     }
     
     make_stats($page['project'], $page['language']);

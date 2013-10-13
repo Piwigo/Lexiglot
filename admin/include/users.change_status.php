@@ -84,7 +84,7 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     user_id = '.$local_user['id'].'
     AND type = "translate"
 ;';
-  mysql_query($query);
+  $db->query($query);
 }
 
 if ($delete_projects)
@@ -95,7 +95,7 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
     user_id = '.$local_user['id'].'
     AND type = "translate"
 ;';
-  mysql_query($query);
+  $db->query($query);
 }
 
 if ($insert_all_languages)

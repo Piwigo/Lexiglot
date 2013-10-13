@@ -65,6 +65,8 @@ function print_install_page()
 
 function execute_sqlfile($filepath, $replaced, $replacing)
 {
+  global $db;
+  
   $sql_lines = file($filepath);
   $query = '';
   foreach ($sql_lines as $sql_line)
@@ -80,7 +82,7 @@ function execute_sqlfile($filepath, $replaced, $replacing)
     {
       $query = trim($query);
       $query = str_replace($replaced, $replacing, $query);
-      mysql_query($query);
+      $db->query($query);
       $query = '';
     }
   }
@@ -198,15 +200,17 @@ else if ($install_step == 'save_config')
   $_POST['salt_key'] = md5( microtime(true).mt_rand(10000,100000) );
   
   // connection test
-  if ( !@mysql_connect($_POST['dbhost'], $_POST['dbuser'], $_POST['dbpwd']) or !@mysql_select_db($_POST['dbname']) )
+  $db = new mysqli($_POST['dbhost'], $_POST['dbuser'], $_POST['dbpwd'], $_POST['dbname']);
+
+  if ($db->connect_error)
   {
     array_push($page['errors'], 'Unable to connect to the database. <a href="javascript:history.back();">Go back</a>');
     print_install_page();
   }
   
   // prefix test
-  $result = mysql_query('SHOW TABLES LIKE "'.$_POST['dbprefix'].'%";');
-  if (mysql_num_rows($result))
+  $result = $db->query('SHOW TABLES LIKE "'.$_POST['dbprefix'].'%";');
+  if ($result->num_rows)
   {
     array_push($page['errors'], 'This prefix is already in use. <a href="javascript:history.back();">Go back</a>');
     print_install_page();
@@ -273,11 +277,11 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   include(LEXIGLOT_PATH . '/include/constants.inc.php');
   
   // register guest and admin
-  mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
-  mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.$conf['guest_id'].', NOW(), "guest");'); 
-  mysql_query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES(NULL, "'.$_POST['username'].'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
-  mysql_query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.mysql_insert_id().', NOW(), "admin");');
-  mysql_query('INSERT INTO '.CONFIG_TABLE.'(param, value)                           VALUES("version", "'.VERSION.'");');
+  $db->query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES('.$conf['guest_id'].', "guest", NULL, NULL);');
+  $db->query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.$conf['guest_id'].', NOW(), "guest");'); 
+  $db->query('INSERT INTO '.USERS_TABLE.'(id, username, password, email)           VALUES(NULL, "'.$_POST['username'].'", "'.$conf['pass_convert']($_POST['password']).'", "'.$_POST['email'].'");');
+  $db->query('INSERT INTO '.USER_INFOS_TABLE.'(user_id, registration_date, status) VALUES('.$db->insert_id.', NOW(), "admin");');
+  $db->query('INSERT INTO '.CONFIG_TABLE.'(param, value)                           VALUES("version", "'.VERSION.'");');
   
   // log admin
   try_log_user($_POST['username'], $_POST['password'], true);
@@ -295,7 +299,7 @@ define('SALT_KEY', '".$_POST['salt_key']."');
     <a href="admin.php?page=config">Go to configuration page</a>
   </fieldset>';
   
-  mysql_close();
+  $db->close();
 }
 
 print_install_page();

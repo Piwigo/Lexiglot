@@ -97,10 +97,10 @@ SELECT * FROM (
   GROUP BY CONCAT(t.row_name,t.language,t.project,t.user_id)
   ORDER BY last_edit DESC
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
   $_ROWS = array();
-  while ($row = mysql_fetch_assoc($result))
+  while ($row = $result->fetch_assoc())
   {
     // complicated array usefull to separate each commit
     $_ROWS[ $row['project'].'||'.$row['language'] ][ $row['file_name'] ][ $row['row_name'] ][] = $row;

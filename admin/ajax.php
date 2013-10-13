@@ -48,7 +48,7 @@ SELECT *
   FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$_POST['project_id'].'"
 ;';
-    $row = mysql_fetch_assoc(mysql_query($query));
+    $row = $db->query($query)->fetch_assoc();
     
     $content = '
 <table class="project_edit">
@@ -91,7 +91,7 @@ SELECT *
   FROM '.LANGUAGES_TABLE.'
   WHERE id = "'.$_POST['language_id'].'"
 ;';
-    $row = mysql_fetch_assoc(mysql_query($query));
+    $row = $db->query($query)->fetch_assoc();
     
     $content = '
 <table class="project_edit">

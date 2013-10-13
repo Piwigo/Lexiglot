@@ -73,9 +73,7 @@ if (ob_get_length() !== false)
 }
 
 // MySQL connection
-mysql_connect(DB_HOST, DB_USER, DB_PWD);
-mysql_select_db(DB_NAME);
-mysql_query('SET names utf8;');
+$db = init_db();
 load_conf_db($conf);
 
 // available projects and langs

@@ -31,9 +31,9 @@
     <input type="hidden" name="item" value="{$ITEM}">
   </form>
   
-  {combine_script id='functions' path='template/js/functions.js' load='footer}
-  {combine_script id='ckeditor' path='template/js/ckeditor/ckeditor.js' load='footer}
-  {combine_script id='ckeditor.jquery' path='template/js/ckeditor/adapters/jquery.js' load='footer}
+  {combine_script id='functions' path='template/js/functions.js' load='footer'}
+  {combine_script id='ckeditor' path='template/js/ckeditor/ckeditor.js' load='footer'}
+  {combine_script id='ckeditor.jquery' path='template/js/ckeditor/adapters/jquery.js' load='footer'}
   
   {footer_script}{literal}
   var config = {

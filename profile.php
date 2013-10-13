@@ -48,7 +48,7 @@ SELECT
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
 ;';
-    $to = mysql_fetch_assoc(mysql_query($query));
+    $to = $db->query($query)->fetch_assoc();
 
     $content = 
 $user['username'].' from '.strip_tags($conf['install_name']).' has sent you a message. You can reply to him by replying to this e-mail.
@@ -123,7 +123,7 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     user_id = '.$user['id'].'
     AND type = "my"
 ;';
-  mysql_query($query);
+  $db->query($query);
   
   if (!empty($_POST['my_languages']))
   {
@@ -168,7 +168,7 @@ UPDATE '.USERS_TABLE.'
     '.implode(",    \n", $sets_user).'
   WHERE '.$conf['user_fields']['id'].' = '.$user['id'].'
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   if (!empty($sets_infos))
   {
@@ -178,7 +178,7 @@ UPDATE '.USER_INFOS_TABLE.'
     '.implode(",    \n", $sets_infos).'
   WHERE user_id = '.$user['id'].'
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   // reload the profile

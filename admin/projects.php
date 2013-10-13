@@ -41,7 +41,7 @@ if ( isset($_GET['delete_project']) and ( is_admin() or (is_manager($_GET['delet
 DELETE FROM '.USER_PROJECTS_TABLE.'
   WHERE project = "'.$_GET['delete_project'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // delete directory
     @rrmdir($conf['local_dir'].$_GET['delete_project']);  
@@ -51,14 +51,14 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
 DELETE FROM '.STATS_TABLE.'
   WHERE project = "'.$_GET['delete_project'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // delete from projects table
     $query = '
 DELETE FROM '.PROJECTS_TABLE.' 
   WHERE id = "'.$_GET['delete_project'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     array_push($page['infos'], 'Project deleted.');
   }
@@ -101,7 +101,7 @@ SELECT id, directory, files
   FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$row['id'].'"
 ;';
-  $old_values = mysql_fetch_assoc(mysql_query($query));
+  $old_values = $db->query($query)->fetch_assoc();
   
   $regenerate_stats = false;
   // check name
@@ -176,7 +176,7 @@ UPDATE '.PROJECTS_TABLE.'
     url = "'.$row['url'].'"
   WHERE id = "'.$row['id'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   $highlight_project = $row['id'];
@@ -221,8 +221,8 @@ SELECT id
   FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$_POST['id'].'"
 ';
-    $result = mysql_query($query);
-    if (mysql_num_rows($result))
+    $result = $db->query($query);
+    if ($result->num_rows)
     {
       array_push($page['errors'], 'A project with this name already exists.');
     }
@@ -303,7 +303,7 @@ INSERT INTO '.PROJECTS_TABLE.'(
     '.$_POST['category_id'].'
   )
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     
     // add project on user infos
@@ -397,7 +397,7 @@ SELECT COUNT(1)
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
-list($total) = mysql_fetch_row(mysql_query($query));
+list($total) = $db->query($query)->fetch_row();
 
 $highlight_pos = null;
 if (!empty($highlight_project))
@@ -416,7 +416,7 @@ SELECT x.pos
   ) AS x
   WHERE x.id = "'.$highlight_project.'"
 ;';
-  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+  list($highlight_pos) = $db->query($query)->fetch_row();
 }
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);

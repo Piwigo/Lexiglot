@@ -230,6 +230,8 @@ function deep_file_put_contents($filename, $data, $flags=0)
  */
 function add_category($name, $type)
 {
+  global $db;
+  
   $query = '
 SELECT id
   FROM '.CATEGORIES_TABLE.'
@@ -237,10 +239,10 @@ SELECT id
     name = "'.$name.'"
     AND type = "'.$type.'"
 ;';
-  $result = mysql_query($query);
-  if (mysql_num_rows($result))
+  $result = $db->query($query);
+  if ($result->num_rows)
   {
-    list($id) = mysql_fetch_row($result);
+    list($id) = $result->fetch_row();
     return $id;
   }
   else
@@ -249,8 +251,8 @@ SELECT id
 INSERT INTO '.CATEGORIES_TABLE.'
   VALUES(NULL,"'.$name.'", "'.$type.'")
 ;';
-    mysql_query($query);
-    return mysql_insert_id();
+    $db->query($query);
+    return $db->insert_id;
   }
 }
 

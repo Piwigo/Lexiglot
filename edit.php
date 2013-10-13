@@ -154,7 +154,7 @@ SELECT
     ON i.user_id = u.'.$conf['user_fields']['id'].'
   WHERE u.'.$conf['user_fields']['id'].' = '.mres($_POST['user_id']).'
 ;';
-    $to = mysql_fetch_assoc(mysql_query($query));
+    $to = $db->query($query)->fetch_assoc();
 
     // mail contents
     $current_url = get_absolute_home_url().get_url_string(array('file'=>$page['file']));

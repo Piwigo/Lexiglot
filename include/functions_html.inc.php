@@ -259,7 +259,7 @@ function htmlspecialchars_utf8($string)
  */
 function send_mail($to, $subject, $content, $args = array(), $additional_infos=null)
 {
-  global $conf;
+  global $conf, $db;
   
   // check inputs
   if (empty($to) and empty($args['cc']) and empty($args['bcc']))
@@ -338,7 +338,7 @@ INSERT INTO '.MAIL_HISTORY_TABLE.' (
     "'.mres($additional_infos).'"
   )
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   return $result;

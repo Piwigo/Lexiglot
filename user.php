@@ -64,16 +64,16 @@ SELECT '.$conf['user_fields']['id'].'
     '.$conf['user_fields']['username'].' = "'.mres($_POST['username']).'"
     AND '.$conf['user_fields']['email'].' = "'.mres($_POST['email']).'"
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
-  if (!mysql_num_rows($result))
+  if (!$result->num_rows)
   {
     array_push($page['errors'], 'Wrong username and/or email.');
   }
   else
   {
     // generate a new password
-    list($user_id) = mysql_fetch_row($result);
+    list($user_id) = $result->fetch_row();
     $new_password = hash('crc32', uniqid($user_id.$_POST['username'], true));
     
     $query = '
@@ -81,7 +81,7 @@ UPDATE '.USERS_TABLE.'
   SET '.$conf['user_fields']['password'].' = "'.$conf['pass_convert']($new_password).'"
   WHERE '.$conf['user_fields']['id'].' = '.$user_id.'
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // send mail
     $subject = '['.strip_tags($conf['install_name']).'] Password reset';

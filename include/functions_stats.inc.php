@@ -33,7 +33,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  */
 function make_stats($project, $language, $save=true)
 {
-  global $conf;
+  global $conf, $db;
   
   // language/project doesn't exist
   if (!file_exists($conf['local_dir'].$project.'/'.$language))
@@ -86,7 +86,7 @@ DELETE FROM '.STATS_TABLE.'
     project = "'.$project.'"
     AND language = "'.$language.'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     $query = '
 INSERT INTO '.STATS_TABLE.'(
@@ -102,7 +102,7 @@ INSERT INTO '.STATS_TABLE.'(
     '.$stat.'
   )
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   return $stat;
@@ -173,7 +173,7 @@ function make_full_stats($save=true)
  */
 function get_cache_stats($Sproject=null, $Slanguage=null, $Ssum=null)
 {
-  global $conf;
+  global $conf, $db;
   
   $where_clauses = array('1=1');
   if (!empty($Slanguage))
@@ -201,10 +201,10 @@ SELECT * FROM (
   ) as t
   GROUP BY CONCAT(t.project, t.language)
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   $out = array();
   
-  while ($row = mysql_fetch_assoc($result))
+  while ($row = $result->fetch_assoc())
   {
     $out[ $row['project'] ][ $row['language'] ] = $row['value'];
   }
@@ -274,7 +274,7 @@ SELECT * FROM (
  */
 function get_cache_date($project=null, $language=null)
 {
-  global $conf;
+  global $conf, $db;
   
   $where_clauses = array('1=1');
   if (!empty($language))
@@ -292,14 +292,14 @@ SELECT MIN(date)
   WHERE
     '.implode("\n    AND ", $where_clauses).'
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
 
-  if (!mysql_num_rows($result))
+  if (!$result->num_rows)
   {
     return '0000-00-00 00:00:00';
   }
   
-  list($date) = mysql_fetch_row($result);
+  list($date) = $result->fetch_row();
   return $date;
 }
 

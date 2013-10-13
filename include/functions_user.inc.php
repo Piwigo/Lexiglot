@@ -28,7 +28,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  */
 function build_user($user_id)
 {
-  global $conf;
+  global $conf, $db;
   
   if (empty($user_id))
   {
@@ -41,14 +41,14 @@ SELECT '.get_db_user_fields().'
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['id'].' = '.$user_id.'
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
-  if (!mysql_num_rows($result))
+  if (!$result->num_rows)
   {
     return false;
   }
   
-  $user_row = mysql_fetch_assoc($result);
+  $user_row = $result->fetch_assoc();
   
   // retrieve user infos
   $query = '
@@ -56,21 +56,21 @@ SELECT *
   FROM '.USER_INFOS_TABLE.'
   WHERE user_id = '.$user_id.'
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
   // the user came from an external base, we must register it
-  if (!mysql_num_rows($result))
+  if (!$result->num_rows)
   {
     create_user_infos($user_id, 'visitor');
     
     // redo previous query
-    $result = mysql_query($query);
+    $result = $db->query($query);
     
     $user['is_new'] = true;
   }
   
   // beautify booleans
-  $user_infos_row = mysql_fetch_assoc($result);
+  $user_infos_row = $result->fetch_assoc();
   foreach ( array_merge($user_row, $user_infos_row) as $key => $value )
   {
     if (!is_numeric($key))
@@ -101,9 +101,9 @@ SELECT language, type
   FROM '.USER_LANGUAGES_TABLE.'
   WHERE user_id = '.$uid_for_lp.'
 ';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
-  while ($row = mysql_fetch_assoc($result))
+  while ($row = $result->fetch_assoc())
   {
     switch ($row['type'])
     {
@@ -125,9 +125,9 @@ SELECT project, type
   FROM '.USER_PROJECTS_TABLE.'
   WHERE user_id = '.$uid_for_lp.'
 ';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
-  while ($row = mysql_fetch_assoc($result))
+  while ($row = $result->fetch_assoc())
   {
     switch ($row['type'])
     {
@@ -185,7 +185,7 @@ VALUES(
   NOW()
   )
 ;';
-  mysql_query($query);
+  $db->query($query);
 }
 
 /**
@@ -199,7 +199,7 @@ VALUES(
  */
 function get_users_list($where_clauses=array(), $select=array(), $mode='AND', $offset=0, $limit=9999999999999)
 {
-  global $conf;
+  global $conf, $db;
   
   $get_languages = $get_projects = false;
   if ($select === array())
@@ -324,9 +324,9 @@ SELECT user_id, language, type
   FROM '.USER_LANGUAGES_TABLE.'
   WHERE user_id IN('.implode(',', array_keys($users)).')
 ';
-    $result = mysql_query($query);
+    $result = $db->query($query);
     
-    while ($row = mysql_fetch_assoc($result))
+    while ($row = $result->fetch_assoc())
     {
       switch ($row['type'])
       {
@@ -351,9 +351,9 @@ SELECT user_id, project, type
   FROM '.USER_PROJECTS_TABLE.'
   WHERE user_id IN('.implode(',', array_keys($users)).')
 ';
-    $result = mysql_query($query);
+    $result = $db->query($query);
     
-    while ($row = mysql_fetch_assoc($result))
+    while ($row = $result->fetch_assoc())
     {
       switch ($row['type'])
       {
@@ -477,8 +477,9 @@ function logout_user()
  */
 function try_log_user($username, $password, $remember_me)
 {
-  global $conf;
+  global $conf, $db;
   
+  $db->query('SET names '.$conf['users_table_encoding'].';');
   // retrieving the encrypted password of the login submitted
   $query = '
 SELECT 
@@ -487,7 +488,8 @@ SELECT
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['username'].' = "'.mres($username).'"
 ;';
-  $row = mysql_fetch_assoc(mysql_query($query));
+  $row = $db->query($query)->fetch_assoc();
+  $db->query('SET names utf8;');
   
   if ($row['password'] == $conf['pass_convert']($password))
   {
@@ -505,7 +507,7 @@ SELECT
  */
 function calculate_auto_login_key($user_id, $time)
 {
-  global $conf;
+  global $conf, $db;
   
   $query = '
 SELECT 
@@ -513,11 +515,11 @@ SELECT
   '.$conf['user_fields']['password'].' AS password
 FROM '.USERS_TABLE.'
 WHERE '.$conf['user_fields']['id'].' = '.$user_id;
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
-  if (mysql_num_rows($result) > 0)
+  if ($result->num_rows)
   {
-    $row = mysql_fetch_assoc($result);
+    $row = $result->fetch_assoc();
     $username = stripslashes($row['username']);
     $data = $time.$user_id.$username;
     $key = base64_encode( hash_hmac('sha1', $data, SALT_KEY.$row['password'], true) );
@@ -534,22 +536,22 @@ WHERE '.$conf['user_fields']['id'].' = '.$user_id;
  */
 function get_userid($username)
 {
-  global $conf;
+  global $conf, $db;
 
   $query = '
 SELECT '.$conf['user_fields']['id'].'
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['username'].' = "'.mres($username).'"
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
 
-  if (mysql_num_rows($result) == 0)
+  if (!$result->num_rows)
   {
     return false;
   }
   else
   {
-    list($user_id) = mysql_fetch_row($result);
+    list($user_id) = $result->fetch_row();
     return $user_id;
   }
 }
@@ -561,7 +563,7 @@ SELECT '.$conf['user_fields']['id'].'
  */
 function get_username($id=null)
 {
-  global $conf, $user;
+  global $conf, $user, $db;
 
   if ($id == null)
   {
@@ -574,15 +576,15 @@ SELECT '.$conf['user_fields']['username'].'
   FROM '.USERS_TABLE.'
   WHERE '.$conf['user_fields']['id'].' = "'.mres($id).'"
 ;';
-    $result = mysql_query($query);
+    $result = $db->query($query);
 
-    if (mysql_num_rows($result) == 0)
+    if (!$result->num_rows)
     {
       return false;
     }
     else
     {
-      list($username) = mysql_fetch_row($result);
+      list($username) = $result->fetch_row();
       return $username;
     }
   }
@@ -597,7 +599,7 @@ SELECT '.$conf['user_fields']['username'].'
  */
 function validate_mail_address($mail_address, $user_id, $check_user=true)
 {
-  global $conf;
+  global $conf, $db;
 
   $atom   = '[-a-z0-9!#$%&\'*+\\/=?^_`{|}~]';   // before arobase
   $domain = '([a-z0-9]([-a-z0-9]*[a-z0-9]+)?)'; // domain name
@@ -618,7 +620,7 @@ SELECT count(*)
     '.(is_numeric($user_id) ? 'AND '.$conf['user_fields']['id'].' != "'.$user_id.'"' : '').'
 ;';
     
-    list($count) = mysql_fetch_row(mysql_query($query));
+    list($count) = $db->query($query)->fetch_row();
     if ($count != 0)
     {
       return 'This email address is already in use';
@@ -637,7 +639,7 @@ SELECT count(*)
  */
 function register_user($login, $password, $mail_address)
 {
-  global $conf;
+  global $conf, $db;
   
   $errors = array();
   if ($login == '')
@@ -683,7 +685,7 @@ function register_user($login, $password, $mail_address)
       array_combine($insert_names, $insert_values)
       );
     
-    create_user_infos(mysql_insert_id(), 'visitor');
+    create_user_infos($db->insert_id, 'visitor');
   }
 
   return $errors;
@@ -719,7 +721,7 @@ SELECT
  */
 function get_user_status($user_id=null)
 {
-  global $user;
+  global $user, $db;
 
   if ($user_id == null)
   {
@@ -739,7 +741,7 @@ SELECT status
   FROM '.USER_INFOS_TABLE.'
   WHERE user_id = '.mres($user_id).'
 ;';
-    list($status) = mysql_fetch_row(mysql_query($query));
+    list($status) = $db->query($query)->fetch_row();
     return $status;
   }
 }

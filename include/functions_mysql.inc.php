@@ -21,12 +21,28 @@
  
 defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
+function init_db()
+{
+  $db = new mysqli(DB_HOST, DB_USER, DB_PWD, DB_NAME);
+
+  if ($db->connect_error)
+  {
+    die('MySQLi connection error (' . $db->connect_errno . ') ' . $db->connect_error);
+  }
+  
+  $db->query('SET names utf8;');
+  
+  return $db;
+}
+
 /**
  * alias of the function mysql_real_escape_string
  */
 function mres($v)
 {
-  return mysql_real_escape_string($v);
+  global $db;
+  
+  return $db->real_escape_string($v);
 }
 
 /**
@@ -67,10 +83,12 @@ function set_boolean($bool)
  */
 function hash_from_query($query, $fieldname=null)
 {
+  global $db;
+  
   $array = array();
 
-  $result = mysql_query($query);
-  while ($row = mysql_fetch_assoc($result))
+  $result = $db->query($query);
+  while ($row = $result->fetch_assoc())
   {
     if ($fieldname == null) $array[] = $row;
     else                    $array[ $row[$fieldname] ] = $row;
@@ -88,10 +106,11 @@ function hash_from_query($query, $fieldname=null)
  */
 function simple_hash_from_query($query, $key, $value)
 {
+  global $db;
   $array = array();
 
-  $result = mysql_query($query);
-  while ($row = mysql_fetch_assoc($result))
+  $result = $db->query($query);
+  while ($row = $result->fetch_assoc())
   {
     $array[ $row[$key] ] = $row[$value];
   }
@@ -107,10 +126,11 @@ function simple_hash_from_query($query, $key, $value)
  */
 function array_from_query($query, $fieldname)
 {
+  global $db;
   $array = array();
 
-  $result = mysql_query($query);
-  while ($row = mysql_fetch_assoc($result))
+  $result = $db->query($query);
+  while ($row = $$result->fetch_assoc())
   {
     array_push($array, $row[$fieldname]);
   }
@@ -125,10 +145,11 @@ function array_from_query($query, $fieldname)
  */
 function load_conf_db(&$conf)
 {
-  $query = 'SELECT * FROM '.CONFIG_TABLE.';';
-  $result = mysql_query($query);
+  global $db;
   
-  while ($row = mysql_fetch_assoc($result))
+  $result = $db->query('SELECT * FROM '.CONFIG_TABLE.';');
+  
+  while ($row = $result->fetch_assoc())
   {
     if ($row['value'] == 'true' or $row['value'] == 'false')
     {
@@ -153,6 +174,8 @@ function mass_updates($tablename, $dbfields, $datas, $skip_empty=false)
   {
     return;
   }
+  
+  global $db;
   
   // depending the number of updates, we use the multi table update or N update queries
   if (count($datas) < 10)
@@ -199,20 +222,18 @@ UPDATE '.$tablename.'
           }
           $is_first = false;
         }
-        mysql_query($query);
+        $db->query($query);
       }
     } // foreach update
   } // if count<X
   else
   {
     // creation of the temporary table
-    $query = '
-SHOW FULL COLUMNS FROM '.$tablename;
-    $result = mysql_query($query);
+    $result = $db->query('SHOW FULL COLUMNS FROM '.$tablename.';');
     $columns = array();
     $all_fields = array_merge($dbfields['primary'], $dbfields['update']);
     
-    while ($row = mysql_fetch_assoc($result))
+    while ($row = $result->fetch_assoc())
     {
       if (in_array($row['Field'], $all_fields))
       {
@@ -251,7 +272,7 @@ CREATE TABLE '.$temporary_tablename.'
   UNIQUE KEY the_key ('.implode(',', $dbfields['primary']).')
 )';
 
-    mysql_query($query);
+    $db->query($query);
     mass_inserts($temporary_tablename, $all_fields, $datas);
     
     if ($skip_empty)
@@ -275,12 +296,10 @@ UPDATE '.$tablename.' AS t1, '.$temporary_tablename.' AS t2
           $dbfields['primary']
           )
         );
-    mysql_query($query);
+    $db->query($query);
     
     // delete temporary table
-    $query = '
-DROP TABLE '.$temporary_tablename;
-    mysql_query($query);
+    $db->query('DROP TABLE '.$temporary_tablename.';');
   }
 }
 
@@ -299,6 +318,8 @@ function single_update($tablename, $set_fields, $where_fields, $skip_empty=false
   {
     return;
   }
+  
+  global $db;
 
   $query = '
 UPDATE '.$tablename.'
@@ -340,7 +361,7 @@ UPDATE '.$tablename.'
       }
       $is_first = false;
     }
-    mysql_query($query);
+    $db->query($query);
   }
 }
 
@@ -355,6 +376,8 @@ UPDATE '.$tablename.'
  */
 function mass_inserts($table_name, $dbfields, $datas, $options=array())
 {
+  global $db;
+  
   $ignore = '';
   if (isset($options['ignore']) and $options['ignore'])
   {
@@ -365,8 +388,7 @@ function mass_inserts($table_name, $dbfields, $datas, $options=array())
   {
     $first = true;
 
-    $query = 'SHOW VARIABLES LIKE \'max_allowed_packet\'';
-    list(, $packet_size) = mysql_fetch_row(mysql_query($query));
+    list(, $packet_size) = $db->query('SHOW VARIABLES LIKE \'max_allowed_packet\';')->fetch_row();
     $packet_size = $packet_size - 2000; // The last list of values MUST not exceed 2000 character*/
     $query = '';
 
@@ -374,7 +396,7 @@ function mass_inserts($table_name, $dbfields, $datas, $options=array())
     {
       if (strlen($query) >= $packet_size)
       {
-        mysql_query($query);
+        $db->query($query);
         $first = true;
       }
 
@@ -411,7 +433,7 @@ INSERT '.$ignore.' INTO '.$table_name.'
       }
       $query .= ')';
     }
-    mysql_query($query);
+    $db->query($query);
   }
 }
 
@@ -425,6 +447,8 @@ INSERT '.$ignore.' INTO '.$table_name.'
  */
 function single_insert($table_name, $data, $options=array())
 {
+  global $db;
+  
   $ignore = '';
   if (isset($options['ignore']) and $options['ignore'])
   {
@@ -462,7 +486,7 @@ INSERT '.$ignore.' INTO '.$table_name.'
     }
     $query .= ')';
     
-    mysql_query($query);
+    $db->query($query);
   }
 }
 

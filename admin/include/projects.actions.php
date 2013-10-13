@@ -39,7 +39,7 @@ switch ($_POST['selectAction'])
 DELETE FROM '.USER_PROJECTS_TABLE.'
   WHERE project IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       // delete directories
       foreach ($selection as $project)
@@ -52,16 +52,16 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
 DELETE FROM '.STATS_TABLE.'
   WHERE project IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       // delete from projects table
       $query = '
 DELETE FROM '.PROJECTS_TABLE.' 
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], '<b>'.mysql_affected_rows().'</b> projects deleted.');
+      array_push($page['infos'], '<b>'.$db->affected_rows.'</b> projects deleted.');
     }
     break;
   }
@@ -92,9 +92,9 @@ UPDATE '.PROJECTS_TABLE.'
   SET rank = '.$_POST['batch_rank'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], 'Rank changed for <b>'.mysql_affected_rows().'</b> projects.');
+      array_push($page['infos'], 'Rank changed for <b>'.$db->affected_rows.'</b> projects.');
     }
     break;
   }
@@ -116,9 +116,9 @@ UPDATE '.PROJECTS_TABLE.'
   SET category_id = '.$_POST['batch_category_id'].'
   WHERE id IN("'.implode('","', $selection).'")
 ;';
-    mysql_query($query);
+    $db->query($query);
     
-    array_push($page['infos'], 'Category changed for <b>'.mysql_affected_rows().'</b> projects.');
+    array_push($page['infos'], 'Category changed for <b>'.$db->affected_rows.'</b> projects.');
     break;
   }
 }

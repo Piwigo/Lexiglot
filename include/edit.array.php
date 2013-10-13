@@ -70,7 +70,8 @@ INSERT INTO `'.ROWS_TABLE.'`(
     row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
-      mysql_query($query);
+        $db->query($query);
+      }
     }
   }
     
@@ -80,7 +81,6 @@ INSERT INTO `'.ROWS_TABLE.'`(
     redirect();
   }
 }
-
 
 // +-----------------------------------------------------------------------+
 // |                         SEARCH
@@ -180,6 +180,7 @@ foreach ($conf['all_languages'] as $row)
   }
 }
 $template->assign('reference_languages', $reference_languages);
+$template->assign('DISPLAY_REFERENCE_WARNING', !is_default_language($page['ref']));
   
   
 // +-----------------------------------------------------------------------+
@@ -206,8 +207,6 @@ $template->assign('SEARCH', array_merge(
   $search, 
   array('url' => get_url_string(array(), array('page')))
   ));
-  
-$template->assign('DISPLAY_REFERENCE_WARNING', !is_default_language($page['ref']));
 
 // strings list
 $i = 1;

@@ -41,7 +41,7 @@ if (isset($_GET['delete_language']))
 DELETE FROM '.USER_LANGUAGES_TABLE.'
   WHERE language = "'.$_GET['delete_language'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // delete flag
     @unlink($conf['flags_dir'].$conf['all_languages'][ $_GET['delete_language'] ]['flag']);
@@ -51,14 +51,14 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
 DELETE FROM '.STATS_TABLE.'
   WHERE language = "'.$_GET['delete_language'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // delete from languages table
     $query = '
 DELETE FROM '.LANGUAGES_TABLE.' 
   WHERE id = "'.$_GET['delete_language'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     array_push($page['infos'], 'Language deleted.');
   }
@@ -86,7 +86,7 @@ UPDATE '.LANGUAGES_TABLE.'
   SET flag = NULL
   WHERE id = "'.$_GET['delete_flag'].'"
 ;';
-  mysql_query($query);
+  $db->query($query);
   
   array_push($page['infos'], 'Flag deleted.');
   $highlight_language = $_GET['delete_flag'];
@@ -167,7 +167,7 @@ UPDATE '.LANGUAGES_TABLE.'
     '.(isset($row['flag']) ? ',flag = "'.$row['flag'].'"' : null).'
   WHERE id = "'.$row['id'].'"
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
 
   $highlight_language = $row['id'];
@@ -204,8 +204,8 @@ SELECT id
   FROM '.LANGUAGES_TABLE.'
   WHERE id = "'.$_POST['id'].'"
 ';
-    $result = mysql_query($query);
-    if (mysql_num_rows($result))
+    $result = $db->query($query);
+    if ($result->num_rows)
     {
       array_push($page['errors'], 'A language with this Id already exists.');
     }
@@ -270,7 +270,7 @@ INSERT INTO '.LANGUAGES_TABLE.'(
     "'.$_POST['ref_id'].'"
   )
 ;';
-    mysql_query($query);
+    $db->query($query);
     
     // add project on user infos
     $query = '
@@ -356,7 +356,7 @@ SELECT COUNT(1)
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
-list($total) = mysql_fetch_row(mysql_query($query));
+list($total) = $db->query($query)->fetch_row();
 
 $highlight_pos = null;
 if (!empty($highlight_language))
@@ -375,7 +375,7 @@ SELECT x.pos
   ) AS x
   WHERE x.id = "'.$highlight_language.'"
 ;';
-  list($highlight_pos) = mysql_fetch_row(mysql_query($query));
+  list($highlight_pos) = $db->query($query)->fetch_row();
 }
 
 $paging = compute_pagination($total, get_search_value('limit'), 'nav', $highlight_pos);

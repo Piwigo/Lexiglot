@@ -118,7 +118,7 @@ INSERT INTO '.TALKS_TABLE.'(
     content = "'.mres($_POST['content']).'",
     last_edit = NOW()
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
 }
 
@@ -186,12 +186,12 @@ SELECT content
     type = "'.$page['type'].'"
     AND id = "'.$page['item'].'"
 ;';
-  $result = mysql_query($query);
+  $result = $db->query($query);
   
   $content = '<h2>This talk is empty</h2> <p>Fell free to add notes about the translation.</p>';
-  if (mysql_num_rows($result))
+  if ($result->num_rows)
   {
-    $content = mysql_result($result, 0);
+    list($content) = $result->fetch_row();
   }
   
   $template->assign(array(

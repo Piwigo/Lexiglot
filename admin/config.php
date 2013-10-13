@@ -76,7 +76,7 @@ UPDATE '.CONFIG_TABLE.'
   SET value = "'.mres($value).'"
   WHERE param = "'.mres($param).'"
 ;';
-    mysql_query($query);
+    $db->query($query);
   }
   
   load_conf_db($conf);

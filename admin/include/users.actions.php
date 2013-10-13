@@ -51,7 +51,7 @@ DELETE FROM '.USERS_TABLE.'
     AND '.$conf['user_fields']['id'].' NOT IN ('.implode(',', $admin_ids).')
     AND '.$conf['user_fields']['id'].' != '.$conf['guest_id'].'
 ;';
-        mysql_query($query);
+        $db->query($query);
       }
       
       $query = '
@@ -61,7 +61,7 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
-      mysql_query($query);  
+      $db->query($query);  
       
       $query = '
 DELETE FROM '.USER_PROJECTS_TABLE.' 
@@ -70,7 +70,7 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
-      mysql_query($query);
+      $db->query($query);
       
       $query = '
 DELETE FROM '.USER_INFOS_TABLE.' 
@@ -79,9 +79,9 @@ DELETE FROM '.USER_INFOS_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], mysql_affected_rows().' users deleted.');
+      array_push($page['infos'], $db->affected_rows.' users deleted.');
     }
     break;
   }
@@ -105,9 +105,9 @@ UPDATE '.USER_INFOS_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id != '.$conf['guest_id'].'
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], 'Status changed to &laquo; '.ucfirst($s).' &raquo; for <b>'.mysql_affected_rows().'</b> users.');
+      array_push($page['infos'], 'Status changed to &laquo; '.ucfirst($s).' &raquo; for <b>'.$db->affected_rows.'</b> users.');
     }
     break;
   }
@@ -159,9 +159,9 @@ DELETE FROM '.USER_LANGUAGES_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id NOT IN ('.implode(',', $visitor_ids).')
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
+      array_push($page['infos'], 'Language &laquo; '.get_language_name($l).' &raquo; unassigned from <b>'.$db->affected_rows.'</b> users.');
     }
     break;
   }
@@ -213,9 +213,9 @@ DELETE FROM '.USER_PROJECTS_TABLE.'
     AND user_id NOT IN ('.implode(',', $admin_ids).')
     AND user_id NOT IN ('.implode(',', $visitor_ids).')
 ;';
-      mysql_query($query);
+      $db->query($query);
       
-      array_push($page['infos'], 'Project &laquo; '.get_project_name($p).' &raquo; unassigned from <b>'.mysql_affected_rows().'</b> users.');
+      array_push($page['infos'], 'Project &laquo; '.get_project_name($p).' &raquo; unassigned from <b>'.$db->affected_rows.'</b> users.');
     }
     break;
   }
