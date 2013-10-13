@@ -28,26 +28,6 @@ include_once(LEXIGLOT_PATH . 'include/functions_html.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_svn.inc.php');
 include_once(LEXIGLOT_PATH . 'include/functions_stats.inc.php');
 
-/**
- * PHP COMPATIBILITIES
- */
-if (!function_exists('json_decode')) // >= 5.2.0
-{
-  include_once(LEXIGLOT_PATH . 'include/php_compat/json.class.php');
-  $json_service = new Services_JSON();
-  
-  function json_decode($value)
-  {
-    global $json_service;
-    return $json_service->decode($value);
-  }
-  function json_encode($value)
-  {
-    global $json_service;
-    return $json_service->encode($value);
-  }
-}
-
 
 /**
  * create an url from current url
