@@ -66,7 +66,7 @@ Lexiglot - A PHP based translation tool';
       'from' => format_email($user['email'], $user['username']),
     );
 
-    if (send_mail($to['email'], $_POST['subject'], $content, $args))
+    if (send_mail($to['email'], $_POST['subject'], $content, $args, 'Private message'))
     {
       array_push($page['infos'], 'Mail sended to <i>'.$to['username'].'</i>');
       unset($_POST);
