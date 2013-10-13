@@ -2,7 +2,7 @@
 // +-----------------------------------------------------------------------+
 // | Lexiglot - A PHP based translation tool                               |
 // +-----------------------------------------------------------------------+
-// | Copyright(C) 2011-2012 Damien Sorel       http://www.strangeplanet.fr |
+// | Copyright(C) 2011-2013 Damien Sorel       http://www.strangeplanet.fr |
 // +-----------------------------------------------------------------------+
 // | This program is free software; you can redistribute it and/or modify  |
 // | it under the terms of the GNU General Public License as published by  |
