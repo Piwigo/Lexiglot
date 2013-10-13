@@ -47,7 +47,7 @@
   {foreach from=$DIFFS item=row}
     {assign var=i value=$row.i}
     
-    <tr class="main {if $i is odd}odd{else}even{/if} {$row.STATUS}">
+    <tr class="main {if $i is odd}odd{else}even{/if} {$row.STATUS} {if $row.error}error{/if}">
       <td class="original"><pre>{$row.ORIGINAL}</pre></td>
       
       <td class="translation">

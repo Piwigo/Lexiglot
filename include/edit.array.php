@@ -21,6 +21,8 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
+$unsaved = array();
+
 // +-----------------------------------------------------------------------+
 // |                         SAVE ROWS
 // +-----------------------------------------------------------------------+
@@ -43,8 +45,15 @@ if ( isset($_POST['submit']) and $is_translator )
         !empty($text) and 
         ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
       )
-      {        
-        $query = '
+      {
+        if (!check_sprintf($_LANG_default[$key]['row_value'], $text))
+        {
+          $unsaved[$key] = $text;
+        }
+        else
+        {
+          $status = isset($_LANG[$key]) ? 'edit' : 'new';
+          $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     language,
     project,
@@ -63,22 +72,29 @@ INSERT INTO `'.ROWS_TABLE.'`(
     "'.mres($text).'",
     "'.$user['id'].'",
     NOW(),
-    "'.(isset($_LANG[$key]) ? 'edit' : 'new').'" 
+    "'.$status.'" 
   )
   ON DUPLICATE KEY UPDATE
     last_edit = NOW(),
     row_value = "'.mres($text).'",
     status = IF(status="done","edit",status)
 ;';
-        $db->query($query);
+          $db->query($query);
+          
+          $_LANG[$key]['row_value'] = $text;
+          $_LANG[$key]['status'] = $status;
+        }
       }
     }
-  }
     
     make_stats($page['project'], $page['language']);
     
-    $_SESSION['page_infos'][] = 'Strings saved';
-    redirect();
+    $page['infos'][] = 'Strings saved';
+    
+    if (count($unsaved))
+    {
+      $page['errors'][] = 'Number of "%s" and/or "%d" mismatch in '. count($unsaved) .' strings.';
+    }
   }
 }
 
@@ -144,6 +160,12 @@ foreach ($_LANG_default as $key => $row)
     $_DIFFS[$key] = isset($_LANG[$key]) ? $_LANG[$key] : array();
     // keep trace of source value
     $_DIFFS[$key]['original'] = is_default_language($page['language']) ? $row['row_name'] : $row['row_value'];
+    
+    if (array_key_exists($key, $unsaved))
+    {
+      $_DIFFS[$key]['row_value'] = $unsaved[$key];
+      $_DIFFS[$key]['error'] = true;
+    }
   }
   
   // stats
@@ -174,7 +196,7 @@ foreach ($conf['all_languages'] as $row)
 {
   if ( isset($stats[ $row['id'] ]) and $stats[ $row['id'] ] > $conf['minimum_progress_for_language_reference'] )
   {
-    $row['switch_url'] = get_url_string(array('ref'=>$row['id'],'erase_search'=>null));
+    $row['switch_url'] = get_url_string(array('ref'=>$row['id']));
     $row['selected'] = $row['id']==$page['ref'];
     array_push($reference_languages, $row);
   }
@@ -215,6 +237,7 @@ foreach ($_DIFFS as $key => $row)
   $tpl_var = array(
     'i' => $i,
     'ROW_VALUE' => isset($row['row_value']) ? htmlspecialchars_utf8($row['row_value']) : null,
+    'error' => isset($row['error']),
     );
   
   

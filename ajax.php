@@ -56,11 +56,18 @@ switch ($_POST['action'])
     
     $key = utf8_decode($_POST['row_name']);
     $text = utf8_decode($_POST['row_value']);
+    clean_eol($text);
     
     $_LANG = load_language($_POST['project'], $_POST['language'], $_POST['file'], $key);
+    $_LANG_default = load_language($_POST['project'], $conf['default_language'], $_POST['file'], $key);
     
     if ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
     {
+      if (!check_sprintf($_LANG_default[$key]['row_value'], $text))
+      {
+        close_ajax('error', 'Number of "%s" and/or "%d" mismatch');
+      }
+      
       $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     language,

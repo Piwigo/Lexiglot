@@ -97,6 +97,10 @@
   #diffs tr.details td {
     vertical-align: top;
   }
+  #diffs tr.error td {
+    border-color:red;
+    box-shadow:inset 0px -5px 5px rgba(255,0,0,0.2);
+  }
     
   #diffs pre, #diffs p {
     display: block;

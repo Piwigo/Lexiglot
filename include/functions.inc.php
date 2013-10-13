@@ -378,6 +378,24 @@ function clean_eol(&$val)
 }
 
 /**
+ * check is the translated string has enough "%d" and "%s"
+ * @param string original string
+ * @param string translated string
+ * @return boolean
+ */
+function check_sprintf($original, $translation)
+{
+  if (
+    substr_count($original, '%d') != substr_count($translation, '%d')
+    or substr_count($original, '%s') != substr_count($translation, '%s')
+  ) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * fully delete a directory
  * @param string path
  * @return bool
