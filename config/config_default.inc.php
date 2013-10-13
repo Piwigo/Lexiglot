@@ -44,11 +44,15 @@ $conf['user_fields'] = array(
   'password' => 'password',
   'email' => 'email'
   );
-  
+
+// encoding of users table if external
 $conf['users_table_encoding'] = 'utf8';
   
 // additional fields to complete when a new user register (only for a external users table)
 $conf['additional_user_infos'] = array();
+
+// keyword used to identify strings identical to reference language
+$conf['equal_to_ref'] = '#REF_LANG#';
 
 // minimum progression to allow a language to be used as reference by translators
 $conf['minimum_progress_for_language_reference'] = 0.5;

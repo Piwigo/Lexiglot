@@ -63,7 +63,7 @@ switch ($_POST['action'])
     
     if ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
     {
-      if (!check_sprintf($_LANG_default[$key]['row_value'], $text))
+      if ($text!=$conf['equal_to_ref'] && !check_sprintf($_LANG_default[$key]['row_value'], $text))
       {
         close_ajax('error', 'Number of "%s" and/or "%d" mismatch');
       }

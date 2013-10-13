@@ -48,7 +48,12 @@
     {assign var=i value=$row.i}
     
     <tr class="main {if $i is odd}odd{else}even{/if} {$row.STATUS} {if $row.error}error{/if}">
-      <td class="original"><pre>{$row.ORIGINAL}</pre></td>
+      <td class="original">
+      <div>
+        <pre>{$row.ORIGINAL}</pre>
+        {if $IS_TRANSLATOR && $HAS_REF_LANGUAGE}<a href="#" class="set-equal tiptip" title="Keep original string" data="{$i}"><img src="template/images/page_copy.png" alt="=>"></a>{/if}
+      </div>
+      </td>
       
       <td class="translation">
         <textarea name="rows[{$i}][row_name]" style="display:none;">{$row.KEY}</textarea>
@@ -205,6 +210,10 @@ $("a.expand").click(function() {
 
 {if $IS_TRANSLATOR}
   {footer_script}{literal}
+  $("a.set-equal").on('click', function() {
+    $("textarea[name='rows["+ $(this).attr("data") +"][row_value]']").val('{/literal}{$CONF.equal_to_ref}{literal}').trigger('change');
+  });
+  
   // check saves before close page
   var handlers = 0;
   $("textarea[name$='[row_value]']").change(function() {

@@ -65,6 +65,7 @@ foreach ($_ROWS as $props => $commit_content)
       foreach ($file_content as $key => $row)
       {
         if (!isset($_LANG_default[$key])) continue;
+        if ($row[0]['row_value'] == $conf['equal_to_ref']) continue;
         
         array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
         $row[0]['status'] = $row[ count($row)-1 ]['status'];

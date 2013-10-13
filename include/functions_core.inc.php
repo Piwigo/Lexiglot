@@ -130,6 +130,8 @@ function load_language_file_plain($project, $language, $filename)
  */
 function load_language_db($project, $language, $filename, $row_name=null)
 {
+  global $conf;
+  
   // must use imbricated query to order before group
   $query = '
 SELECT * FROM (
@@ -144,7 +146,7 @@ SELECT * FROM (
       language = "'.$language.'" 
       AND file_name = "'.$filename.'"
       AND project = "'.$project.'"
-      AND status != "done"
+      AND (status != "done" OR row_value = "'.$conf['equal_to_ref'].'")
       '.(!empty($row_name) ? 'AND row_name = "'.mres($row_name).'"' : null).'
     ORDER BY last_edit DESC
   ) as t

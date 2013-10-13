@@ -115,6 +115,17 @@
       border-bottom: 1px solid #777;
     }
     
+  #diffs td.original div {
+    position:relative;
+  }
+  #diffs .set-equal {
+    display:block;
+    position:absolute;
+    right:-10px;
+    top:50%;
+    margin-top:-8px;
+  }
+    
   ul.row_log {
     list-style: none;
   }

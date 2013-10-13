@@ -54,7 +54,7 @@
   </table>
   
   <div class="centered">
-  {if $commit_config.delete_obsolte}
+  {if $commit_config.delete_obsolete}
     <input type="hidden" name="delete_obsolete" value="1">
   {/if}
   {if $commit_config.filters.project}

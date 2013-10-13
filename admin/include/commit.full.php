@@ -143,7 +143,7 @@ foreach ($_ROWS as $props => $commit_content)
         }
         
         // obsolete rows, if translated then removed from the source, must be marked as commited
-        if (!isset($_LANG_default[$key]))
+        if (!isset($_LANG_default[$key]) || $row[0]['row_value']==$conf['equal_to_ref'])
         {
           array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
           continue;

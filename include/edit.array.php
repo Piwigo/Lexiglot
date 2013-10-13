@@ -46,7 +46,7 @@ if ( isset($_POST['submit']) and $is_translator )
         ( !isset($_LANG[$key]) or $text!=$_LANG[$key]['row_value'] )
       )
       {
-        if (!check_sprintf($_LANG_default[$key]['row_value'], $text))
+        if ($text!=$conf['equal_to_ref'] && !check_sprintf($_LANG_default[$key]['row_value'], $text))
         {
           $unsaved[$key] = $text;
         }
@@ -201,8 +201,13 @@ foreach ($conf['all_languages'] as $row)
     array_push($reference_languages, $row);
   }
 }
-$template->assign('reference_languages', $reference_languages);
-$template->assign('DISPLAY_REFERENCE_WARNING', !is_default_language($page['ref']));
+
+$this_lang_ref = get_language_ref($page['language']);
+$template->assign(array(
+  'reference_languages' => $reference_languages,
+  'DISPLAY_REFERENCE_WARNING' => !is_default_language($page['ref']) && $page['ref']!=$this_lang_ref,
+  'HAS_REF_LANGUAGE' => !is_default_language($this_lang_ref) && $page['ref']==$this_lang_ref,
+  ));
   
   
 // +-----------------------------------------------------------------------+
