@@ -173,6 +173,8 @@ SELECT project, type
  */
 function create_user_infos($user_id, $status='visitor')
 {
+  global $db;
+  
   $query = '
 INSERT IGNORE INTO '.USER_INFOS_TABLE.'(
   user_id,
