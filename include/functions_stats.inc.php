@@ -220,8 +220,11 @@ SELECT * FROM (
         $from = !empty($Sproject) ? array_keys($row) : array_keys($conf['all_projects']);
         foreach ($from as $project)
         {
-          $num+= @$row[$project] * get_project_rank($project);
-          $denom+= get_project_rank($project);
+          if ( ($rank = get_project_rank($project)) > 0)
+          {
+            $num+= @$row[$project] * $rank;
+            $denom+= $rank;
+          }
         }
         $out[ $language ] = ($num == 0) ? 0 : $num/$denom;
       }
@@ -235,8 +238,11 @@ SELECT * FROM (
         $from = !empty($Slanguage) ? array_keys($row) : array_keys($conf['all_languages']);
         foreach ($from as $language)
         {
-          $num+= @$row[$language] * get_language_rank($language);
-          $denom+= get_language_rank($language);
+          if ( ($rank = get_language_rank($language)) > 0)
+          {
+            $num+= @$row[$language] * $rank;
+            $denom+= $rank;
+          }
         }
         $out[ $project ] = ($num == 0) ? 0 : $num/$denom;
       }
@@ -248,16 +254,22 @@ SELECT * FROM (
       $from = !empty($Sproject) ? array_keys($out) : array_keys($conf['all_projects']);
       foreach ($from as $project)
       {
-        $sub_num = $sub_denom = 0;
-        if (empty($out[$project])) $out[$project] = array();
-        $sub_from = !empty($Slanguage) ? array_keys($out[$project]) : array_keys($conf['all_languages']);
-        foreach ($sub_from as $language)
+        if ( ($proj_rank = get_project_rank($project)) > 0)
         {
-          $sub_num+= @$out[$project][$language] * get_language_rank($language);
-          $sub_denom+= get_language_rank($language);
+          $sub_num = $sub_denom = 0;
+          if (empty($out[$project])) $out[$project] = array();
+          $sub_from = !empty($Slanguage) ? array_keys($out[$project]) : array_keys($conf['all_languages']);
+          foreach ($sub_from as $language)
+          {
+            if ( ($lang_rank = get_language_rank($language)) > 0)
+            {
+              $sub_num+= @$out[$project][$language] * $lang_rank;
+              $sub_denom+= $lang_rank;
+            }
+          }
+          $num+= ( ($sub_num == 0) ? 0 : $sub_num/$sub_denom) * $proj_rank;
+          $denom+= $proj_rank;
         }
-        $num+= ( ($sub_num == 0) ? 0 : $sub_num/$sub_denom) * get_project_rank($project);
-        $denom+= get_project_rank($project);
       }
       $out = ($num == 0) ? 0 : $num/$denom;
       break;

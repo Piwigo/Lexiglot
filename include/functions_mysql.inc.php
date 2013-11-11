@@ -130,7 +130,7 @@ function array_from_query($query, $fieldname)
   $array = array();
 
   $result = $db->query($query);
-  while ($row = $$result->fetch_assoc())
+  while ($row = $result->fetch_assoc())
   {
     array_push($array, $row[$fieldname]);
   }

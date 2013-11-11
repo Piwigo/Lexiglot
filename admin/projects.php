@@ -129,9 +129,9 @@ SELECT id, directory, files
     $regenerate_stats = true;
   }
   // check rank
-  if (!is_numeric($row['rank']) or $row['rank'] < 1)
+  if (!is_numeric($row['rank']))
   {
-    array_push($page['errors'], 'Rank must be an non null integer.');
+    array_push($page['errors'], 'Rank must be an integer.');
   }
   // check category
   if ( !count($page['errors']) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
@@ -234,9 +234,9 @@ SELECT id
     array_push($page['errors'], 'Seperate each file with a comma.');
   }
   // check rank
-  if (!is_numeric($_POST['rank']) or $_POST['rank'] < 1)
+  if (!is_numeric($_POST['rank']))
   {
-    array_push($page['errors'], 'Rank must be an non null integer.');
+    array_push($page['errors'], 'Rank must be an integer.');
   }
   // check category
   if ( !count($page['errors']) and !empty($_POST['category_id']) and !is_numeric($_POST['category_id']) )

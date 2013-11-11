@@ -121,9 +121,9 @@ if ( isset($_POST['save_language']) and isset($_POST['active_language']) )
     array_push($page['errors'], 'Name is empty.');
   }
   // check rank
-  if (!is_numeric($row['rank']) or $row['rank'] < 1)
+  if (!is_numeric($row['rank']))
   {
-    array_push($page['errors'], 'Rank must be an non null integer.');
+    array_push($page['errors'], 'Rank must be an integer.');
   }
   // check category
   if ( !count($page['errors']) and !empty($row['category_id']) and !is_numeric($row['category_id']) )
@@ -216,9 +216,9 @@ SELECT id
     array_push($page['errors'], 'Name is empty.');
   }
   // check rank
-  if (!is_numeric($_POST['rank']) or $_POST['rank'] < 1)
+  if (!is_numeric($_POST['rank']))
   {
-    array_push($page['errors'], 'Rank must be an non null integer.');
+    array_push($page['errors'], 'Rank must be an integer.');
   }
   // check category
   if ( !count($page['errors']) and !empty($_POST['category_id']) and !is_numeric($_POST['category_id']) )
