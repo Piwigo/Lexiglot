@@ -83,7 +83,7 @@ function load_language_file($project, $language, $filename)
     {
       $out = array_merge($out, pop_sub_array($row_value, $row_name));
     }
-    else
+    else if ($row_value != '')
     {
       $out[$row_name] = array(
         'row_name' => $row_name,
