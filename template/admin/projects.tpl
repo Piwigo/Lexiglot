@@ -10,15 +10,26 @@
   <table class="search">
     <tr>
       <th>Name <span class="red">*</span></th>
-      {if $CONF.svn_activated}<th>Directory (on Subversion server) <span class="red">*</span></th>{/if}
+      <th>SVN repo <span class="red">*</span></th>
+      <th>SVN user <span class="red">*</span></th>
+      <th>SVN password <span class="red">*</span></th>
+    </tr>
+    <tr>
+      <td><input type="text" name="name" size="20"></td>
+      <td><input type="text" name="svn_url" size="30"></td>
+      <td><input type="text" name="svn_user" size="20"></td>
+      <td><input type="password" name="svn_password" size="20"></td>
+    </tr>
+  </table>
+  
+  <table class="search">
+    <tr>
       <th>Files <span class="red">*</span></th>
       <th>Priority</th>
       <th>Category</th>
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="name" size="20"></td>
-      {if $CONF.svn_activated}<td><input type="text" name="directory" size="30"></td>{/if}
       <td><input type="text" name="files" size="50"></td>
       <td><input type="text" name="rank" size="2" value="1"></td>
       <td><input type="text" name="category_id" class="category"></td>

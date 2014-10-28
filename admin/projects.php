@@ -97,7 +97,7 @@ if ( isset($_POST['save_project']) and isset($_POST['active_project']) )
   $row['id'] = $_POST['active_project'];
   
   $query = '
-SELECT id, directory, files
+SELECT *
   FROM '.PROJECTS_TABLE.'
   WHERE id = "'.$row['id'].'"
 ;';
@@ -109,14 +109,14 @@ SELECT id, directory, files
   {
     array_push($page['errors'], 'Name is empty.');
   }
-  // check directory
-  if ($conf['svn_activated'] and empty($row['directory']))
+  // check svn_url
+  if (empty($row['svn_url']) || empty($row['svn_user']) || empty($row['svn_password']))
   {
-    array_push($page['errors'], 'Directory is empty.');
+    array_push($page['errors'], 'Missing SVN information.');
   }
-  else if (!empty($row['directory']))
+  else if (!empty($row['svn_url']))
   {
-    $row['directory'] = rtrim($row['directory'], '/').'/';
+    $row['svn_url'] = rtrim($row['svn_url'], '/').'/';
   }
   // check files
   $row['files'] = str_replace(' ', null, $row['files']);
@@ -148,10 +148,10 @@ SELECT id, directory, files
     $row['url'] = null;
   }
   
-  // switch directory
-  if ( !count($page['errors']) and $conf['svn_activated'] and $old_values['directory'] != $row['directory'] )
+  // switch svn_url
+  if ( !count($page['errors']) and $old_values['svn_url'] != $row['svn_url'] )
   {
-    $svn_result = svn_switch($conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id']);
+    $svn_result = svn_switch($row['svn_url'], $conf['local_dir'].$row['id'], $row, $old_values['svn_url']);
     if ($svn_result['level'] == 'error')
     {
       array_push($page['errors'], $svn_result['msg']);
@@ -169,7 +169,9 @@ SELECT id, directory, files
 UPDATE '.PROJECTS_TABLE.'
   SET 
     name = "'.$row['name'].'",
-    directory = "'.$row['directory'].'",
+    svn_url = "'.$row['svn_url'].'",
+    svn_user = "'.$row['svn_user'].'",
+    svn_password = "'.$row['svn_password'].'",
     files = "'.$row['files'].'",
     rank = '.$row['rank'].',
     category_id = '.$row['category_id'].',
@@ -247,21 +249,21 @@ SELECT id
   {
     $_POST['category_id'] = 0;
   }
-  // check directory
-  if ( $conf['svn_activated'] and empty($_POST['directory']) )
+  // check svn_url
+  if (empty($_POST['svn_url']) || empty($_POST['svn_user']) || empty($_POST['svn_password']))
   {
-    array_push($page['errors'], 'Directory is empty');
+    array_push($page['errors'], 'Missing SVN information.');
   }
-  else if ( !count($page['errors']) and $conf['svn_activated'] )
+  if (!count($page['errors']))
   {
-    $_POST['directory'] = rtrim($_POST['directory'], '/').'/';
+    $_POST['svn_url'] = rtrim($_POST['svn_url'], '/').'/';
     if (file_exists($conf['local_dir'].$_POST['id']))
     {
       array_push($page['errors'], 'A local directory with the name &laquo;'.$_POST['id'].'&raquo; already exists, I can\'t do a checkout to the SVN server.');
     }
     else
     {
-      $svn_result = svn_checkout($conf['svn_server'].$_POST['directory'], $conf['local_dir'].$_POST['id']);
+      $svn_result = svn_checkout($_POST['svn_url'], $conf['local_dir'].$_POST['id'], $_POST);
       if ($svn_result['level'] == 'error')
       {
         array_push($page['errors'], $svn_result['msg']);
@@ -273,14 +275,6 @@ SELECT id
       }
     }
   }
-  else if (!count($page['errors']))
-  {
-    $svn_result = 'project created.';
-    if (!file_exists($conf['local_dir'].$_POST['id']))
-    {
-      mkdir($conf['local_dir'].$_POST['id'], 0777, true);
-    }
-  }
   
   // save project
   if (count($page['errors']) == 0)
@@ -289,7 +283,9 @@ SELECT id
 INSERT INTO '.PROJECTS_TABLE.'(
     id, 
     name, 
-    directory, 
+    svn_url, 
+    svn_user, 
+    svn_password, 
     files,
     rank,
     category_id
@@ -297,7 +293,9 @@ INSERT INTO '.PROJECTS_TABLE.'(
   VALUES(
     "'.$_POST['id'].'",
     "'.$_POST['name'].'",
-    "'.$_POST['directory'].'",
+    "'.$_POST['svn_url'].'",
+    "'.$_POST['svn_user'].'",
+    "'.$_POST['svn_password'].'",
     "'.$_POST['files'].'",
     '.$_POST['rank'].',
     '.$_POST['category_id'].'
@@ -341,7 +339,9 @@ SELECT user_id
     $conf['all_projects'][ $_POST['id'] ] = array(
                                             'id' => $_POST['id'],
                                             'name' => $_POST['name'],
-                                            'directory' => $_POST['directory'],
+                                            'svn_url' => $_POST['svn_url'],
+                                            'svn_user' => $_POST['svn_user'],
+                                            'svn_password' => $_POST['svn_password'],
                                             'files' => $_POST['files'],
                                             'rank' => $_POST['rank'],
                                             'category_id' => $_POST['category_id'],

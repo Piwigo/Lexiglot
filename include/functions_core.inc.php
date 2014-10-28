@@ -448,7 +448,7 @@ SELECT name
 }
 
 /**
- * create a directory with(out) SVN and add optional file (advanced conf)
+ * create a directory with SVN and add optional file (advanced conf)
  * @param: string path
  * @return: bool
  */
@@ -457,15 +457,8 @@ function create_directory($path)
   global $conf;
   
   // create the directory
-  if ($conf['svn_activated'])
-  {
-    $svn_result = svn_mkdir($path, true);
-    $result = ($svn_result['level'] == 'success');
-  }
-  else
-  {
-    $result = mkdir($path, 0777, true);
-  }
+  $svn_result = svn_mkdir($path, true);
+  $result = ($svn_result['level'] == 'success');
   
   // add the optional file
   if ( $result and file_exists($conf['copy_file_to_repo']) )
@@ -473,11 +466,8 @@ function create_directory($path)
     $destination = $path.'/'.basename($conf['copy_file_to_repo']);
     copy($conf['copy_file_to_repo'], $destination);
     
-    if ($conf['svn_activated'])
-    {
-      $svn_result = svn_add($destination, true);
-      if ($svn_result['level'] == 'error') unlink($destination);
-    }
+    $svn_result = svn_add($destination, true);
+    if ($svn_result['level'] == 'error') unlink($destination);
   }
   
   return $result;

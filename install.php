@@ -264,7 +264,7 @@ define('SALT_KEY', '".$_POST['salt_key']."');
   // create blank config file
   if (!file_exists(LEXIGLOT_PATH . 'config/config_local.inc.php'))
   {
-    file_put_contents(LEXIGLOT_PATH . 'config/config_local.inc.php', "<?php\n\n\?>");
+    file_put_contents(LEXIGLOT_PATH . 'config/config_local.inc.php', "<?php\n\n?>");
   }
   
   // create tables

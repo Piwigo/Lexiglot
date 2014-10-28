@@ -228,7 +228,7 @@ foreach ($_ROWS as $props => $commit_content)
     }
     
     // try to svn_add the file if it's new
-    if ( $conf['svn_activated'] and $file['modified'] and $file['is_new'] ) 
+    if ( $file['modified'] and $file['is_new'] ) 
     {
       $svn_result = svn_add($file['path'], true);
       if ($svn_result['level'] == 'error')
@@ -280,43 +280,28 @@ foreach ($_ROWS as $props => $commit_content)
     // state: commit/commit with errors
     if ( $commit['modified'] and count($commit['done_rows'])>0 )
     {
-      if ( $conf['svn_activated'] )
+      $svn_result = svn_commit($commit['path'], 
+        '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']),
+        $conf['all_projects'][ $commit['project'] }]
+        );
+      
+      // => fatal error
+      if ($svn_result['level'] == 'error')
       {
-        $svn_result = svn_commit($commit['path'], 
-          '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users'])
-          );
-        
-        // => fatal error
-        if ($svn_result['level'] == 'error')
-        {
-          svn_revert($commit['path']);
-          $commit['done_rows'] = array();
-          $commit['modified'] = false;
-          $commit['errors'] = array('svn: '.$svn_result['msg']);
-        }
-        // state: commit
-        else if (count($commit['errors'])==0)
-        {
-          array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
-        }
-        // state: commit with errors
-        else if (count($commit['errors'])>0)
-        {
-          array_push($page['warnings'], $msg_prefix.': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
-        }
+        svn_revert($commit['path']);
+        $commit['done_rows'] = array();
+        $commit['modified'] = false;
+        $commit['errors'] = array('svn: '.$svn_result['msg']);
       }
-      else
+      // state: commit
+      else if (count($commit['errors'])==0)
       {
-        // state: commit
-        if (count($commit['errors'])==0)
-        {
-          array_push($page['infos'], $msg_prefix.': done');
-        }
-        // state: commit with errors
-        else if (count($commit['errors'])>0)
-        {
-          array_push($page['warnings'], $msg_prefix.': partialy done, see errors bellow<br>'.implode('<br>', $commit['errors']));
-        }
+        array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
+      }
+      // state: commit with errors
+      else if (count($commit['errors'])>0)
+      {
+        array_push($page['warnings'], $msg_prefix.': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
       }
     }
     

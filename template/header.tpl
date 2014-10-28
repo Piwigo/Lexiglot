@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta charset="utf-8"/>
   <title>{if $WINDOW_TITLE}{$WINDOW_TITLE} | {/if}{$CONF.install_name|strip_tags}</title>
   
   {strip}

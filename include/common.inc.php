@@ -35,6 +35,8 @@ if (!file_exists(LEXIGLOT_PATH . 'config/database.inc.php'))
   exit();
 }
 
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 // default arrays
 $conf = array();
 $page = array(
@@ -137,7 +139,7 @@ if (!defined('IN_AJAX'))
   }
   
   // check SVN client
-  if ( is_admin() and $conf['svn_activated'] )
+  if (is_admin())
   {
     exec($conf['svn_path'].' 2>&1', $out);
     if ($out[0] != 'Type \'svn help\' for usage.')

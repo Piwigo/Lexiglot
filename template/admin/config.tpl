@@ -40,52 +40,6 @@
       </tr>
     </table>
   </fieldset>
-  
-{if $USE_SVN}
-  <fieldset class="common">
-    <legend>Subversion configuration</legend>
-    
-    <table class="common">
-      <tr>
-        <td>Activate Subversion client :</td>
-        <td><input type="checkbox" name="svn_activated" value="1" {if $CONF.svn_activated}checked="checked"{/if}></td>
-      </tr>
-      <tr class="svn">
-        <td>Subversion server :</td>
-        <td><input type="text" name="svn_server" value="{$CONF.svn_server}" size="30"></td>
-      </tr>
-      <tr class="svn">
-        <td>Subversion path :</td>
-        <td><input type="text" name="svn_path" value="{$CONF.svn_path}"></td>
-      </tr>
-      <tr class="svn">
-        <td>Subversion user :</td>
-        <td><input type="text" name="svn_user" value="{$CONF.svn_user}"></td>
-      </tr>
-      <tr class="svn">
-        <td>Subversion password :</td>
-        <td><input type="text" name="svn_password" value="{$CONF.svn_password}"></td>
-      </tr>
-    </table>
-  </fieldset>
-  
-  {footer_script}
-  {if not $CONF.svn_activated}
-    $("tr.svn").hide();
-  {/if}
-  
-  {literal}
-    $("input[name='svn_activated']").change(function () {
-      if ($(this).is(":checked")) {
-        $("tr.svn").show();
-      }
-      else {
-        $("tr.svn").hide();
-      }
-    });
-  {/literal}
-  {/footer_script}  
-{/if}
 
   <fieldset class="common">
     <legend>Users configuration</legend>

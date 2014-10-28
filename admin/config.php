@@ -50,25 +50,6 @@ if (isset($_POST['save_config']))
     'new_file_content' =>       $_POST['new_file_content'],
     );
     
-  if (function_exists('exec'))
-  {
-    $new_conf = array_merge($new_conf, array(
-      'svn_activated' =>        set_boolean(isset($_POST['svn_activated'])),
-      'svn_server' =>           rtrim($_POST['svn_server'], '/').'/',
-      'svn_path' =>             $_POST['svn_path'],
-      'svn_user' =>             $_POST['svn_user'],
-      'svn_password' =>         $_POST['svn_password'],
-      ));
-      
-    if ($new_conf['svn_activated'] == 'true' and $new_conf['svn_server'] != $conf['svn_server'])
-    { // we must relocate all working directories
-      foreach ($conf['all_projects'] as $key => $row)
-      {
-        svn_switch($new_conf['svn_server'].$row['directory'], $conf['local_dir'].$row['id'], $conf['svn_server'].$row['directory']);
-      }
-    }
-  }
-    
   foreach ($new_conf as $param => $value)
   {
     $query = '
@@ -87,15 +68,6 @@ UPDATE '.CONFIG_TABLE.'
 // +-----------------------------------------------------------------------+
 // |                         PREPARE FORM
 // +-----------------------------------------------------------------------+
-if (function_exists('exec'))
-{
-  $template->assign('USE_SVN', true);
-}
-else
-{
-  array_push($page['warnings'], 'SVN support not available. You can not use <b>exec()</b> function on this server.');
-}
-
 $template->assign('F_ACTION', get_url_string(array('page'=>'config'), true));
 
 

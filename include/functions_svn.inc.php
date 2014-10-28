@@ -37,10 +37,10 @@ function svn_check_connection()
  * @param text description
  * @return array
  */
-function svn_commit($file, $message)
+function svn_commit($file, $message, $info)
 {
   global $conf;
-  exec($conf['svn_path'].' commit "'.$file.'" --message "'.str_replace('"',"'",$message).'" --username '.$conf['svn_user'].' --password '.$conf['svn_password'].' 2>&1', $out);
+  exec($conf['svn_path'].' commit "'.$file.'" --message "'.str_replace('"',"'",$message).'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
   
   if (($i = array_pos('Committed revision', $out)) !== false)
   {
@@ -79,10 +79,10 @@ function svn_commit($file, $message)
  * @param mixed revision
  * @return array
  */
-function svn_checkout($server, $local, $revision='HEAD')
+function svn_checkout($server, $local, $revision='HEAD', $info)
 {
   global $conf;
-  exec($conf['svn_path'].' checkout "'.$server.'" "'.$local.'" --revision "'.$revision.'" --username '.$conf['svn_user'].' --password '.$conf['svn_password'].' 2>&1', $out);
+  exec($conf['svn_path'].' checkout "'.$server.'" "'.$local.'" --revision "'.$revision.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
     
   if (($i = array_pos('Checked out revision', $out)) !== false)
   {
@@ -136,10 +136,10 @@ function svn_checkout($server, $local, $revision='HEAD')
  * @param string relocate path 'from' ($server is 'to')
  * @return array
  */
-function svn_switch($server, $local, $relocate=false)
+function svn_switch($server, $local, $info, $relocate=false)
 {
   global $conf, $page;
-  exec($conf['svn_path'].' switch '.($relocate ? '--relocate "'.$relocate.'" ' : null).'"'.$server.'" "'.$local.'" --username '.$conf['svn_user'].' --password '.$conf['svn_password'].' 2>&1', $out);
+  exec($conf['svn_path'].' switch '.($relocate ? '--relocate "'.$relocate.'" ' : null).'"'.$server.'" "'.$local.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
   
   if (($i = array_pos('Updated to revision', $out)) !== false)
   {

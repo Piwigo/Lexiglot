@@ -21,6 +21,8 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
+$conf['svn_path'] = 'svn';
+
 // string delimiters
 $conf['quote'] = "'";
 $conf['eol'] = "\n";

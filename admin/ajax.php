@@ -20,7 +20,7 @@
 // +-----------------------------------------------------------------------+
 
 /**
- * This page is called by jQuery ro perform some AJAX admin actions
+ * This page is called by jQuery to perform some AJAX admin actions
  */
 
 define('LEXIGLOT_PATH', '../');
@@ -58,9 +58,17 @@ SELECT *
     <td class="files title">Files :</td>
   </tr>
   <tr>
-    <td class="title">Directory :</td>
-    <td><input type="text" name="projects['.$row['id'].'][directory]" value="'.$row['directory'].'" size="55"></td>
+    <td class="title">SVN repo :</td>
+    <td><input type="text" name="projects['.$row['id'].'][svn_url]" value="'.$row['svn_url'].'" size="55"></td>
     <td rowspan="5" class="files"><textarea name="projects['.$row['id'].'][files]" style="width:470px;height:120px;">'.$row['files'].'</textarea></td>
+  </tr>
+  <tr>
+    <td class="title">SVN user :</td>
+    <td><input type="text" name="projects['.$row['id'].'][svn_user]" value="'.$row['svn_user'].'" size="20"></td>
+  </tr>
+  <tr>
+    <td class="title">SVN password :</td>
+    <td><input type="password" name="projects['.$row['id'].'][svn_password]" value="'.$row['svn_password'].'" size="20"></td>
   </tr>
   <tr>
     <td class="title">Rank :</td>

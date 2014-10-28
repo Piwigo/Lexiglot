@@ -23,12 +23,6 @@ INSERT INTO `lexiglot_config` (`param`, `value`) VALUES
 ('use_stats', 'true'),
 ('use_talks', 'true'),
 
-('svn_activated', 'false'),
-('svn_server', ''),
-('svn_path', 'svn'),
-('svn_user', ''),
-('svn_password', ''),
-
 ('access_to_guest', 'true'),
 ('allow_registration', 'true'),
 ('allow_profile', 'true'),
@@ -115,11 +109,13 @@ CREATE TABLE `lexiglot_rows` (
 CREATE TABLE `lexiglot_projects` (
   `id` varchar(32) NOT NULL,
   `name` varchar(64) NOT NULL,
-  `directory` varchar(256),
   `files` text NOT NULL,
-  `rank` int(2) NOT NULL DEFAULT '1',
-  `category_id` smallint(5) DEFAULT '0',
+  `rank` int(2) NOT NULL DEFAULT 1,
+  `category_id` smallint(5) DEFAULT 0,
   `url` varchar(255),
+  `svn_url` varchar(255),
+  `svn_user` varchar(64),
+  `svn_password` varchar(64),
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 
