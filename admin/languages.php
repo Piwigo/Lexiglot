@@ -312,6 +312,10 @@ SELECT user_id
     $highlight_language = $_POST['id'];
     $_POST['erase_search'] = true;
   }
+  else
+  {
+    $template->assign('NEW_LANG', $_POST);
+  }
 }
 
 

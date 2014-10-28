@@ -79,7 +79,7 @@ function svn_commit($file, $message, $info)
  * @param mixed revision
  * @return array
  */
-function svn_checkout($server, $local, $revision='HEAD', $info)
+function svn_checkout($server, $local, $info, $revision='HEAD')
 {
   global $conf;
   exec($conf['svn_path'].' checkout "'.$server.'" "'.$local.'" --revision "'.$revision.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
@@ -102,17 +102,17 @@ function svn_checkout($server, $local, $revision='HEAD', $info)
   else if (($i = array_pos('Unable to connect to a repository at', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (($i = array_pos('is already a working copy for a different URL', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (($i = array_pos('Can\'t make directory', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (array_pos('Could not authenticate to server', $out) !== false)
   {
@@ -149,7 +149,7 @@ function svn_switch($server, $local, $info, $relocate=false)
   else if (($i = array_pos('At revision', $out)) !== false)
   {
     $level = 'success';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (empty($out))
   {
@@ -169,12 +169,12 @@ function svn_switch($server, $local, $info, $relocate=false)
   else if (($i = array_pos('Unable to connect to a repository at', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (($i = array_pos('was not found', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else if (($i = array_pos('path not found', $out)) !== false)
   {
@@ -220,7 +220,7 @@ function svn_revert($file, $recursive=true)
   else if (($i = array_pos('Skipped', $out)) !== false)
   {
     $level = 'warning';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else
   {
@@ -336,7 +336,7 @@ function svn_mkdir($path, $recursive=true)
   else if (($i = array_pos('Can\'t create directory', $out)) !== false)
   {
     $level = 'error';
-    $msg = $out[i];
+    $msg = $out[$i];
   }
   else
   {

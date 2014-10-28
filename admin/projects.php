@@ -254,7 +254,8 @@ SELECT id
   {
     array_push($page['errors'], 'Missing SVN information.');
   }
-  if (!count($page['errors']))
+  
+  if (count($page['errors']) == 0)
   {
     $_POST['svn_url'] = rtrim($_POST['svn_url'], '/').'/';
     if (file_exists($conf['local_dir'].$_POST['id']))
@@ -355,6 +356,10 @@ SELECT user_id
     array_push($page['infos'], '<b>'.$_POST['name'].'</b> : '.$svn_result);
     $highlight_project = $_POST['id'];
     $_POST['erase_search'] = true;
+  }
+  else
+  {
+    $template->assign('NEW_PROJECT', $_POST);
   }
 }
 

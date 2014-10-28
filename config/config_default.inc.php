@@ -21,6 +21,7 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
+// location of SVN executable
 $conf['svn_path'] = 'svn';
 
 // string delimiters

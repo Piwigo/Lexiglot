@@ -283,7 +283,7 @@ foreach ($_ROWS as $props => $commit_content)
     {
       $svn_result = svn_commit($commit['path'], 
         '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']),
-        $conf['all_projects'][ $commit['project'] }]
+        $conf['all_projects'][ $commit['project'] ]
         );
       
       // => fatal error

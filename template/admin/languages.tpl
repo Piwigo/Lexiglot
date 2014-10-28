@@ -17,22 +17,22 @@
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="id" size="15"></td>
-      <td><input type="text" name="name" size="20"></td>
+      <td><input type="text" name="id" size="15" value="{$NEW_LANG.id}"></td>
+      <td><input type="text" name="name" size="20" value="{$NEW_LANG.name}"></td>
       <td>
         <input type="file" name="flag">
         <input type="hidden" name="MAX_FILE_SIZE" value="10240">
       </td>
       <td>
         <select name="ref_id">
-          <option value="" selected="selected">(default)</option>
+          <option value="" {if !isset($NEW_LANG.ref_id)}selected="selected"{/if}>(default)</option>
         {foreach from=$CONF.all_languages item=lang}
-          <option value="{$lang.id}">{$lang.name}</option>
+          <option value="{$lang.id}" {if $NEW_LANG.ref_id == $lang.id}selected="selected"{/if}>{$lang.name}</option>
         {/foreach}
         </select>
       </td>
-      <td><input type="text" name="rank" size="2" value="1"></td>
-      <td><input type="text" name="category_id" class="category"></td>
+      <td><input type="text" name="rank" size="2" value="{if isset($NEW_LANG.rank)}{$NEW_LANG.rank}{else}1{/if}"></td>
+      <td><input type="text" name="category_id" class="category" value="{$NEW_LANG.category_id}"></td>
       <td><input type="submit" name="add_language" class="blue" value="Add"></td>
     </tr>
   </table>

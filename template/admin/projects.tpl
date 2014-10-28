@@ -10,15 +10,15 @@
   <table class="search">
     <tr>
       <th>Name <span class="red">*</span></th>
-      <th>SVN repo <span class="red">*</span></th>
+      <th>SVN repository <span class="red">*</span></th>
       <th>SVN user <span class="red">*</span></th>
       <th>SVN password <span class="red">*</span></th>
     </tr>
     <tr>
-      <td><input type="text" name="name" size="20"></td>
-      <td><input type="text" name="svn_url" size="30"></td>
-      <td><input type="text" name="svn_user" size="20"></td>
-      <td><input type="password" name="svn_password" size="20"></td>
+      <td><input type="text" name="name" size="20" value="{$NEW_PROJECT.name}"></td>
+      <td><input type="text" name="svn_url" size="50" value="{$NEW_PROJECT.svn_url}"></td>
+      <td><input type="text" name="svn_user" size="20" autocomplete="off" value="{$NEW_PROJECT.svn_user}"></td>
+      <td><input type="password" name="svn_password" size="20" autocomplete="off" value="{$NEW_PROJECT.svn_password}"></td>
     </tr>
   </table>
   
@@ -30,9 +30,9 @@
       <th></th>
     </tr>
     <tr>
-      <td><input type="text" name="files" size="50"></td>
-      <td><input type="text" name="rank" size="2" value="1"></td>
-      <td><input type="text" name="category_id" class="category"></td>
+      <td><input type="text" name="files" size="74" value="{$NEW_PROJECT.files}"></td>
+      <td><input type="text" name="rank" size="2" value="{if isset($NEW_PROJECT.rank)}{$NEW_PROJECT.rank}{else}1{/if}"></td>
+      <td><input type="text" name="category_id" class="category" value="{$NEW_PROJECT.category_id}"></td>
       <td><input type="submit" name="add_project" class="blue" value="Add"></td>
     </tr>
   </table>
