@@ -1,7 +1,7 @@
 {include file="messages.tpl"}
 
 
-{* {if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if} *}
+{if $TALK_URI}<a href="{$TALK_URI}" class="floating_link">Talk</a>{/if}
 
 <p class="legend">
   <a href="{$lex->project_url($PROJECT)}">{$lex->project_name($PROJECT)}</a>

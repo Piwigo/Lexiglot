@@ -94,7 +94,10 @@ foreach ($_ROWS as $props => $commit_content)
       if (!$file['is_new'])
       {
         $_FILE = file($file['path'], FILE_IGNORE_NEW_LINES);
-        unset($_FILE[ array_search('?>', $_FILE) ]); // remove PHP end tag
+        if ( ($last_index = array_search('?>', $_FILE)) !== false)
+        {
+          unset($_FILE[$last_index]); // remove PHP end tag
+        }
       }
       // create the file
       else
@@ -213,8 +216,6 @@ foreach ($_ROWS as $props => $commit_content)
           }
         }
       }
-      
-      $_FILE[] = '?>'; // don't forget to close PHP tag
       
       // try to put the content in the file
       if (!deep_file_put_contents($file['path'], implode($conf['eol'], $_FILE)))

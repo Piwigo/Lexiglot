@@ -198,7 +198,7 @@
       <table class="login">
       <tr>
         <td>Subject :</td>
-        <td><input type="text" name="subject" style="width:500px;" value="{$contact.MESSAGE}"></td>
+        <td><input type="text" name="subject" style="width:500px;" value="{$contact.SUBJECT}"></td>
       </tr>
       <tr>
         <td>Message :</td>

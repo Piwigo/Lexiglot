@@ -22,6 +22,7 @@
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
 if (!empty($_LANG)) $_LANG = $_LANG[ $page['file'] ];
+$_LANG_default = $_LANG_default[ $page['file'] ];
 
 // +-----------------------------------------------------------------------+
 // |                         SAVE FILE
@@ -99,7 +100,7 @@ if ($_DIFFS)
 // |                         DISPLAY FILE
 // +-----------------------------------------------------------------------+  
 // value, database has priority
-$text = !empty($_LANG) ? htmlspecialchars_utf8($_LANG['row_value']) : null;
+$text = !empty($_LANG) ? htmlspecialchars_utf8($_LANG['row_value']) : htmlspecialchars_utf8($_LANG_default['row_value']);
 
 $template->assign(array(
   'ROW_VALUE' => $text,
