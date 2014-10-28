@@ -570,4 +570,28 @@ function highlight_search_result($text, $words, $color="#ff0")
   return $text;
 }
 
+/**
+ * Generate the commit message using $conf['commit_message']
+ * @param array commit
+ * @return string
+ */
+function generate_commit_message($commit)
+{
+  global $conf;
+  
+  return str_replace(
+    array(
+      '%project%',
+      '%language%',
+      '%users%',
+      ),
+    array(
+      $commit['project'],
+      $commit['language'],
+      implode(', ', $commit['users']),
+      ),
+    $conf['commit_message'][ $commit['is_new']?'add':'edit' ]
+    );
+}
+
 ?>

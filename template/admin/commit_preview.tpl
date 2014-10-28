@@ -48,7 +48,7 @@
     </tr>
     
     <tr><td class="message" colspan="2"><b>Message :</b> 
-      [{$commit.project}] {if $commit.is_new}Add{else}Update{/if} language {$commit.language}, thanks to : {' & '|implode:$commit.users}</td></tr>
+      [{$commit.project}] {if $commit.is_new}Add{else}Update{/if} language {$commit.language}, thanks to : {', '|implode:$commit.users}</td></tr>
       
   {/foreach}
   </table>

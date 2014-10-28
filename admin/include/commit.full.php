@@ -47,8 +47,6 @@ foreach ($_ROWS as $props => $commit_content)
   // commit infos
   $commit = array();
   list($commit['project'], $commit['language']) = explode('||', $props);
-  $commit['project_name'] = get_project_name($commit['project']);
-  $commit['language_name'] = get_language_name($commit['language']);
   $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
   $commit['is_new'] = dir_is_empty($commit['path']);
   $commit['users'] = $commit['done_rows'] = $commit['errors'] = array();
@@ -269,7 +267,7 @@ foreach ($_ROWS as $props => $commit_content)
   // +-----------------------------------------------------------------------+
   // |                        SEND COMMIT
   // +-----------------------------------------------------------------------+
-  $msg_prefix = '['.$commit['project_name'].'] '.$commit['language_name'];
+  $msg_prefix = '['.$commit['project'].'] '.$commit['language'];
   
   // state: aborded
   if ( !$commit['modified'] and count($commit['done_rows'])>0 and count($commit['errors'])==0 )
@@ -281,8 +279,8 @@ foreach ($_ROWS as $props => $commit_content)
     // state: commit/commit with errors
     if ( $commit['modified'] and count($commit['done_rows'])>0 )
     {
-      $svn_result = svn_commit($commit['path'], 
-        '['.$commit['project'].'] '.($commit['is_new']?'Add':'Update').' '.$commit['language'].', thanks to : '.implode(' & ', $commit['users']),
+      $svn_result = svn_commit($commit['path'],
+        generate_commit_message($commit),
         $conf['all_projects'][ $commit['project'] ]
         );
       
