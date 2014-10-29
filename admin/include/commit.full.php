@@ -279,8 +279,10 @@ foreach ($_ROWS as $props => $commit_content)
     // state: commit/commit with errors
     if ( $commit['modified'] and count($commit['done_rows'])>0 )
     {
+      $commit['message'] = generate_commit_message($commit);
+      
       $svn_result = svn_commit($commit['path'],
-        generate_commit_message($commit),
+        $commit['message'],
         $conf['all_projects'][ $commit['project'] ]
         );
       
@@ -296,6 +298,25 @@ foreach ($_ROWS as $props => $commit_content)
       else if (count($commit['errors'])==0)
       {
         array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
+        
+        $query = '
+INSERT INTO '.COMMITS_LOG_TABLE.'(
+  language,
+  project,
+  commit_date,
+  message,
+  info,
+  is_new
+)
+VALUES (
+  "'.$commit['language'].'",
+  "'.$commit['project'].'",
+  NOW(),
+  \''.$db->real_escape_string($commit['message']).'\',
+  \''.$db->real_escape_string($svn_result['msg']).'\',
+  '.$commit['is_new'].'
+);';
+        $db->query($query);
       }
       // state: commit with errors
       else if (count($commit['errors'])>0)

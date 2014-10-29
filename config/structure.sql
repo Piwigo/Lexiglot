@@ -83,6 +83,23 @@ CREATE TABLE `lexiglot_mail_history` (
 -- --------------------------------------------------------
 
 --
+-- Structure of the table `lexiglot_commits_log`
+--
+
+CREATE TABLE `lexiglot_commits_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `language` varchar(32) NOT NULL,
+  `project` varchar(32) NOT NULL,
+  `commit_date` datetime NOT NULL,
+  `message` text NOT NULL,
+  `info` text NOT NULL,
+  `is_new` boolean NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Structure of the table `lexiglot_rows`
 --
 

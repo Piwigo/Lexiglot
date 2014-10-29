@@ -250,6 +250,8 @@ define('CATEGORIES_TABLE',
   DB_PREFIX.'categories');
 define('MAIL_HISTORY_TABLE', 
   DB_PREFIX.'mail_history');
+define('COMMITS_LOG_TABLE', 
+  DB_PREFIX.'commits_log');
 
 define('SALT_KEY', '".$_POST['salt_key']."');
 
