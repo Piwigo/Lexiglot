@@ -21,11 +21,6 @@
 
 defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 
-if (!svn_check_connection())
-{
-  array_push($page['errors'], 'Unable to connect to the Subversion server.');
-  $template->close('messages');
-}
 
 $template->assign('F_ACTION', get_url_string(array('page'=>'commit'), true));
 

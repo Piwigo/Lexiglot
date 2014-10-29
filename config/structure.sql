@@ -130,9 +130,10 @@ CREATE TABLE `lexiglot_projects` (
   `rank` int(2) NOT NULL DEFAULT 1,
   `category_id` smallint(5) DEFAULT 0,
   `url` varchar(255),
-  `svn_url` varchar(255),
-  `svn_user` varchar(64),
-  `svn_password` varchar(64),
+  `svn_url` varchar(255) NOT NULL,
+  `svn_user` varchar(64) NOT NULL,
+  `svn_password` varchar(64) NOT NULL,
+  `last_update` datetime NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
 

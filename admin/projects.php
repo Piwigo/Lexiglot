@@ -289,7 +289,8 @@ INSERT INTO '.PROJECTS_TABLE.'(
     svn_password, 
     files,
     rank,
-    category_id
+    category_id,
+    last_update
   )
   VALUES(
     "'.$_POST['id'].'",
@@ -299,7 +300,8 @@ INSERT INTO '.PROJECTS_TABLE.'(
     "'.$_POST['svn_password'].'",
     "'.$_POST['files'].'",
     '.$_POST['rank'].',
-    '.$_POST['category_id'].'
+    '.$_POST['category_id'].',
+    NOW()
   )
 ;';
     $db->query($query);

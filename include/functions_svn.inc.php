@@ -21,25 +21,18 @@
  
 defined('LEXIGLOT_PATH') or die('Hacking attempt!'); 
 
-/**
- * check the connection to the subversion server
- * /!\ don't know how to proceed yet /!\
- * @return bool
- */
-function svn_check_connection()
-{
-  return true;
-}
 
 /**
  * commit a file or directory
  * @param string local path
  * @param text description
+ * @param array credentials (svn_user, svn_password)
  * @return array
  */
 function svn_commit($file, $message, $info)
 {
   global $conf;
+  
   exec($conf['svn_path'].' commit "'.$file.'" --message "'.str_replace('"',"'",$message).'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
   
   if (($i = array_pos('Committed revision', $out)) !== false)
@@ -76,12 +69,14 @@ function svn_commit($file, $message, $info)
  * checkout a file or directory
  * @param string server path
  * @param string local path
+ * @param array credentials (svn_user, svn_password)
  * @param mixed revision
  * @return array
  */
 function svn_checkout($server, $local, $info, $revision='HEAD')
 {
   global $conf;
+  
   exec($conf['svn_path'].' checkout "'.$server.'" "'.$local.'" --revision "'.$revision.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
     
   if (($i = array_pos('Checked out revision', $out)) !== false)
@@ -133,12 +128,14 @@ function svn_checkout($server, $local, $info, $revision='HEAD')
  * switch or relocate a working directory
  * @param string server path
  * @param string local path
+ * @param array credentials (svn_user, svn_password)
  * @param string relocate path 'from' ($server is 'to')
  * @return array
  */
 function svn_switch($server, $local, $info, $relocate=false)
 {
-  global $conf, $page;
+  global $conf;
+  
   exec($conf['svn_path'].' switch '.($relocate ? '--relocate "'.$relocate.'" ' : null).'"'.$server.'" "'.$local.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
   
   if (($i = array_pos('Updated to revision', $out)) !== false)
@@ -197,6 +194,54 @@ function svn_switch($server, $local, $info, $relocate=false)
 }
 
 /**
+ * update a local repository
+ * @param string local path
+ * @param array credentials (svn_user, svn_password)
+ * @param mixed revision
+ * @return array
+ */
+function svn_update($local, $info, $revision='HEAD')
+{
+  global $conf;
+  
+  exec($conf['svn_path'].' update "'.$local.'" --revision "'.$revision.'" --username '.$info['svn_user'].' --password '.$info['svn_password'].' 2>&1', $out);
+    
+  if (($i = array_pos('Updated to revision', $out)) !== false)
+  {
+    $level = 'success';
+    $msg = $out[$i];
+  }
+  else if (($i = array_pos('At revision', $out)) !== false)
+  {
+    $level = 'success';
+    $msg = $out[$i];
+  }
+  else if (($i = array_pos('Skipped', $out)) !== false)
+  {
+    $level = 'warning';
+    $msg = $out[$i];
+  }
+  else if (($i = array_pos('Unable to connect to a repository at', $out)) !== false)
+  {
+    $level = 'error';
+    $msg = $out[$i];
+  }
+  else if (array_pos('Could not authenticate to server', $out) !== false)
+  {
+    $level = 'error';
+    $msg = 'Could not authenticate to server';
+  }
+  else
+  {
+    $level = 'error';
+    $msg = 'An unknown error occured';
+    var_dump($out);
+  }
+  
+  return array('level'=>$level, 'msg'=>$msg);
+}
+
+/**
  * revert modifications done to a file or directory
  * @param string local path
  * @param bool recursive
@@ -205,6 +250,7 @@ function svn_switch($server, $local, $info, $relocate=false)
 function svn_revert($file, $recursive=true)
 {
   global $conf;
+  
   exec($conf['svn_path'].' revert "'.$file.'" '.($recursive ? '--recursive' : null).' 2>&1', $out);
   
   if (array_pos('Reverted', $out) !== false)
@@ -242,7 +288,8 @@ function svn_add($file, $recursive=false)
 {
   if ($recursive) return svn_add_recursive($file);
   
-  global $conf;  
+  global $conf; 
+  
   exec($conf['svn_path'].' add "'.$file.'" 2>&1', $out);
   
   if (array_pos('A ', $out) !== false)
@@ -326,6 +373,7 @@ function svn_add_recursive($file)
 function svn_mkdir($path, $recursive=true)
 {
   global $conf;
+  
   exec($conf['svn_path'].' mkdir '.($recursive ? '--parents' : null).' "'.$path.'" 2>&1', $out);
 
   if (array_pos('A ', $out) !== false)
