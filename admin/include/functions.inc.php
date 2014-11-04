@@ -28,7 +28,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  * @param array fields to exclude from query
  * @return array where clauses
  */
-function session_search(&$search, $name, $exclude_from_query=array()), $prefix='')
+function session_search(&$search, $name, $exclude_from_query=array(), $prefix='')
 {
   global $db;
 
