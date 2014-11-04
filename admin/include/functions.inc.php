@@ -28,8 +28,10 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  * @param array fields to exclude from query
  * @return array where clauses
  */
-function session_search(&$search, $name, $exclude_from_query=array())
+function session_search(&$search, $name, $exclude_from_query=array()), $prefix='')
 {
+  global $db;
+
   $where_clauses = array('1=1');
   
   // erase search
@@ -76,13 +78,15 @@ function session_search(&$search, $name, $exclude_from_query=array())
     if (in_array($field, $exclude_from_query)) continue;
     if ($data[1] == $data[2]) continue;
     
+    $data[1] = $db->real_escape_string($data[1]);
+    
     if ($data[0] == '%')
     {
-      array_push($where_clauses, 'LOWER('.$field.') LIKE LOWER("%'.$data[1].'%")');
+      array_push($where_clauses, 'LOWER('.$prefix.$field.') LIKE LOWER("%'.$data[1].'%")');
     }
     else if ($data[0] == '=')
     {
-      array_push($where_clauses, $field.' = "'.$data[1].'"');
+      array_push($where_clauses, $prefix.$field.' = "'.$data[1].'"');
     }
   }
 
@@ -103,6 +107,8 @@ function search_to_template($search)
   
   foreach ($search as $field => $data)
   {
+    $data[1] = htmlspecialchars($data[1]);
+    
     if ($data[0] == '%')
     {
       $out[$field] = str_replace('%', '*', $data[1]);

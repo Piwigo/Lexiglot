@@ -268,7 +268,8 @@ foreach ($local_user['manage_projects'] as $project)
 $query = '
 SELECT 
     COUNT(*) AS total,
-    LEFT(last_edit, 10) as day
+    LEFT(last_edit, 10) as day,
+    language
   FROM '.ROWS_TABLE.' 
   WHERE user_id = '.$local_user['id'].'
   GROUP BY day
@@ -278,6 +279,7 @@ $plot = hash_from_query($query);
 
 if (count($plot) > 0)
 {    
+  # version displaying sum (remove GROUP BY language)
   $json = array();
   foreach ($plot as $row)
   {
@@ -286,7 +288,7 @@ if (count($plot) > 0)
     $json[0].= '['.mktime(0, 0, 0, $month, $day, $year).'000, '.$row['total'].'],';
   }
   
-  // version displaying separated languages
+  # version displaying separated languages (add GROUP BY language)
   // $json = array();
   // foreach ($plot as $row)
   // {

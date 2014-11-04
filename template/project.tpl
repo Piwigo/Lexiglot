@@ -86,7 +86,7 @@ $(".add a").click(function() {
   }).done(function(msg) {
     msg = $.parseJSON(msg);
     if (msg.errcode == "success") {
-      document.location.reload(true);
+      //document.location.reload(true);
     }
   });
   {/literal}{/footer_script}

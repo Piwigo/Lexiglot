@@ -89,7 +89,7 @@ $search = array(
   'limit' =>    array('=', 50),
   );
 
-$where_clauses = session_search($search, 'history_search', array('limit'));
+$where_clauses = session_search($search, 'history_search', array('limit'), 'r.');
 
 $displayed_projects = is_admin() ? $conf['all_projects'] : create_projects_array($user['manage_projects']);
 if (is_manager())
@@ -103,7 +103,7 @@ if (is_manager())
 // +-----------------------------------------------------------------------+
 $query = '
 SELECT COUNT(1)
-  FROM '.ROWS_TABLE.'
+  FROM '.ROWS_TABLE.' AS r
   WHERE 
     '.implode("\n    AND ", $where_clauses).'
 ;';
