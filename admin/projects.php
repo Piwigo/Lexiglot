@@ -151,7 +151,8 @@ SELECT *
   // switch svn_url
   if ( !count($page['errors']) and $old_values['svn_url'] != $row['svn_url'] )
   {
-    $svn_result = svn_switch($row['svn_url'], $conf['local_dir'].$row['id'], $row, $old_values['svn_url']);
+    rrmdir($conf['local_dir'].$row['id']);
+    $svn_result = svn_checkout($row['svn_url'], $conf['local_dir'].$row['id'], $row);
     if ($svn_result['level'] == 'error')
     {
       array_push($page['errors'], $svn_result['msg']);
@@ -189,7 +190,7 @@ UPDATE '.PROJECTS_TABLE.'
   // update stats
   if ($regenerate_stats)
   {
-    make_project_stats($project_id);
+    make_project_stats($row['id']);
   }
 
   

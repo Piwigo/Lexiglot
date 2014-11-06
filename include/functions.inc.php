@@ -386,18 +386,19 @@ function rrmdir($dir)
   {
     return false;
   }
-  $dir = rtrim($dir, '/');
-  $objects = scandir($dir);
-  $return = true;
   
-  foreach ($objects as $object)
+  $return = true;
+  $dir = rtrim($dir, '/');
+  $fh = opendir($dir);
+  
+  while ($file = readdir($fh))
   {
-    if ($object !== '.' && $object !== '..')
+    if ($file !== '.' && $file !== '..')
     {
-      $path = $dir.'/'.$object;
-      if (filetype($path) == 'dir') 
+      $path = $dir.'/'.$file;
+      if (is_dir($path)) 
       {
-        rrmdir($path); 
+        $return = $return && rrmdir($path); 
       }
       else 
       {
@@ -406,9 +407,30 @@ function rrmdir($dir)
       }
     }
   }
+  
+  closedir($fh);
 
   chmod($dir, 0777);
-  return $return && @rmdir($dir);
+  $return = $return && @rmdir($dir);
+  
+  if (!$return)
+  {
+    if (!is_dir(TRASH_LOCATION))
+    {
+      mkdir(TRASH_LOCATION, 0777, true);
+    }
+    
+    while ($r = TRASH_LOCATION . '/' . md5(uniqid(rand(), true)))
+    {
+      if (!is_dir($r))
+      {
+        $return = $return && @rename($dir, $r);
+        break;
+      }
+    }
+  }
+  
+  return $return;
 } 
 
 /**

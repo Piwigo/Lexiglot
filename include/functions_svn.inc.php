@@ -163,6 +163,11 @@ function svn_switch($server, $local, $info, $relocate=false)
     $level = 'error';
     $msg = '\''.$server.'\' is not valid source repository for \''.$local.'\'';
   }
+  else if (array_pos('Invalid relocation destination', $out) !== false)
+  {
+    $level = 'error';
+    $msg = 'Invalid relocation destination: \''.$server.'\' for \''.$local.'\'';
+  }
   else if (($i = array_pos('Unable to connect to a repository at', $out)) !== false)
   {
     $level = 'error';

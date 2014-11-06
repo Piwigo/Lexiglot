@@ -24,5 +24,6 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 // folders
 define('TEMPLATE_PATH', LEXIGLOT_PATH . 'template/');
 define('DATA_LOCATION', LEXIGLOT_PATH . '_data/');
+define('TRASH_LOCATION', DATA_LOCATION . 'Trash/');
 
 ?>
