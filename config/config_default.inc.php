@@ -88,12 +88,24 @@ $conf['navigation_type'] = 'both';
 $conf['stats_cache_life'] = 172800;
 
 // default permissions for managers
-$conf['default_manager_perms'] = serialize(array('can_add_projects'=>true, 'can_delete_projects'=>true, 'can_change_users_projects'=>true));
+$conf['default_manager_perms'] = serialize(array(
+  'can_add_projects' => true,
+  'can_delete_projects' => true,
+  'can_change_users_projects' => true,
+  ));
 
 // commit messages pattern, replacements are %project% %language% and %users%
 $conf['commit_message'] = array(
   'edit' => '[%project%] Update %language%, thanks to %users%',
   'add' => '[%project%] Add %language%, thanks to %users%',
+  );
+
+// define default SVN users depending on repository host (regex can be used)
+$conf['default_svn_users'] = array(
+  //'^https://(www.)?github.com' => array(
+  //  'svn_user' => '',
+  //  'svn_password' => '',
+  //  ),
   );
 
 ?>

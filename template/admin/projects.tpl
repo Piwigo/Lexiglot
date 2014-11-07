@@ -290,6 +290,27 @@ $("td.id").click(function() {
   $checkbox = $(this).prev("td.chkb").children("input");
   $checkbox.attr("checked", !$checkbox.attr("checked"));
 });
+
+/* SVN autofill */
+$(document).on('change', 'input[name*=svn_url]', function() {
+  var svn_url = $(this).val(),
+      $table = $(this).closest('table');
+  
+  if (svn_url) {
+    $.ajax({
+      type: "POST",
+      url: "admin/ajax.php",
+      data: { "action":"get_default_svn_user", "svn_url": svn_url }
+    }).done(function(msg) {
+      msg = $.parseJSON(msg);
+      
+      if (msg.errcode == "success") {
+        $table.find('input[name*=svn_user]').val(msg.data.svn_user);
+        $table.find('input[name*=svn_password]').val(msg.data.svn_password);
+      }
+    });
+  }
+});
 {/literal}{/footer_script}
 
 {if $DEPLOY_PROJECT}

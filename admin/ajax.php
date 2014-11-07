@@ -147,6 +147,25 @@ SELECT *
     close_ajax('success', $content);
   }
   
+  // GET DEFAULT SVN USER
+  case 'get_default_svn_user':
+  {
+    if (empty($_POST['svn_url']) || empty($conf['default_svn_users']))
+    {
+      close_ajax('error'); 
+    }
+    
+    foreach ($conf['default_svn_users'] as $regex => $user)
+    {
+      if (preg_match('#' . $regex . '#i', $_POST['svn_url']))
+      {
+        close_ajax('success', $user);
+      }
+    }
+    
+    close_ajax('error'); 
+  }
+  
   default:
     close_ajax('error', 'Bad parameters');
 }
