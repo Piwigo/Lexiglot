@@ -23,6 +23,9 @@ define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 
+$hooks->do_action('before_language');
+
+
 // +-----------------------------------------------------------------------+
 // |                         LANGUAGE PROPERTIES
 // +-----------------------------------------------------------------------+
@@ -194,6 +197,7 @@ foreach ($users as $row)
 // +-----------------------------------------------------------------------+
 // |                         OUTPUT
 // +-----------------------------------------------------------------------+
+$hooks->do_action('after_language');
 $template->close('language');
 
 ?>

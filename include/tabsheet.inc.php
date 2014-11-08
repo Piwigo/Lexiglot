@@ -53,7 +53,10 @@ class Tabsheet
   
   function render($return=false)
   {
-    global $template;
+    global $template, $hooks;
+    
+    $this->sheets = $hooks->do_action('before_render_tabsheet', $this->sheets, $this);
+    
     $template->set_filename('tabsheet', 'tabsheet.tpl');
     $template->assign('tabsheet', $this->sheets);
     

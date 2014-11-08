@@ -23,6 +23,9 @@ define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 
+$hooks->do_action('before_project');
+
+
 // +-----------------------------------------------------------------------+
 // |                         PROJECT PROPERTIES
 // +-----------------------------------------------------------------------+
@@ -178,6 +181,7 @@ if ( $conf['user_can_add_language'] and is_translator(null, $page['project']) an
 // +-----------------------------------------------------------------------+
 // |                         OUTPUT
 // +-----------------------------------------------------------------------+
+$hooks->do_action('after_project');
 $template->close('project');
 
 ?>

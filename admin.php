@@ -24,6 +24,9 @@ define('IN_ADMIN', 1);
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 include(LEXIGLOT_PATH . 'admin/include/functions.inc.php');
 
+
+$hooks->do_action('before_admin');
+
 // check rights
 if ( !is_manager() and !is_admin() )
 {
@@ -35,6 +38,7 @@ if (is_manager())
 {
   array_push($page['infos'], 'As a project(s) manager you can only view information relative to your project(s).');
 }
+
 
 // +-----------------------------------------------------------------------+
 // |                         LOCATION
@@ -73,7 +77,8 @@ else if (is_manager())
       );
   }
 }
-    
+
+$pages = $hooks->apply_filters('admin_pages_access', $pages);
 
 if ( isset($_GET['page']) and array_key_exists($_GET['page'], array_merge($pages, $sub_pages)) )
 {
@@ -112,6 +117,8 @@ $tabsheet->render(false);
 // +-----------------------------------------------------------------------+
 // |                         MAIN
 // +-----------------------------------------------------------------------+
+$hooks->do_action('before_admin_page', $page['page']);
+
 include(LEXIGLOT_PATH . 'admin/'.$page['page'].'.php');
 
 ?>

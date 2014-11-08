@@ -28,7 +28,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  */
 function build_user($user_id)
 {
-  global $conf, $db;
+  global $conf, $db, $hooks;
   
   if (empty($user_id))
   {
@@ -163,7 +163,7 @@ SELECT project, type
     $user['manage_projects'] = array();
   }
 
-  return $user;
+  return $hooks->apply_filter('build_user', $user);
 }
 
 /**
@@ -430,7 +430,7 @@ function auto_login()
  */
 function log_user($user_id, $remember_me)
 {
-  global $conf, $user;
+  global $conf, $user, $hooks;
 
   if ($remember_me)
   {
@@ -458,6 +458,8 @@ function log_user($user_id, $remember_me)
   }
   
   $user['id'] = $_SESSION['uid'] = (int)$user_id;
+  
+  $hooks->do_action('user_login', $user);
 }
 
 /** 
@@ -465,12 +467,17 @@ function log_user($user_id, $remember_me)
  */
 function logout_user()
 {
-  global $conf;
+  global $conf, $hooks;
+  
+  $user_id = $user['id'];
+  
   $_SESSION = array();
   session_unset();
   session_destroy();
   setcookie(session_name(), '', 0);
   setcookie($conf['remember_me_name'], '', 0);
+  
+  $hooks->do_action('user_logout', $user_id);
 }
 
 /**
@@ -479,7 +486,7 @@ function logout_user()
  */
 function try_log_user($username, $password, $remember_me)
 {
-  global $conf, $db;
+  global $conf, $db, $hooks;
   
   $db->query('SET names '.$conf['users_table_encoding'].';');
   // retrieving the encrypted password of the login submitted
@@ -498,6 +505,8 @@ SELECT
     log_user($row['id'], $remember_me);
     return true;
   }
+  
+  $hooks->do_action('user_login_fail', $username, $password, $remember_me);
   
   return false;
 }
@@ -641,7 +650,7 @@ SELECT count(*)
  */
 function register_user($login, $password, $mail_address)
 {
-  global $conf, $db;
+  global $conf, $db, $hooks;
   
   $errors = array();
   if ($login == '')
@@ -686,8 +695,12 @@ function register_user($login, $password, $mail_address)
       USERS_TABLE,
       array_combine($insert_names, $insert_values)
       );
+      
+    $user_id = $db->insert_id;
     
-    create_user_infos($db->insert_id, 'visitor');
+    create_user_infos($user_id, 'visitor');
+    
+    $hooks->do_action('after_register_user', $user_id);
   }
 
   return $errors;

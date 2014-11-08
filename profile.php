@@ -22,6 +22,9 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
+
+$hooks->do_action('before_profile');
+
 if ( ( isset($_POST['send_message']) or isset($_POST['save_profile']) ) and !verify_ephemeral_key(@$_POST['key']) )
 {
   array_push($page['errors'], 'Invalid/expired form key. <a href="javascript:history.back();">Go Back</a>.');
@@ -364,6 +367,7 @@ $template->assign(array(
 // +-----------------------------------------------------------------------+
 // |                         OUTPUT
 // +-----------------------------------------------------------------------+
+$hooks->do_action('after_profile');
 $template->close('profile');
 
 ?>

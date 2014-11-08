@@ -31,7 +31,7 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
  */
 function load_language($project, $language, $filename, $row_name=null)
 {
-  global $conf;
+  global $conf, $hooks;
   
   $file = load_language_file($project, $language, $filename);
   $db = load_language_db($project, $language, $filename, $row_name);
@@ -47,7 +47,7 @@ function load_language($project, $language, $filename, $row_name=null)
   $out = array_merge($file, $db);
   uasort($out, create_function('&$a,&$b', 'return strcmp($a["row_name"], $b["row_name"]);'));
   
-  return $out;
+  return $hooks->apply_filters('load_language', $out, $project, $language, $filename, $row_name);
 }
 
 /**
@@ -59,7 +59,7 @@ function load_language($project, $language, $filename, $row_name=null)
  */
 function load_language_file($project, $language, $filename)
 {
-  global $conf;
+  global $conf, $hooks;
   
   if (is_plain_file($filename))
   {
@@ -68,10 +68,12 @@ function load_language_file($project, $language, $filename)
   
   ${$conf['var_name']} = array();
   $out = array();
+  $file_uri = $conf['local_dir'].$project.'/'.$language.'/'.$filename;
   
-  if (($file = @file_get_contents($conf['local_dir'].$project.'/'.$language.'/'.$filename)) !== false)
+  $hooks->do_action('before_load_language_php_file', $file_uri);
+  
+  if (($file = @file_get_contents($file_uri)) !== false)
   {
-    eval($conf['exec_before_file']);
     $file = preg_replace('#<\?php#', null, $file, 1); // remove first php open tag
     
     @eval($file); 
@@ -102,10 +104,14 @@ function load_language_file($project, $language, $filename)
 
 function load_language_file_plain($project, $language, $filename)
 {
-  global $conf;
+  global $conf, $hooks;
   
   $out = array();
-  if (($file = @file_get_contents($conf['local_dir'].$project.'/'.$language.'/'.$filename)) !== false)
+  $file_uri = $conf['local_dir'].$project.'/'.$language.'/'.$filename;
+  
+  $hooks->do_action('before_load_language_plain_file', $file_uri);
+  
+  if (($file = @file_get_contents($file_uri)) !== false)
   {
     clean_eol($file);
     
@@ -130,7 +136,9 @@ function load_language_file_plain($project, $language, $filename)
  */
 function load_language_db($project, $language, $filename, $row_name=null)
 {
-  global $conf;
+  global $conf, $hooks;
+  
+  $hooks->do_action('before_load_language_db', $project, $language, $filename);
   
   // must use imbricated query to order before group
   $query = '
@@ -230,43 +238,47 @@ function pop_sub_array($array, $array_name)
  */
 function verify_language_file($filename)
 {
-  global $conf;
+  global $conf, $hooks;
+  
+  $return = true;
   
   if (($file = @file_get_contents($filename)) !== false)
   {
     if ( strpos($file, '<?php')===false or strpos($file, '?>')===false )
     {
-      return array('Warning', 'Missing PHP open and/or close tags');
+      $return = array('Warning', 'Missing PHP open and/or close tags');
     }
-     
-    eval($conf['exec_before_file']);
-    $file = preg_replace('#<\?php#', null, $file, 1);
-    
-    ob_start();
-    eval($file);
-    $out = ob_get_clean();
-    
-    if (preg_match('#( *)Parse error#mi', $out))
+    else
     {
-      return array('Parse error', $out);
-    }
-    else if (preg_match('#( *)Warning#mi', $out))
-    {
-      return array('Warning', $out);
-    }
-    else if (preg_match('#( *)Notice#mi', $out))
-    {
-      return array('Notice', $out);
-    }
-    else 
-    {
-      return true;
+      $hooks->do_action('before_load_language_php_file', $filename);
+      
+      $file = preg_replace('#<\?php#', null, $file, 1);
+      
+      ob_start();
+      eval($file);
+      $out = ob_get_clean();
+      
+      if (preg_match('#( *)Parse error#mi', $out))
+      {
+        $return = array('Parse error', $out);
+      }
+      else if (preg_match('#( *)Warning#mi', $out))
+      {
+        $return = array('Warning', $out);
+      }
+      else if (preg_match('#( *)Notice#mi', $out))
+      {
+        $return = array('Notice', $out);
+      }
     }
   }
-  else
+  
+  if ($return !== true)
   {
-    return true;
+    $hooks->do_action('language_file_error', $filename, $return[0], $return[1]);
   }
+  
+  return $return;
 }
 
 /**
@@ -577,9 +589,9 @@ function highlight_search_result($text, $words, $color="#ff0")
  */
 function generate_commit_message($commit)
 {
-  global $conf;
+  global $conf, $hooks;
   
-  return str_replace(
+  $msg = str_replace(
     array(
       '%project%',
       '%language%',
@@ -592,6 +604,8 @@ function generate_commit_message($commit)
       ),
     $conf['commit_message'][ $commit['is_new']?'add':'edit' ]
     );
+  
+  return $hooks->apply_filters('generate_commit_message', $msg, $commit);
 }
 
 ?>

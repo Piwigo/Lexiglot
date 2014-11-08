@@ -21,7 +21,7 @@
 
 defined('LEXIGLOT_PATH') or die ('Hacking attempt!');
 
-global $page, $conf, $user, $template;
+global $page, $conf, $user, $template, $hooks;
 
 $template->set_filenames(array(
   'header' => 'header.tpl',
@@ -68,5 +68,7 @@ $template->assign(array(
   'page_warnings' => $page['warnings'],
   'page_infos' => $page['infos'],
   ));
+
+$hooks->do_action('after_page_commons');
   
 ?>

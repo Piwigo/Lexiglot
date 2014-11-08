@@ -85,6 +85,17 @@ $conf['all_projects'] = hash_from_query($query, 'id');
 $query = 'SELECT * FROM '.LANGUAGES_TABLE.' ORDER BY rank DESC, id ASC;';
 $conf['all_languages'] = hash_from_query($query, 'id');
 
+// Hooks
+include_once(LEXIGLOT_PAHT . 'include/Hooks.class.php');
+$hooks = new Hooks();
+
+if (!empty($conf['exec_before_file']))
+{
+  $hooks->add_action('before_load_php_language_file', function() use(&$conf) {
+    eval($conf['exec_before_file']);
+  });
+}
+
 // user infos
 $user['id'] = $conf['guest_id'];
 if (isset($_COOKIE[session_name()]))

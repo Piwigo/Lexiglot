@@ -35,6 +35,8 @@ if ( isset($_POST['submit']) and $is_translator )
   }
   else
   {
+    $hooks->do_action('before_save_rows');
+    
     foreach ($_POST['rows'] as $row)
     {
       $key = $row['row_name'];
@@ -53,6 +55,7 @@ if ( isset($_POST['submit']) and $is_translator )
         else
         {
           $status = isset($_LANG[$key]) ? 'edit' : 'new';
+  
           $query = '
 INSERT INTO `'.ROWS_TABLE.'`(
     language,

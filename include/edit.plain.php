@@ -35,7 +35,9 @@ if ( isset($_POST['submit']) and $is_translator )
     array_push($page['errors'], 'Invalid/expired form key');
   }
   else
-  {  
+  {
+    $hooks->do_action('before_save_file');
+    
     $text = $_POST['row_value'];
     clean_eol($text);
 

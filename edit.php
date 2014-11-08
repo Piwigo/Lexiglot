@@ -22,6 +22,10 @@
 define('LEXIGLOT_PATH', './');
 include(LEXIGLOT_PATH . 'include/common.inc.php');
 
+
+$hooks->do_action('before_edit');
+
+
 // +-----------------------------------------------------------------------+
 // |                         PAGE OPTIONS 1 (mandatory)
 // +-----------------------------------------------------------------------+
@@ -275,7 +279,7 @@ foreach ($page['files'] as $file)
 $tabsheet->select($page['file']);
 $tabsheet->render(true);
 
-// popu to reference file
+// popup to reference file
 if (!is_default_language($page['language']))
 {
   $template->assign('REFERENCE_POPUP_LINK', js_popup(
@@ -295,6 +299,8 @@ if (!is_default_language($page['language']))
 
 
 // MAIN PROCESS
+$hooks->do_action('before_edit_page', $page['mode']);
+
 include(LEXIGLOT_PATH . 'include/edit.'.$page['mode'].'.php');
 
 
@@ -338,6 +344,7 @@ if ($is_translator)
 // +-----------------------------------------------------------------------+
 // |                         OUTPUT
 // +-----------------------------------------------------------------------+
+$hooks->do_action('after_edit');
 $template->close('edit');
 
 ?>

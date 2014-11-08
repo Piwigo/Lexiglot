@@ -138,6 +138,8 @@ else if (isset($_POST['register']))
 // +-----------------------------------------------------------------------+
 if (isset($_GET['login'])) 
 {
+  $hooks->do_action('before_login');
+  
   $template->assign(array(
     'IN_LOGIN' => true,
     'WINDOW_TITLE' => 'Login',
@@ -148,6 +150,8 @@ if (isset($_GET['login']))
       'REMEMBER' => isset($_POST['username']) ? !empty($_POST['remember_me']) : true,
       ),
     ));
+    
+  $hooks->do_action('after_login');
 }
 
 // +-----------------------------------------------------------------------+
@@ -155,6 +159,8 @@ if (isset($_GET['login']))
 // +-----------------------------------------------------------------------+
 else if (isset($_GET['password'])) 
 {
+  $hooks->do_action('before_password');
+  
   $template->assign(array(
     'IN_PASSWORD' => true,
     'WINDOW_TITLE' => 'Password reset',
@@ -164,6 +170,8 @@ else if (isset($_GET['password']))
       'EMAIL' => @$_POST['email'],
       ),
     ));
+    
+  $hooks->do_action('after_password');
 }
 
 // +-----------------------------------------------------------------------+
@@ -171,6 +179,8 @@ else if (isset($_GET['password']))
 // +-----------------------------------------------------------------------+
 else if ( isset($_GET['register']) and $conf['allow_registration'] ) 
 {
+  $hooks->do_action('before_register');
+  
   $template->assign(array(
     'IN_REGISTER' => true,
     'WINDOW_TITLE' => 'Register',
@@ -180,6 +190,8 @@ else if ( isset($_GET['register']) and $conf['allow_registration'] )
       'EMAIL' => @$_POST['email'],
       ),
     ));
+    
+  $hooks->do_action('after_register');
 }
 else
 {

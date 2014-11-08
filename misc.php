@@ -128,6 +128,8 @@ INSERT INTO '.TALKS_TABLE.'(
 // +-----------------------------------------------------------------------+
 if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_add_language'] )
 {
+  $hooks->do_action('before_lang_request');
+  
   foreach (array_keys($conf['all_languages']) as $lang)
   {
     $template->append('all_languages', array(
@@ -144,6 +146,7 @@ if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_ad
       ),
     ));
   
+  $hooks->do_action('after_lang_request');
   $template->close('lang_request');
 }
 
@@ -152,6 +155,8 @@ if ( isset($_GET['request_language']) and is_translator() and $conf['user_can_ad
 // +-----------------------------------------------------------------------+
 else if ( isset($_GET['talk']) and $conf['use_talks'] )
 {
+  $hooks->do_action('before_talk');
+  
   $editable = false;
   
   if (isset($_GET['language']))
@@ -208,7 +213,8 @@ SELECT content
     'CURRENT_DATE' => format_date(date('Y-m-d')),
     ));
   }
-    
+  
+  $hooks->do_action('after_talk');
   $template->close('talks');
 }
 else
