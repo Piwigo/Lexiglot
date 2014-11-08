@@ -317,6 +317,13 @@ VALUES (
   '.$commit['is_new'].'
 );';
         $db->query($query);
+
+        $query = '
+UPDATE '.PROJECTS_TABLE.'
+  SET last_update = NOW()
+  WHERE id = "'.$commit['project'].'"
+;';
+        $db->query($query);
       }
       // state: commit with errors
       else if (count($commit['errors'])>0)

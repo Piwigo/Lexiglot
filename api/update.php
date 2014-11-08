@@ -30,23 +30,23 @@ include(LEXIGLOT_PATH . 'include/common.inc.php');
 
 
 // specific repo
-if (!empty($_GET['repo']))
+if (!empty($_REQUEST['repo']))
 {
   $query = '
 SELECT id FROM '.PROJECTS_TABLE.'
-  WHERE svn_url LIKE(\''.mres($_GET['repo']).'%\')
+  WHERE svn_url LIKE(\''.mres($_REQUEST['repo']).'%\')
     AND last_update < NOW() - INTERVAL 1 MINUTE
 ;';
 
   $repos = array_from_query($query, 'id');
 }
 // x oldest repos
-else if (!empty($_GET['auto']) && is_numeric($_GET['auto']))
+else if (!empty($_REQUEST['auto']) && is_numeric($_REQUEST['auto']))
 {
   $query = '
 SELECT id FROM '.PROJECTS_TABLE.'
   WHERE last_update < NOW() - INTERVAL 1 HOUR
-  LIMIT '.intval($_GET['auto']).'
+  LIMIT '.intval($_REQUEST['auto']).'
 ;';
 
   $repos = array_from_query($query, 'id');
@@ -58,6 +58,8 @@ if (!empty($repos))
   foreach ($repos as $repo_id)
   {
     svn_update($conf['local_dir'].$repo_id, $conf['all_projects'][$repo_id]);
+  
+    file_put_contents(LEXIGLOT_PATH . 'update.log', '[' . date('c') . '] ' . $repo_id . "\n", FILE_APPEND);
   }
   
   $query = '
