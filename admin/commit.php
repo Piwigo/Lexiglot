@@ -98,7 +98,7 @@ SELECT * FROM (
   while ($row = $result->fetch_assoc())
   {
     // complicated array usefull to separate each commit
-    $_ROWS[ $row['project'].'||'.$row['language'] ][ $row['file_name'] ][ $row['row_name'] ][] = $row;
+    $_ROWS[ $row['project'] ][ $row['language'] ][ $row['file_name'] ][ $row['row_name'] ][] = $row;
   }
   
   if (!count($_ROWS))

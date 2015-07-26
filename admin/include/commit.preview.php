@@ -26,79 +26,85 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 // |                        PREVIEW COMMIT
 // +-----------------------------------------------------------------------+
 // FOREACH COMMIT
-foreach ($_ROWS as $props => $commit_content)
+foreach ($_ROWS as $commit_project => $project_content)
 {
-  // commit infos
-  $commit = array();
-  list($commit['project'], $commit['language']) = explode('||', $props);
-  $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
-  $commit['is_new'] = dir_is_empty($commit['path']);
-  $commit['users'] = $commit['files'] = array();
+  svn_update($conf['local_dir'].$commit_project, $conf['all_projects'][$commit_project]);
   
-  // FOREACH FILE
-  foreach ($commit_content as $filename => $file_content)
+  foreach ($project_content as $commit_language => $commit_content)
   {
-    $file = array();
-    $file['name'] = $filename;
-    $file['path'] = $commit['path'].$file['name'];
-    $file['is_new'] = !file_exists($file['path']);
-    $file['is_plain'] = is_plain_file($file['name']);
-    $file['rows'] = array();
+    // commit infos
+    $commit = array();
+    $commit['project'] = $commit_project;
+    $commit['language'] = $commit_language;
+    $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
+    $commit['is_new'] = dir_is_empty($commit['path']);
+    $commit['users'] = $commit['files'] = array();
     
-    ## plain file ##
-    if ($file['is_plain'])
+    // FOREACH FILE
+    foreach ($commit_content as $filename => $file_content)
     {
-      $row = $file_content[ $file['name'] ];
-      array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
-      $row[0]['status'] = $row[ count($row)-1 ]['status'];
-      $row[0]['row_value'] = htmlspecialchars($row[0]['row_value']);
+      $file = array();
+      $file['name'] = $filename;
+      $file['path'] = $commit['path'].$file['name'];
+      $file['is_new'] = !file_exists($file['path']);
+      $file['is_plain'] = is_plain_file($file['name']);
+      $file['rows'] = array();
       
-      $file['rows'][] = $row[0];
-    }
-    ## array file ##
-    else
-    {
-      $_LANG =         load_language_file($commit['project'], $commit['language'], $file['name']);
-      $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file['name']);
-      
-      // rows from database (new/edited) we skip obsolete
-      foreach ($file_content as $key => $row)
+      ## plain file ##
+      if ($file['is_plain'])
       {
-        if (!isset($_LANG_default[$key])) continue;
-        if ($row[0]['row_value'] == $conf['equal_to_ref']) continue;
-        
+        $row = $file_content[ $file['name'] ];
         array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
         $row[0]['status'] = $row[ count($row)-1 ]['status'];
         $row[0]['row_value'] = htmlspecialchars($row[0]['row_value']);
-        $row[0]['key'] = htmlspecialchars($key);
         
         $file['rows'][] = $row[0];
       }
-      
-      // obsolete rows from file
-      if (isset($_POST['delete_obsolete']))
+      ## array file ##
+      else
       {
-        foreach ($_LANG as $key => $row)
+        $_LANG =         load_language_file($commit['project'], $commit['language'], $file['name']);
+        $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file['name']);
+        
+        // rows from database (new/edited) we skip obsolete
+        foreach ($file_content as $key => $row)
         {
-          if (!isset($_LANG_default[$key]))
+          if (!isset($_LANG_default[$key])) continue;
+          if ($row[0]['row_value'] == $conf['equal_to_ref']) continue;
+          
+          array_merge_ref($commit['users'], array_unique_deep($row, 'user_id'));
+          $row[0]['status'] = $row[ count($row)-1 ]['status'];
+          $row[0]['row_value'] = htmlspecialchars($row[0]['row_value']);
+          $row[0]['key'] = htmlspecialchars($key);
+          
+          $file['rows'][] = $row[0];
+        }
+        
+        // obsolete rows from file
+        if (isset($_POST['delete_obsolete']))
+        {
+          foreach ($_LANG as $key => $row)
           {
-            $row['status'] = 'obsolete';
-            $row['row_value'] = htmlspecialchars($row['row_value']);
-            $row['key'] = htmlspecialchars($key);
-            
-            $file['rows'][] = $row;
+            if (!isset($_LANG_default[$key]))
+            {
+              $row['status'] = 'obsolete';
+              $row['row_value'] = htmlspecialchars($row['row_value']);
+              $row['key'] = htmlspecialchars($key);
+              
+              $file['rows'][] = $row;
+            }
           }
         }
       }
+      
+      $commit['files'][] = $file;
     }
     
-    $commit['files'][] = $file;
+    $commit['users'] = array_unique($commit['users']);
+    array_walk($commit['users'], 'print_username');
+    
+    $template->append('DATA', $commit);
   }
-  
-  $commit['users'] = array_unique($commit['users']);
-  array_walk($commit['users'], 'print_username');
-  
-  $template->append('DATA', $commit);
 }
 
 

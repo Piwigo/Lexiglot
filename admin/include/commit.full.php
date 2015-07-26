@@ -42,264 +42,267 @@ defined('LEXIGLOT_PATH') or die('Hacking attempt!');
 // |                        UPDATE FILES
 // +-----------------------------------------------------------------------+
 // FOREACH COMMIT
-foreach ($_ROWS as $props => $commit_content)
+foreach ($_ROWS as $commit_project => $project_content)
 {
-  // commit infos
-  $commit = array();
-  list($commit['project'], $commit['language']) = explode('||', $props);
-  $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
-  $commit['is_new'] = dir_is_empty($commit['path']);
-  $commit['users'] = $commit['done_rows'] = $commit['errors'] = array();
-  $commit['modified'] = false;
-  
-  // FOREACH FILE
-  foreach ($commit_content as $filename => $file_content)
+  foreach ($project_content as $commit_language => $commit_content)
   {
-    // file infos
-    $file = array();
-    $file['name'] = $filename;
-    $file['path'] = $commit['path'].$file['name'];
-    $file['is_new'] = !file_exists($file['path']);
-    $file['users'] = $file['done_rows'] = $file['errors'] = array();
-    $file['modified'] = false;
+    // commit infos
+    $commit = array();
+    $commit['project'] = $commit_project;
+    $commit['language'] = $commit_language;
+    $commit['path'] = $conf['local_dir'].$commit['project'].'/'.$commit['language'].'/';
+    $commit['is_new'] = dir_is_empty($commit['path']);
+    $commit['users'] = $commit['done_rows'] = $commit['errors'] = array();
+    $commit['modified'] = false;
     
-    ## plain file ##
-    if (is_plain_file($file['name']))
+    // FOREACH FILE
+    foreach ($commit_content as $filename => $file_content)
     {
-      $row = $file_content[ $file['name'] ];
+      // file infos
+      $file = array();
+      $file['name'] = $filename;
+      $file['path'] = $commit['path'].$file['name'];
+      $file['is_new'] = !file_exists($file['path']);
+      $file['users'] = $file['done_rows'] = $file['errors'] = array();
+      $file['modified'] = false;
       
-      // try to put the content in the file
-      if (deep_file_put_contents($file['path'], $row[0]['row_value']))
+      ## plain file ##
+      if (is_plain_file($file['name']))
       {
-        // keep trace of added row(s), user(s) and mark the file as modified
-        array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
-        array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
-        $file['modified'] = true;
-      }
-      else
-      {
-        array_push($file['errors'], 'Can\'t update/create file \''.$file['path'].'\'');
-      }
-    }
-    ## array file ##
-    else
-    {
-      // load language files
-      $_LANG =         load_language_file($commit['project'], $commit['language'], $file['name']);
-      $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file['name']);
-      
-      // update the file
-      if (!$file['is_new'])
-      {
-        $_FILE = file($file['path'], FILE_IGNORE_NEW_LINES);
-        if ( ($last_index = array_search('?>', $_FILE)) !== false)
-        {
-          unset($_FILE[$last_index]); // remove PHP end tag
-        }
-      }
-      // create the file
-      else
-      {
-        $_FILE = array('<?php', $conf['new_file_content']);
-      }
-      
-      // FOREACH ROW
-      foreach ($file_content as $key => $row)
-      {
-        $sub_string = is_sub_string($key);
+        $row = $file_content[ $file['name'] ];
         
-        /* we search for
-          $lang['a key']
-          $lang["a key"]
-          $lang[a key]
-        */
-        /*if ($sub_string !== false)
+        // try to put the content in the file
+        if (deep_file_put_contents($file['path'], $row[0]['row_value']))
         {
-          $sub = $sub_string;
-          $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$sub[0]).'\'|"'.str_replace('"','\\"',$sub[0]).'"|'.$sub[0].')\]\[(\''.str_replace("'","\\'",$sub[1]).'\'|"'.str_replace('"','\\"',$sub[1]).'"|'.$sub[1].')\]#';
-        }
-        else
-        {
-          $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$key).'\'|"'.str_replace('"','\\"',$key).'"|'.$key.')\]#';
-
-        }*/
-        
-        // supposing how the file line should looks like
-        switch ($conf['quote'])
-        {
-          case "'":
-            if ($sub_string !== false)
-              $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
-            else
-              $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
-            $row[0]['content'] = $row[0]['search']." = '".str_replace("'","\'",$row[0]['row_value'])."';";
-            break;
-          case '"':
-            if ($sub_string !== false)
-              $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
-            else
-              $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
-            $row[0]['content'] = $row[0]['search'].' = "'.str_replace('"','\"',$row[0]['row_value']).'";';
-            break;
-        }
-        
-        // obsolete rows, if translated then removed from the source, must be marked as commited
-        if (!isset($_LANG_default[$key]) || $row[0]['row_value']==$conf['equal_to_ref'])
-        {
+          // keep trace of added row(s), user(s) and mark the file as modified
           array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
-          continue;
+          array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
+          $file['modified'] = true;
         }
-        
-        // update existing line
-        if (
-          !$file['is_new'] and 
-          ($i = array_pos($row[0]['search'], $_FILE)) !== false
-        )
-        {
-          // if the end of the line is not the end of the row, we search the end into lines bellow
-          if (!is_eor($_FILE[$i]))
-          {
-            unset_to_eor($_FILE, $i);
-          }
-          $_FILE[$i] = $row[0]['content'];
-        }
-        // add new line at the end
         else
         {
-          $_FILE[] = $row[0]['content'];
+          array_push($file['errors'], 'Can\'t update/create file \''.$file['path'].'\'');
+        }
+      }
+      ## array file ##
+      else
+      {
+        // load language files
+        $_LANG =         load_language_file($commit['project'], $commit['language'], $file['name']);
+        $_LANG_default = load_language_file($commit['project'], $conf['default_language'], $file['name']);
+        
+        // update the file
+        if (!$file['is_new'])
+        {
+          $_FILE = file($file['path'], FILE_IGNORE_NEW_LINES);
+          if ( ($last_index = array_search('?>', $_FILE)) !== false)
+          {
+            unset($_FILE[$last_index]); // remove PHP end tag
+          }
+        }
+        // create the file
+        else
+        {
+          $_FILE = array('<?php', $conf['new_file_content']);
         }
         
-        // keep trace of added row(s), user(s) and mark the file as modified
-        array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
-        array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
-        $file['modified'] = true;
-      }
-      
-      // obsolete rows from file
-      if ( isset($_POST['delete_obsolete']) and !$file['is_new'] )
-      {
-        foreach ($_LANG as $key => $row)
+        // FOREACH ROW
+        foreach ($file_content as $key => $row)
         {
-          if (!isset($_LANG_default[$key]))
-          {
-            $sub_string = is_sub_string($key);
-            
-            // supposing how the file line should looks like
-            switch ($conf['quote'])
-            {
-              case "'":
-                if ($sub_string !== false)
-                  $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
-                else
-                  $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
-                break;
-              case '"':
-                if ($sub_string !== false)
-                  $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
-                else
-                  $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
-                break;
-            }
+          $sub_string = is_sub_string($key);
           
-            $i = array_pos($row['search'], $_FILE);
-            
+          /* we search for
+            $lang['a key']
+            $lang["a key"]
+            $lang[a key]
+          */
+          /*if ($sub_string !== false)
+          {
+            $sub = $sub_string;
+            $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$sub[0]).'\'|"'.str_replace('"','\\"',$sub[0]).'"|'.$sub[0].')\]\[(\''.str_replace("'","\\'",$sub[1]).'\'|"'.str_replace('"','\\"',$sub[1]).'"|'.$sub[1].')\]#';
+          }
+          else
+          {
+            $search = '#\$'.$conf['var_name'].'\[(\''.str_replace("'","\\'",$key).'\'|"'.str_replace('"','\\"',$key).'"|'.$key.')\]#';
+
+          }*/
+          
+          // supposing how the file line should looks like
+          switch ($conf['quote'])
+          {
+            case "'":
+              if ($sub_string !== false)
+                $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+              else
+                $row[0]['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+              $row[0]['content'] = $row[0]['search']." = '".str_replace("'","\'",$row[0]['row_value'])."';";
+              break;
+            case '"':
+              if ($sub_string !== false)
+                $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+              else
+                $row[0]['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+              $row[0]['content'] = $row[0]['search'].' = "'.str_replace('"','\"',$row[0]['row_value']).'";';
+              break;
+          }
+          
+          // obsolete rows, if translated then removed from the source, must be marked as commited
+          if (!isset($_LANG_default[$key]) || $row[0]['row_value']==$conf['equal_to_ref'])
+          {
+            array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
+            continue;
+          }
+          
+          // update existing line
+          if (
+            !$file['is_new'] and 
+            ($i = array_pos($row[0]['search'], $_FILE)) !== false
+          )
+          {
             // if the end of the line is not the end of the row, we search the end into lines bellow
             if (!is_eor($_FILE[$i]))
             {
               unset_to_eor($_FILE, $i);
             }
-            
-            unset($_FILE[$i]);
-            $file['modified'] = true;
+            $_FILE[$i] = $row[0]['content'];
           }
+          // add new line at the end
+          else
+          {
+            $_FILE[] = $row[0]['content'];
+          }
+          
+          // keep trace of added row(s), user(s) and mark the file as modified
+          array_merge_ref($file['done_rows'], array_unique_deep($row, 'id'));
+          array_merge_ref($file['users'], array_unique_deep($row, 'user_id'));
+          $file['modified'] = true;
+        }
+        
+        // obsolete rows from file
+        if ( isset($_POST['delete_obsolete']) and !$file['is_new'] )
+        {
+          foreach ($_LANG as $key => $row)
+          {
+            if (!isset($_LANG_default[$key]))
+            {
+              $sub_string = is_sub_string($key);
+              
+              // supposing how the file line should looks like
+              switch ($conf['quote'])
+              {
+                case "'":
+                  if ($sub_string !== false)
+                    $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$sub_string[0])."']['".str_replace("'","\'",$sub_string[1])."']";
+                  else
+                    $row['search'] = "$".$conf['var_name']."['".str_replace("'","\'",$key)."']";
+                  break;
+                case '"':
+                  if ($sub_string !== false)
+                    $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$sub_string[0]).'"]["'.str_replace('"','\"',$sub_string[1]).'"]';
+                  else
+                    $row['search'] = '$'.$conf['var_name'].'["'.str_replace('"','\"',$key).'"]';
+                  break;
+              }
+            
+              $i = array_pos($row['search'], $_FILE);
+              
+              // if the end of the line is not the end of the row, we search the end into lines bellow
+              if (!is_eor($_FILE[$i]))
+              {
+                unset_to_eor($_FILE, $i);
+              }
+              
+              unset($_FILE[$i]);
+              $file['modified'] = true;
+            }
+          }
+        }
+        
+        // try to put the content in the file
+        if (!deep_file_put_contents($file['path'], implode($conf['eol'], $_FILE)))
+        {
+          $file['done_rows'] = array();
+          $file['users'] = array();
+          $file['modified'] = false;
+          
+          array_push($file['errors'], 'Can\'t update/create file\''.$file['path'].'\'');
         }
       }
       
-      // try to put the content in the file
-      if (!deep_file_put_contents($file['path'], implode($conf['eol'], $_FILE)))
+      // try to svn_add the file if it's new
+      if ( $file['modified'] and $file['is_new'] ) 
       {
-        $file['done_rows'] = array();
-        $file['users'] = array();
-        $file['modified'] = false;
-        
-        array_push($file['errors'], 'Can\'t update/create file\''.$file['path'].'\'');
+        $svn_result = svn_add($file['path'], true);
+        if ($svn_result['level'] == 'error')
+        {
+          $file['done_rows'] = array();
+          $file['users'] = array();
+          $file['modified'] = false;
+          
+          unlink($file['path']);
+          array_push($file['errors'], 'svn: '.$svn_result['msg']);
+        }
       }
-    }
-    
-    // try to svn_add the file if it's new
-    if ( $file['modified'] and $file['is_new'] ) 
-    {
-      $svn_result = svn_add($file['path'], true);
-      if ($svn_result['level'] == 'error')
-      {
-        $file['done_rows'] = array();
-        $file['users'] = array();
-        $file['modified'] = false;
-        
-        unlink($file['path']);
-        array_push($file['errors'], 'svn: '.$svn_result['msg']);
-      }
-    }
-    
-    // the file was successfully modified/created
-    if ($file['done_rows'] > 0)
-    {
-      array_merge_ref($commit['done_rows'], $file['done_rows']);
-    }
-    if ($file['modified'])
-    {
-      array_merge_ref($commit['users'], $file['users']);
-      $commit['modified'] = true;
-    }
-    
-    // errors occured
-    if (count($file['errors']) > 0)
-    {
-      array_merge_ref($commit['errors'], $file['errors']);
-    }
-  }
-  
-  // users
-  $commit['users'] = array_unique($commit['users']);
-  array_walk($commit['users'], 'print_username');
-  
-  
-  // +-----------------------------------------------------------------------+
-  // |                        SEND COMMIT
-  // +-----------------------------------------------------------------------+
-  $msg_prefix = '['.$commit['project'].'] '.$commit['language'];
-  
-  // state: aborded
-  if ( !$commit['modified'] and count($commit['done_rows'])>0 and count($commit['errors'])==0 )
-  {
-    array_push($page['warnings'], $msg_prefix.': aborded, nothing modified.');
-  }
-  else
-  {
-    // state: commit/commit with errors
-    if ( $commit['modified'] and count($commit['done_rows'])>0 )
-    {
-      $commit['message'] = generate_commit_message($commit);
       
-      $svn_result = svn_commit($commit['path'],
-        $commit['message'],
-        $conf['all_projects'][ $commit['project'] ]
-        );
-      
-      // => fatal error
-      if ($svn_result['level'] == 'error')
+      // the file was successfully modified/created
+      if ($file['done_rows'] > 0)
       {
-        svn_revert($commit['path']);
-        $commit['done_rows'] = array();
-        $commit['modified'] = false;
-        $commit['errors'] = array('svn: '.$svn_result['msg']);
+        array_merge_ref($commit['done_rows'], $file['done_rows']);
       }
-      // state: commit
-      else if (count($commit['errors'])==0)
+      if ($file['modified'])
       {
-        array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
+        array_merge_ref($commit['users'], $file['users']);
+        $commit['modified'] = true;
+      }
+      
+      // errors occured
+      if (count($file['errors']) > 0)
+      {
+        array_merge_ref($commit['errors'], $file['errors']);
+      }
+    }
+    
+    // users
+    $commit['users'] = array_unique($commit['users']);
+    array_walk($commit['users'], 'print_username');
+    
+    
+    // +-----------------------------------------------------------------------+
+    // |                        SEND COMMIT
+    // +-----------------------------------------------------------------------+
+    $msg_prefix = '['.$commit['project'].'] '.$commit['language'];
+    
+    // state: aborded
+    if ( !$commit['modified'] and count($commit['done_rows'])>0 and count($commit['errors'])==0 )
+    {
+      array_push($page['warnings'], $msg_prefix.': aborded, nothing modified.');
+    }
+    else
+    {
+      // state: commit/commit with errors
+      if ( $commit['modified'] and count($commit['done_rows'])>0 )
+      {
+        $commit['message'] = generate_commit_message($commit);
         
-        $query = '
+        $svn_result = svn_commit($commit['path'],
+          $commit['message'],
+          $conf['all_projects'][ $commit['project'] ]
+          );
+        
+        // => fatal error
+        if ($svn_result['level'] == 'error')
+        {
+          svn_revert($commit['path']);
+          $commit['done_rows'] = array();
+          $commit['modified'] = false;
+          $commit['errors'] = array('svn: '.$svn_result['msg']);
+        }
+        // state: commit
+        else if (count($commit['errors'])==0)
+        {
+          array_push($page['infos'], $msg_prefix.': '.$svn_result['msg']);
+          
+          $query = '
 INSERT INTO '.COMMITS_LOG_TABLE.'(
   language,
   project,
@@ -316,55 +319,56 @@ VALUES (
   \''.$db->real_escape_string($svn_result['msg']).'\',
   '.$commit['is_new'].'
 );';
-        $db->query($query);
+          $db->query($query);
 
-        $query = '
+          $query = '
 UPDATE '.PROJECTS_TABLE.'
   SET last_update = NOW()
   WHERE id = "'.$commit['project'].'"
 ;';
-        $db->query($query);
+          $db->query($query);
+        }
+        // state: commit with errors
+        else if (count($commit['errors'])>0)
+        {
+          array_push($page['warnings'], $msg_prefix.': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+        }
       }
-      // state: commit with errors
-      else if (count($commit['errors'])>0)
+      
+      // state: fatal error
+      if ( !$commit['modified'] and count($commit['done_rows'])==0 and count($commit['errors'])>0 )
       {
-        array_push($page['warnings'], $msg_prefix.': '.$svn_result['msg'].', partialy commited, see errors bellow<br>'.implode('<br>', $commit['errors']));
+        array_push($page['errors'], $msg_prefix.': failed, see errors bellow<br>'.implode('<br>', $commit['errors']));
       }
     }
     
-    // state: fatal error
-    if ( !$commit['modified'] and count($commit['done_rows'])==0 and count($commit['errors'])>0 )
+    
+    // update database
+    if (count($commit['done_rows']) > 0)
     {
-      array_push($page['errors'], $msg_prefix.': failed, see errors bellow<br>'.implode('<br>', $commit['errors']));
-    }
-  }
-  
-  
-  // update database
-  if (count($commit['done_rows']) > 0)
-  {
-    // delete rows
-    if ($conf['delete_done_rows'])
-    {
-      $query = '
+      // delete rows
+      if ($conf['delete_done_rows'])
+      {
+        $query = '
 DELETE FROM '.ROWS_TABLE.'
   WHERE id IN('.implode(',', $commit['done_rows']).')
 ;';
-      $db->query($query);
-    }
-    // set rows as done
-    else
-    {
+        $db->query($query);
+      }
+      // set rows as done
+      else
+      {
       $query = '
 UPDATE '.ROWS_TABLE.'
   SET status = "done"
   WHERE id IN('.implode(',', $commit['done_rows']).')
 ;';
-      $db->query($query);
+        $db->query($query);
+      }
     }
+    
+    make_stats($commit['project'], $commit['language']);  
   }
-  
-  make_stats($commit['project'], $commit['language']);  
 }
 
 
