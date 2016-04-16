@@ -1,4 +1,5 @@
-# Lexiglot
+![Lexiglot](/logo.png?raw=true)
+
 A translation platform for PHP projects developed in PHP.
 
 ## Secure your installation

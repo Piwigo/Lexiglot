@@ -1,0 +1,17 @@
+# Lexiglot specific
+/_data
+/local/*
+./local/index.php
+./local/.htaccess
+/config/config_local.inc.php
+/config/database.inc.php
+
+# IntelliJ
+.idea
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.settings
+.project
